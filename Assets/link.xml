@@ -1,0 +1,7 @@
+﻿<linker>
+	<assembly fullname="Unity.Timeline">
+        <namespace fullname="UnityEngine.Timeline" preserve="all"/>
+    </assembly>
+	<!-- 裁剪引发的打包错误 仅debug包出现该错误 -->
+	<assembly fullname="System.Text.Json" preserve="all"/>
+</linker>

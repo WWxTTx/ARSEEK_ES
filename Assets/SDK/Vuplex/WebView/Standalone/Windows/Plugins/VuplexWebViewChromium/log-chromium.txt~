@@ -1,0 +1,67 @@
+[0411/182830.055:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/182830.064:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/182830.074:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/182830.083:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/182841.961:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0411/183031.978:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/183031.986:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/183031.996:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/183032.005:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/183054.774:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0411/183603.820:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/183603.829:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/183603.838:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/183603.847:ERROR:sandbox_win.cc(923)] Sandbox cannot access executable. Check filesystem permissions are valid. See https://bit.ly/31yqMJR.: 操作成功完成。 (0x0)
+[0411/183741.844:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0418/142541.928:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0419/110729.400:WARNING:sqlite_persistent_store_backend_base.cc(165)] Failed to post task from FlushAndNotifyInBackground@net/extras/sqlite/sqlite_persistent_store_backend_base.cc:213 to client_task_runner_.
+[0419/110729.413:WARNING:sqlite_persistent_store_backend_base.cc(165)] Failed to post task from FlushAndNotifyInBackground@net/extras/sqlite/sqlite_persistent_store_backend_base.cc:213 to client_task_runner_.
+[0419/110729.505:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0423/152708.867:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0427/190755.830:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0428/092718.509:ERROR:gpu_init.cc(446)] Passthrough is not supported, GL is disabled, ANGLE is 
+[0428/093604.394:WARNING:spdy_session.cc(3541)] Received HEADERS for invalid stream 91
+[0428/093903.268:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0428/101210.737:ERROR:gpu_init.cc(446)] Passthrough is not supported, GL is disabled, ANGLE is 
+[0428/102204.025:WARNING:sqlite_persistent_store_backend_base.cc(165)] Failed to post task from FlushAndNotifyInBackground@net/extras/sqlite/sqlite_persistent_store_backend_base.cc:213 to client_task_runner_.
+[0428/102204.025:WARNING:sqlite_persistent_store_backend_base.cc(165)] Failed to post task from FlushAndNotifyInBackground@net/extras/sqlite/sqlite_persistent_store_backend_base.cc:213 to client_task_runner_.
+[0428/102204.087:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0428/102745.639:ERROR:gpu_init.cc(446)] Passthrough is not supported, GL is disabled, ANGLE is 
+[0428/103052.062:WARNING:sqlite_persistent_store_backend_base.cc(165)] Failed to post task from FlushAndNotifyInBackground@net/extras/sqlite/sqlite_persistent_store_backend_base.cc:213 to client_task_runner_.
+[0428/103052.063:WARNING:sqlite_persistent_store_backend_base.cc(165)] Failed to post task from FlushAndNotifyInBackground@net/extras/sqlite/sqlite_persistent_store_backend_base.cc:213 to client_task_runner_.
+[0428/103052.108:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0428/104303.173:WARNING:spdy_session.cc(3541)] Received HEADERS for invalid stream 13
+[0428/104447.505:ERROR:gpu_init.cc(446)] Passthrough is not supported, GL is disabled, ANGLE is 
+[0428/105352.307:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0905/142828.343:WARNING:spdy_session.cc(3541)] Received HEADERS for invalid stream 17
+[0905/142837.626:WARNING:spdy_session.cc(3541)] Received HEADERS for invalid stream 27
+[0905/142856.146:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0905/144556.139:WARNING:spdy_session.cc(3541)] Received HEADERS for invalid stream 23
+[0905/144556.233:WARNING:spdy_session.cc(3541)] Received HEADERS for invalid stream 5
+[0905/144558.664:WARNING:spdy_session.cc(3541)] Received HEADERS for invalid stream 13
+[0905/144558.841:WARNING:spdy_session.cc(3541)] Received HEADERS for invalid stream 15
+[0905/144753.953:ERROR:gpu_init.cc(446)] Passthrough is not supported, GL is disabled, ANGLE is 
+[0905/144927.825:WARNING:task_impl.cc(32)] No task runner for threadId 0
+[0723/141201.590:ERROR:gpu_init.cc(446)] Passthrough is not supported, GL is disabled, ANGLE is 
+[0723/145647.306:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145647.307:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145650.895:ERROR:ChromiumLogFunctions.h(15)] [WindowsChromiumToPluginBridge] ReadFile failed with error code: 109
+[0723/145652.309:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145652.324:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145654.253:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145654.254:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145657.313:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145657.329:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145659.265:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145659.267:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145702.332:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145702.346:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145704.270:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145704.284:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145707.341:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145707.356:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145709.276:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145709.290:WARNING:dns_config_service_win.cc(512)] Failed to read DnsConfig.
+[0723/145803.163:ERROR:ChromiumLogFunctions.h(15)] Didn't receive a heartbeat message from the main process, so it must have died. Terminating the Vuplex WebView Chromium process...
+[0723/145803.903:ERROR:ChromiumLogFunctions.h(15)] [WindowsChromiumToPluginBridge] WriteFile failed with error code: 232
+[0725/113113.406:ERROR:gpu_init.cc(446)] Passthrough is not supported, GL is disabled, ANGLE is 
