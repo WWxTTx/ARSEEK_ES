@@ -1757,6 +1757,7 @@ public class BehaveObserve : BehaveDotween
         Camera.main.transform.eulerAngles = angle;
         ModelManager.Instance.CameraDotween = false;
     }
+
     public override void SaveInitialState()
     {
         base.SaveInitialState();

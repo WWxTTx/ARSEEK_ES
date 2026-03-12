@@ -436,7 +436,7 @@ public class UISmallSceneToolModule : UIModuleBase
             .Select(prop => new DrawingData()
             {
                 name = prop.Name,
-                sprite = prop.transform.Find("WindowView/View/Show")?.GetComponent<Image>()?.sprite
+                sprite = prop.GetComponent<Image>()?.sprite
             })
             .ToList();
 

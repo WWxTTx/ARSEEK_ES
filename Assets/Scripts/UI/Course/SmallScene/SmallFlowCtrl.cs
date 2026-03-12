@@ -114,9 +114,9 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public Dictionary<string, ModelOperation> operationIDs;
     /// <summary>
-    /// 所有操作UI触发道具及联动物体集合   旧版没有使用UI来控制物体旋转 CustomSprits时间有限 只处理了本地 没有处理联机
+    /// 所有操作UI触发道具及联动物体集合
     /// </summary>
-    //public Dictionary<string, Transform> uiRotateModels;
+    public Dictionary<string, Transform> uiRotateModels = new Dictionary<string, Transform>();
     /// <summary>
     /// 所有自动触发道具集合
     /// </summary>
@@ -440,24 +440,25 @@ public class SmallFlowCtrl : MonoBase
             else
             {
                 operationIDs.Add(modelInfo.ID, op);
-                op.initState = op.currentState;
+                op.initState = op.currentState; 
 
                 // 设置操作道具初始显示
                 if (!string.IsNullOrEmpty(op.initState) && !op.initState.Equals(naviFlag))
                     SetFinalState(op, op.initState, true);
 
                 // ui操作联动模型
-                //if (modelInfo.InfoData != null && modelInfo.InfoData.InteractMode == InteractMode.OpUI)
-                //{
-                //    OpUIData info = modelInfo.InfoData.interactData as OpUIData;
-                //    if(info.targetObject != null)
-                //    {
-                //        uiRotateModels.Add(modelInfo.ID, info.targetObject);
-                //    }
-                //}
+                if (modelInfo.InfoData != null && modelInfo.InfoData.InteractMode == InteractMode.OpUI)
+                {
+                    OpUIData info = modelInfo.InfoData.interactData as OpUIData;
+                    if (info.targetObject != null)
+                    {
+                        uiRotateModels.Add(modelInfo.ID, info.targetObject);
+                    }
+                }
             }
         }
     }
+
 
     /// <summary>
     /// 初始化背包道具/上位机道具
@@ -1770,9 +1771,6 @@ public class SmallFlowCtrl : MonoBase
                         }
                     }
 
-                    if(optionName.Contains("1号整流柜")|| optionName.Contains("灭磁柜"))
-                        Debug.Log(operation.name + "-设置为最终状态-" + optionName);
-
                     CheckKeywords(operation, optionName, false);
 
                     if (!(optionName.Equals(observeFlag)
@@ -1787,7 +1785,14 @@ public class SmallFlowCtrl : MonoBase
 
                     for (int k = 0; k < op.behaveBases.Count; k++)
                     {
-                        op.behaveBases[k].SetFinalState(/*dummy*/);
+                        try
+                        {
+                            op.behaveBases[k].SetFinalState();
+                        }
+                        catch
+                        {
+                            Debug.LogError(operation.name + "    " + op.behaveBases[k].behaveType + "  该物体配置错误");
+                        }
                     }
 
                     if (op.actions != null && op.actions.Count > 0)
@@ -1795,8 +1800,16 @@ public class SmallFlowCtrl : MonoBase
                         for (int m = 0; m < op.actions.Count; m++)
                         {
                             // todo 自动触发道具状态不受步骤切换影响
-                            if (op.actions[m].operation != null && op.actions[m].operation.GetComponent<ModelInfo>().PropType != PropType.Auto)
-                                SetFinalState(op.actions[m].operation, op.actions[m].optionName, ignoreCondition);
+                            try
+                            {
+                                if (op.actions[m].operation.GetComponent<ModelInfo>().PropType != PropType.Auto)
+                                    SetFinalState(op.actions[m].operation, op.actions[m].optionName);
+
+                            }
+                            catch
+                            {
+                                Debug.LogError(operation.name + "  该物体配置错误");
+                            }
                         }
                     }
                 }
@@ -1820,13 +1833,13 @@ public class SmallFlowCtrl : MonoBase
 
             SetFinalState(operationIDs[item.id], item.optionName, true);
 
-            //if (uiRotateModels.TryGetValue(item.id, out Transform model) && model != null)
-            //{
-            //    if((operationIDs[item.id].GetComponent<ModelInfo>().InfoData.interactData as OpUIData).content != null)
-            //    {
-            //        model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), item.uiTargetModelEulerZ);
-            //    }
-            //}
+            if (uiRotateModels.TryGetValue(item.id, out Transform model) && model != null)
+            {
+                if ((operationIDs[item.id].GetComponent<ModelInfo>().InfoData.interactData as OpUIData).content != null)
+                {
+                    model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), item.uiTargetModelEulerZ);
+                }
+            }
         }
         if (GlobalInfo.EnableFlow)
         {
@@ -1995,17 +2008,17 @@ public class SmallFlowCtrl : MonoBase
 
         switch (msg.msgId)
         {
-            //case (ushort)ModelOperateEvent.Rotate:
-            //    if ((msg as MsgBrodcastOperate).senderId == GlobalInfo.account.id)
-            //        return;
- 
-            //    // 同步其他成员UI操作联动模型旋转
-            //    MsgModelRotate msgModelRotate = (msg as MsgBrodcastOperate).GetData<MsgModelRotate>();
-            //    if (uiRotateModels.TryGetValue(msgModelRotate.id, out Transform model) && model != null)
-            //    {
-            //        model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), msgModelRotate.angleZ);
-            //    }
-            //    break;
+            case (ushort)ModelOperateEvent.Rotate:
+                if ((msg as MsgBrodcastOperate).senderId == GlobalInfo.account.id)
+                    return;
+
+                // 同步其他成员UI操作联动模型旋转
+                MsgModelRotate msgModelRotate = (msg as MsgBrodcastOperate).GetData<MsgModelRotate>();
+                if (uiRotateModels.TryGetValue(msgModelRotate.id, out Transform model) && model != null)
+                {
+                    model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), msgModelRotate.angleZ);
+                }
+                break;
             //case (ushort)SmallFlowModuleEvent.StepEnd:
             //    // 状态同步
             //    if ((msg as MsgBrodcastOperate).senderId != GlobalInfo.account.id || NetworkManager.Instance.IsIMSyncState || NetworkManager.Instance.IsIMSyncCachedState)
@@ -2069,27 +2082,27 @@ public class SmallFlowCtrl : MonoBase
         List<OpDicData> states = new List<OpDicData>();
         foreach (var op in operationIDs)
         {
-            var modelInfo = op.Value.GetComponent<ModelInfo>(); 
-            //if (uiRotateModels.TryGetValue(op.Key, out Transform model) && model != null)
-            //{
-            //    if((modelInfo.InfoData.interactData as OpUIData).content != null)
-            //    {
-            //        states.Add(new OpDicData()
-            //        {
-            //            id = op.Key,
-            //            optionName = op.Value.currentState,
-            //            uiTargetModelEulerZ = model.localEulerAngles.z
-            //        });
-            //    }
-            //    else
-            //    {
-            //        if (!op.Value.currentState.Equals(op.Value.initState))
-            //        {
-            //            states.Add(new OpDicData(op.Key, op.Value.currentState));
-            //        }
-            //    }
-            //}
-            //else
+            var modelInfo = op.Value.GetComponent<ModelInfo>();
+            if (uiRotateModels.TryGetValue(op.Key, out Transform model) && model != null)
+            {
+                if ((modelInfo.InfoData.interactData as OpUIData).content != null)
+                {
+                    states.Add(new OpDicData()
+                    {
+                        id = op.Key,
+                        optionName = op.Value.currentState,
+                        uiTargetModelEulerZ = model.localEulerAngles.z
+                    });
+                }
+                else
+                {
+                    if (!op.Value.currentState.Equals(op.Value.initState))
+                    {
+                        states.Add(new OpDicData(op.Key, op.Value.currentState));
+                    }
+                }
+            }
+            else
             {
                 if (!op.Value.currentState.Equals(op.Value.initState))
                 {
@@ -2110,7 +2123,7 @@ public class SmallFlowCtrl : MonoBase
         if (!toolIDs.ContainsKey(schematicSprite.name))
         {
             // 获取Backpack父节点
-            Transform backpack = transform.parent.Find("Backpack");
+            Transform backpack = transform.Find("Backpack");
 
             // 创建图纸GameObject
             GameObject schematicObj = new GameObject(schematicSprite.name);

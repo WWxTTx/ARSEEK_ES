@@ -45,7 +45,7 @@ public class UISmallSceneInfoModule : UIModuleBase
 
         SpeechManager.Instance.SetTipUI((speechData) =>
         {
-            if (speechData != null)
+            if (speechData != null && text != null)
             {
                 text.text = speechData.text.Replace(" ", no_breaking_space);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(text.rectTransform);

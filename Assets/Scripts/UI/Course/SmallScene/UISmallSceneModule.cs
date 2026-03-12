@@ -444,6 +444,7 @@ public class UISmallSceneModule : UIModuleBase
         });
 
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", false);
+
         InitModel(uiData);
         Init();
     }
@@ -478,6 +479,7 @@ public class UISmallSceneModule : UIModuleBase
             smallFlowCtrl.Init(GlobalInfo.isExam || !GlobalInfo.EnableFlow, true);
             SaveFlowStepName();
         }
+
         // 仿真系统初始化
         if (simuSystem != null)
         {
