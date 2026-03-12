@@ -270,7 +270,7 @@ public class BehaveCustomScript : BehaveBase
     {
         if (GetBehaviour())
         {
-            behaviour.SetFinalState(Step);
+            behaviour.SetFinalState();
             SaveInitialState();
         }
     }

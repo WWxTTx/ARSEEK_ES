@@ -1795,7 +1795,6 @@
     <None Include="Assets\SDK\FMETP_STREAM\FMCore\Plugins\FMZip\FMSharpZip.dll" />
     <None Include="Assets\Packages\Microsoft.Extensions.Logging.8.0.0\lib\net462\Microsoft.Extensions.Logging.xml" />
     <None Include="Assets\Packages\Microsoft.AspNetCore.SignalR.Client.Core.8.0.3\lib\net462\Microsoft.AspNetCore.SignalR.Client.Core.xml" />
-    <None Include="Assets\SDK\Vuplex\WebView\Standalone\Windows\Plugins\VuplexWebViewChromium\libcef.dll" />
     <None Include="Assets\SDK\Demigiant\DOTweenPro\DOTweenPro.dll" />
     <None Include="Assets\SDK\FMETP_STREAM\FMCore\Shaders\multiTiles2x2.shader" />
     <None Include="Assets\SDK\Demigiant\DOTweenPro\readme.txt" />
@@ -1856,7 +1855,6 @@
     <None Include="Assets\Packages\System.IO.Pipelines.8.0.0\lib\net462\System.IO.Pipelines.xml" />
     <None Include="Assets\Packages\Microsoft.Extensions.Logging.Abstractions.8.0.1\analyzers\dotnet\roslyn4.0\cs\ko\Microsoft.Extensions.Logging.Generators.resources.dll" />
     <None Include="Assets\SDK\TextMesh Pro\Resources\Shaders\TMP_SDF Overlay.shader" />
-    <None Include="Assets\SDK\Vuplex\WebView\Standalone\Windows\Plugins\libcef_with_codecs.dll" />
     <None Include="Assets\Packages\System.Memory.4.5.5\useSharedDesignerContext.txt" />
     <None Include="Assets\Packages\Microsoft.Bcl.TimeProvider.8.0.1\useSharedDesignerContext.txt" />
     <None Include="Assets\Packages\System.Text.Encodings.Web.8.0.0\LICENSE.TXT" />

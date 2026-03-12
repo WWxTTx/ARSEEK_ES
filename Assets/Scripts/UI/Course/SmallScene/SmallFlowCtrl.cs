@@ -2104,46 +2104,45 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 通过Sprite动态创建并添加图纸的道具信息
     /// </summary>
-    /// <param name="prefab">图纸预制体</param>
     /// <param name="schematicSprite">图纸图片</param>
-    public void AddSchematic(GameObject prefab, Sprite schematicSprite)
+    public void AddSchematic(Sprite schematicSprite)
     {
-        ModelInfo modelInfo = null;
         if (!toolIDs.ContainsKey(schematicSprite.name))
         {
             // 获取Backpack父节点
-            Transform backpack = transform.Find("Backpack");
+            Transform backpack = transform.parent.Find("Backpack");
 
             // 创建图纸GameObject
-            GameObject schematicObj = GameObject.Instantiate<GameObject>(prefab, backpack);
+            GameObject schematicObj = new GameObject(schematicSprite.name);
+            schematicObj.transform.SetParent(backpack);
 
             // 添加ModelInfo组件
-            modelInfo = schematicObj.AddComponent<ModelInfo>();
+            ModelInfo modelInfo = schematicObj.AddComponent<ModelInfo>();
             modelInfo.ID = schematicSprite.name;
             modelInfo.Name = schematicSprite.name;
             modelInfo.PropType = PropType.Schematics;
 
-            // 设置图片
-            Image image = schematicObj.transform.Find("WindowView/View/Show").GetComponent<Image>();
-            if (image != null)
-            {
-                image.sprite = schematicSprite;
-                image.preserveAspect = true;
-                image.raycastTarget = false;
-            }
+            Image image = schematicObj.AddComponent<Image>();
+            image.sprite = schematicSprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
 
             // 添加到工具字典
             toolIDs.Add(schematicSprite.name, modelInfo);
+            // 触发图纸添加事件 进入下一步会刷新工具栏状态，需要先刷再生成，才能隐藏工具栏
+            DOVirtual.DelayedCall(0.1f, () =>
+            {
+                onSchematicAdded.Invoke(modelInfo);
+            });
         }
         else
         {
-            modelInfo = toolIDs[schematicSprite.name];
+            // 触发图纸添加事件 进入下一步会刷新工具栏状态，需要先刷再生成，才能隐藏工具栏
+            DOVirtual.DelayedCall(0.1f, () =>
+            {
+                onSchematicAdded.Invoke(toolIDs[schematicSprite.name]);
+            });
         }
-        // 触发图纸添加事件 进入下一步会刷新工具栏状态，需要先刷再生成，才能隐藏工具栏
-        DOVirtual.DelayedCall(0.1f, () =>
-        {
-            onSchematicAdded.Invoke(modelInfo);
-        });
     }
 
     protected override void OnDestroy()
