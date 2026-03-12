@@ -112,16 +112,9 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
         switch (status)
         {
             case AvailableStatus.巡检:
-                if (!PanelDic["操作界面"].gameObject.activeSelf)
-                {
-                    string[] flow = { "主操作画面", "通信状态", "频率t", "桨叶开度t", "导叶开度t", "水头t", "B机t" };
-                    steps = flow.ToList();
-                }
-                else
-                {
-                    string[] flow = {"通信状态", "频率t", "桨叶开度t", "导叶开度t", "水头t", "B机t" };
-                    steps = flow.ToList();
-                }
+                
+                string[] flow0 = { "通信状态", "频率t", "桨叶开度t", "导叶开度t", "水头t", "B机t" };
+                steps = flow0.ToList();
                 StartFlow();
                 callback = () =>
                 {
@@ -139,8 +132,8 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 break;
             case AvailableStatus.查看故障信息:
                 AddErroEvent(LCU_mlfsjs.GetTime() + "    导叶开度传感器故障");
-                string[] flow0 = { "事件报告"};
-                steps = flow0.ToList();
+                string[] flow1 = { "事件报告"};
+                steps = flow1.ToList();
                 StartFlow();
                 break;
             case AvailableStatus.传感器定位试验:
@@ -1144,11 +1137,11 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 break;
             case "水头t":
                 smallSceneModule.ShowHint("水头与实际相符", -1);
-                UIButtons[33].gameObject.SetActive(true);
+                UIButtons[0].gameObject.SetActive(true);
                 break;
             case "B机t":
                 smallSceneModule.ShowHint("A、B套除“导叶给定”、“导叶反馈”、“桨叶给定”、“桨叶反馈”略有差异外，其余参数保持一致", -1);
-                UIButtons[33].gameObject.SetActive(false);
+                UIButtons[0].gameObject.SetActive(false);
                 break;
             case "开度给定增加":
                 kd = float.Parse(TextDic["导叶开度"].text);
@@ -1501,8 +1494,8 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             TextDic["导叶开度"].text = "13.91";
             TextDic["导叶目标值"].text = "14.00";
             TextDic["机组频率"].text = "50.00";
-            TextDic["桨叶开度"].text = "12.99";
-            TextDic["桨叶目标值"].text = "13";
+            TextDic["桨叶开度"].text = "1.49";
+            TextDic["桨叶目标值"].text = "1.5";
 
             TextDic["电网频率"].text = "49.93";
             TextDic["残压测频"].text = "49.93";

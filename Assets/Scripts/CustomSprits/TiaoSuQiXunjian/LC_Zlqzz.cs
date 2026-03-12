@@ -568,8 +568,19 @@ public class LC_Zlqzz : MonoBehaviour, IBaseBehaviour
     public Transform _tip;
     void SetGuideTip(int[] node)
     {
-        _tip.gameObject.SetActive(true);
         int last = selectNode.Count - 1;
+
+        // 检查前面所有层级的选择是否正确
+        for (int i = 0; i < last; i++)
+        {
+            if (selectIndex[i] != node[i])
+            {
+                _tip.gameObject.SetActive(false);
+                return;
+            }
+        }
+
+        _tip.gameObject.SetActive(true);
         List<GameObject> lastlist = GetCerrenList(last);
         for (int i = 0; i < lastlist.Count; i++)
         {

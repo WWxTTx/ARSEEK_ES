@@ -217,17 +217,21 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
                 bjjm.SetActive(false);
                 kzjm.SetActive(false);
                 SetScreen(true);
+                smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "断路器断开":
                 dlq.color = gre;
+                smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "断路器断合":
                 dlq.color = red;
+                smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "空载运行":
                 cs[14].text = "空载态";//状态文字
                 dlq.color = gre;
                 zttb.color = yel;
+                smallSceneModule.ModelState = ModelState.Operated;
                 break;
         }
     }

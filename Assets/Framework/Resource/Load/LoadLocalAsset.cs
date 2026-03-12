@@ -670,7 +670,10 @@ namespace UnityFramework.Runtime
         {
             foreach (var item in abs)
             {
-                item.Value?.Unload(true);
+                if (item.Value != null)
+                {
+                    item.Value.Unload(true);
+                }
             }
 
             abs.Clear();
