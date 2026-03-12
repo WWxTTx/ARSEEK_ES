@@ -4,3 +4,7 @@
 /Temp
 /.vs
 /.git
+
+# 大文件 - 超过GitHub 100MB限制
+Assets/SDK/Vuplex/WebView/Standalone/Windows/Plugins/libcef_with_codecs.dll
+Assets/SDK/Vuplex/WebView/Standalone/Windows/Plugins/VuplexWebViewChromium/libcef.dll

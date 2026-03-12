@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -type f -size +10M 2>/dev/null | while read f; do ls -lh \"$f\"; done)",
+      "Bash(git rev-list:*)",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(rm -rf .git/refs/original/ && git reflog expire --expire=now --all && git gc --prune=now --aggressive)",
+      "Bash(git push:*)"
+    ]
+  }
+}
