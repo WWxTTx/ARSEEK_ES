@@ -34,7 +34,6 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
     UnityAction callback;
     UISmallSceneModule smallSceneModule;
 
-    Tween SetTime;
     AvailableStatus status;
     void IBaseBehaviour.Execute(int step, UnityAction callback)
     {
@@ -147,7 +146,7 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
             cs[3].text = "0";
             cs[4].text = "0";
             cs[5].text = "0";
-            cs[6].text = "100.00";//转速 
+            cs[6].text = "100";//转速 
             cs[7].text = "0";
             cs[8].text = "0";
             cs[9].text = "0";
@@ -185,23 +184,9 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
         }
     }
 
-    void Start()
-    {
-        if (SetTime != null)
-        {
-            SetTime.Kill();
-            SetTime = null;
-        }
-        SetTime = DOVirtual.DelayedCall(1, () =>
-        {
-            cs[15].text = GetTime();
-        }).SetLoops(-1);
-    }
 
     void IBaseBehaviour.SetFinalState()
     {
-        SetTime.Kill();
-        SetTime = null;
         SetImageRaycast(true);
     }
 
@@ -227,19 +212,15 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
                 break;
             case "负载运行":
                 SetScreen(2);
-                smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "断路器断开":
                 SetScreen(1);
-                smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "断路器断合":
                 SetScreen(2);
-                smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "空载运行":
                 SetScreen(1);
-                smallSceneModule.ModelState = ModelState.Operated;
                 break;
         }
         if (eventname == "控制")

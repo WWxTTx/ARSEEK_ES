@@ -243,7 +243,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
 
                     DOTween.To(() => 0f, x =>
                     {
-                        TextDic["桨叶反馈工程值"].text = ((int)x).ToString();
+                        TextDic["桨叶反馈工程值"].text = ((int)x).ToString("F2");
                         TextDic["实测值"].text = Mathf.Clamp(x / 100, 15470, 29119).ToString("F2");
                         TextDic["导叶开度"].text = x.ToString("F2");
                         TextDic["导叶目标值"].text = x.ToString("F2");
@@ -301,7 +301,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                     RotationControl(32, 3.2f);
                     DOTween.To(() => 99f, x =>
                     {
-                        TextDic["桨叶反馈工程值"].text = ((int)x).ToString();
+                        TextDic["桨叶反馈工程值"].text = ((int)x).ToString("F2");
                         TextDic["实测值"].text = Mathf.Clamp(x / 100, 15470, 29119).ToString("F2");
                         TextDic["导叶开度"].text = x.ToString("F2");
                         TextDic["导叶目标值"].text = x.ToString("F2");
@@ -313,7 +313,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                     {
                         DOTween.To(() => 32f, x =>
                         {
-                            TextDic["桨叶反馈工程值"].text = ((int)x).ToString();
+                            TextDic["桨叶反馈工程值"].text = ((int)x).ToString("F2");
                             TextDic["实测值"].text = Mathf.Clamp(x / 100, 15470, 29119).ToString("F2");
                             TextDic["导叶开度"].text = x.ToString("F2");
                             TextDic["导叶目标值"].text = x.ToString("F2");
@@ -619,7 +619,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 TextDic["r扰动频率"].text = "50.00";
                 if (TextDic["主用"].text == "A机")
                 {
-                    string[] flow6 = { "试验", "空载频率扰动试验", "r频率减", "r跟踪频给", "r试验开始" };
+                    string[] flow6 = { "试验", "空载频率扰动试验", "r频率增", "r跟踪频给", "r试验开始" };
                     steps = flow6.ToList();
                 }
                 else
@@ -938,7 +938,6 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
         Settip(TextDic["机组转速"], true);
         DOTween.To(() => 48f, x =>
         {
-            TextDic["电网频率"].text = x.ToString("F2");
             TextDic["机组频率"].text = x.ToString("F2");
             TextDic["残压测频"].text = x.ToString("F2");
             TextDic["机组转速"].text = (x * 2).ToString("F2");
@@ -1238,7 +1237,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             case "测量零点":
                 DOTween.To(() => 15435, x =>
                 {
-                    TextDic["测量零点"].text = x.ToString();
+                    TextDic["测量零点"].text = x.ToString("F2");
                 }, 15470, 1).OnComplete(() =>
                 {
                     TextDic["导叶开度"].text = "0.00";
@@ -1248,7 +1247,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             case "测量增益":
                 DOTween.To(() => 28828, x =>
                 {
-                    TextDic["测量增益"].text = x.ToString();
+                    TextDic["测量增益"].text = x.ToString("F2");
                 }, 29119, 1).OnComplete(() =>
                 {
                     TextDic["导叶开度"].text = "100.00";
@@ -1298,33 +1297,33 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             case "b电气开限":
                 DOTween.To(() => 0, x =>
                 {
-                    TextDic["b电气开限"].text = x.ToString();
+                    TextDic["b电气开限"].text = x.ToString("F2");
                 }, 99.99, 1);
                 break;
             case "空载调节PID":
                 DOTween.To(() => 0f, x =>
                 {
-                    TextDic["kzKp"].text = Mathf.Lerp(0.45f, 2.75f, x).ToString();
-                    TextDic["kzKd"].text = Mathf.Lerp(0f, 0.5f, x).ToString();
+                    TextDic["kzKp"].text = Mathf.Lerp(0.45f, 2.75f, x).ToString("F2");
+                    TextDic["kzKd"].text = Mathf.Lerp(0f, 0.5f, x).ToString("F2");
                 }, 1f, 1);
                 break;
             case "r频率增":
                 DOTween.To(() => 0f, x =>
                 {
-                    TextDic["r扰动频率"].text = Mathf.Lerp(50.00f, 52.00f, x).ToString();
+                    TextDic["r扰动频率"].text = Mathf.Lerp(50.00f, 52.00f, x).ToString("F2");
                 }, 1f, 1);
                 break;
             case "r频率减":
                 DOTween.To(() => 0f, x =>
                 {
-                    TextDic["r扰动频率"].text = Mathf.Lerp(50.00f, 48.00f, x).ToString();
+                    TextDic["r扰动频率"].text = Mathf.Lerp(50.00f, 48.00f, x).ToString("F2");
                 }, 1f, 1);
                 break;
             case "频率调节PID":
                 DOTween.To(() => 0f, x =>
                 {
-                    TextDic["PlKp"].text = Mathf.Lerp(0.45f, 2.75f, x).ToString();
-                    TextDic["PlKd"].text = Mathf.Lerp(0f, 0.5f, x).ToString();
+                    TextDic["PlKp"].text = Mathf.Lerp(0.45f, 2.75f, x).ToString("F2");
+                    TextDic["PlKd"].text = Mathf.Lerp(0f, 0.5f, x).ToString("F2");
                 }, 1f, 1);
                 break;
             case "空载频率扰动试验":
