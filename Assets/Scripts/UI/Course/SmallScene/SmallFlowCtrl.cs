@@ -801,11 +801,9 @@ public class SmallFlowCtrl : MonoBase
         successOPs.Clear();
     }
 
-    SmallStep1 currentStep;
-    int stepIndex = 0;
     public SmallStep1 CurrentStep()
     {
-        return nowFlowSteps[stepIndex];
+        return nowFlowSteps[_index_NowStep];
     }
 
     /// <summary>
@@ -823,7 +821,6 @@ public class SmallFlowCtrl : MonoBase
         else
         {
             DoSelectStep(stepIndex);
-            this.stepIndex = stepIndex;
         }
     }
 

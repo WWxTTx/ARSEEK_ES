@@ -91,15 +91,16 @@ public class UISmallSceneMasterComputerPanel : MonoBase
             });
         });
 
-        ListToggle.gameObject.SetActive(data.Count > 1);
+        ListContent.gameObject.SetActive(data.Count > 1);
 
         foreach (var component in ListContent.GetComponentsInChildren<LayoutGroup>())
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(component.GetComponent<RectTransform>());
         }
 
-        ListContent.GetComponentInChildren<Toggle>().SetIsOnWithoutNotify(true);
-        ListContent.GetComponentInChildren<Toggle>().onValueChanged.Invoke(true);
+        Toggle[] toggles = ListContent.GetComponentsInChildren<Toggle>();
+        toggles[toggles.Length - 1].SetIsOnWithoutNotify(true);
+        toggles[toggles.Length - 1].onValueChanged.Invoke(true);
         ListContent.allowSwitchOff = false;
 
         gameObject.SetActive(false);

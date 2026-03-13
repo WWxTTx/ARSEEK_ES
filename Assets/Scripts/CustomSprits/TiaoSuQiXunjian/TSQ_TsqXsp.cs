@@ -55,12 +55,12 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
     AvailableStatus status;
     void IBaseBehaviour.Execute(int step, UnityAction callback)
     {
-        if(smallSceneModule == null)
+        if (smallSceneModule == null)
         {
             smallSceneModule = Transform.FindObjectOfType<UISmallSceneModule>().GetComponent<UISmallSceneModule>();
         }
         Othercallback = callback;
-        Othercallback+= ()=>
+        Othercallback += () =>
         {
             SetImageRaycast(true);
             ClousAllTip();
@@ -112,7 +112,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
         switch (status)
         {
             case AvailableStatus.巡检:
-                
+
                 string[] flow0 = { "通信状态", "频率t", "桨叶开度t", "导叶开度t", "水头t", "B机t" };
                 steps = flow0.ToList();
                 StartFlow();
@@ -132,7 +132,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 break;
             case AvailableStatus.查看故障信息:
                 AddErroEvent(LCU_mlfsjs.GetTime() + "    导叶开度传感器故障");
-                string[] flow1 = { "事件报告"};
+                string[] flow1 = { "事件报告" };
                 steps = flow1.ToList();
                 StartFlow();
                 break;
@@ -355,7 +355,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             case AvailableStatus.残压测频A:
                 ButenEvent("切到A");
                 CnayaCepin();
-                break; 
+                break;
             case AvailableStatus.残压测频B:
                 ButenEvent("切到B");
                 CnayaCepin();
@@ -368,7 +368,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 }
                 else
                 {
-                    string[] flow = {"测量零点" };
+                    string[] flow = { "测量零点" };
                     steps = flow.ToList();
                 }
                 StartFlow();
@@ -411,7 +411,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 }
                 else
                 {
-                    string[] flow = { "测量增益"};
+                    string[] flow = { "测量增益" };
                     steps = flow.ToList();
                 }
                 StartFlow();
@@ -457,7 +457,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                         kfx.points.Add(i * 10 + UnityEngine.Random.Range(-1f, 1f));
                         gfx.points.Add(i * 10 + UnityEngine.Random.Range(-1f, 1f));
                     }
- 
+
                     //绘制过程参数控制
                     smallSceneModule.ShowHint("正在绘制开方向，对应频率从50赫兹到52赫兹，桨叶开度", 3);
                     DOTween.To(() => 0f, x =>
@@ -521,7 +521,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             case AvailableStatus.摆动试验:
                 if (!PanelDic["摆动试验"].activeSelf)
                 {
-                    string[] flow8 = { "试验", "空载频率摆动试验", "b电气开限", "b跟踪频给","摆动试验开始" };
+                    string[] flow8 = { "试验", "空载频率摆动试验", "b电气开限", "b跟踪频给", "摆动试验开始" };
                     steps = flow8.ToList();
                 }
                 else
@@ -555,13 +555,17 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                         daoyeKd.SetVerticesDirty();
                     }, 1f, 10).SetEase(Ease.Linear);
 
-                    DOVirtual.DelayedCall(10.1f, () =>
+                    DOVirtual.DelayedCall(7f, () =>
+                    {
+                        smallSceneModule.ShowHint(string.Format("最高频率{0}HZ，最低频率{1}HZ,频率偏差{2}%", 50.05f, 49.88f, 0.24), 1);
+
+                    });
+
+                    DOVirtual.DelayedCall(12f, () =>
                     {
                         TextDic["b最低频率"].text = "50.05";
                         TextDic["b最高频率"].text = "49.88";
                         TextDic["b频率偏差"].text = "0.24";
-                        smallSceneModule.ShowHint(string.Format("本次试验，最高频率{0}HZ，最低频率{1}HZ,频率偏差{2}%", 50.05f, 49.88f, 0.24), 1);
-
                         daoyeKd.progress = 1;
                         daoyeKd.SetVerticesDirty();
                     });
@@ -589,11 +593,11 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 {
                     string[] flow26 = { "主操作画面", "开度调节" };
                     steps = flow26.ToList();
-                   
+
                 }
                 else
                 {
-                    string[] flow26 = {"开度调节" };
+                    string[] flow26 = { "开度调节" };
                     steps = flow26.ToList();
                 }
                 StartFlow();
@@ -612,14 +616,15 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 StartFlow();
                 break;
             case AvailableStatus.空载扰动试验:
-                if (!PanelDic["扰动试验"].activeSelf)
+                TextDic["r扰动频率"].text = "50.00";
+                if (TextDic["主用"].text == "A机")
                 {
-                    string[] flow6 = { "试验", "空载频率扰动试验", "扰动试验开始" };
+                    string[] flow6 = { "试验", "空载频率扰动试验", "r频率减", "r跟踪频给", "r试验开始" };
                     steps = flow6.ToList();
                 }
                 else
                 {
-                    string[] flow6 = {"扰动试验开始" };
+                    string[] flow6 = { "r频率增", "r跟踪频给", "r试验开始" };
                     steps = flow6.ToList();
                 }
                 StartFlow();
@@ -656,9 +661,9 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                         };
 
                         jizuPl.points = red1.ToList();
-                    kdMb.points = blue1.ToList();
-                    kdDy.points = green1.ToList();
-                }
+                        kdMb.points = blue1.ToList();
+                        kdDy.points = green1.ToList();
+                    }
                     else
                     {
                         kdMb.Xmin = 6;
@@ -686,7 +691,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                         kdMb.points = blue2.ToList();
                         kdDy.points = green2.ToList();
                     }
-                        
+
 
 
                     //绘制过程参数控制
@@ -704,6 +709,18 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                         }
                     }, 1f, 10).SetEase(Ease.Linear);
 
+                    DOVirtual.DelayedCall(7f, () =>
+                    {
+                        if (TextDic["主用"].text == "A机")
+                        {
+                            smallSceneModule.ShowHint(string.Format("最低频率49.91，最高频率52.19，超调量：9.36%，调节时间：13.99秒"), 1);
+                        }
+                        else
+                        {
+                            smallSceneModule.ShowHint(string.Format("最低频率49.92，最高频率51.95，超调量：0.08%，调节时间：9.56秒"), 1);
+                        }
+                    });
+
                     DOVirtual.DelayedCall(12f, () =>
                     {
                         if (TextDic["主用"].text == "A机")
@@ -712,7 +729,6 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                             TextDic["r最高频率"].text = "52.19";
                             TextDic["r超调量"].text = "9.36";
                             TextDic["r调节时间"].text = "13.99";
-                            smallSceneModule.ShowHint(string.Format("最低频率49.91，最高频率52.19，超调量：9.36%，调节时间：13.99秒"), 1);
                         }
                         else
                         {
@@ -720,10 +736,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                             TextDic["r最高频率"].text = "51.95";
                             TextDic["r超调量"].text = "0.08";
                             TextDic["r调节时间"].text = "9.56";
-                            smallSceneModule.ShowHint(string.Format("最低频率49.92，最高频率51.95，超调量：0.08%，调节时间：9.56秒"), 1);
                         }
-
-
                         foreach (var item in graphs)
                         {
                             item.progress = 1;
@@ -819,7 +832,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
     15.4f, 10.6f, 17.9f, 24.7f, 26.0f,
     23.3f, 21.2f, 19.1f, 17.1f, 15.3f,
     14.0f, 13.7f, 13.4f, 13.2f, 13.0f
-}; 
+};
                         max = 61.10f;
                         min = 47.30f;
                         nomone = 0.07f;
@@ -866,19 +879,20 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                     }, 1f, 10).SetEase(Ease.Linear);
 
                     // ---------- 结束提示 ----------
-                    DOVirtual.DelayedCall(11f, () =>
+                    DOVirtual.DelayedCall(7f, () =>
+                    {
+                        smallSceneModule.ShowHint(string.Format("最高频率：{0:F2} Hz," + "最低频率：{1:F2} %,不动时间:{2:F2} s,调节时间:{3:F2}s", max, min, nomone, move), 1);
+
+                    });
+
+                    DOVirtual.DelayedCall(14, () =>
                     {
                         TextDic["s最低频率"].text = max.ToString("F2");
                         TextDic["s最高频率"].text = min.ToString("F2");
                         TextDic["s不动时间"].text = nomone.ToString("F2");
                         TextDic["s调节时间"].text = move.ToString("F2");
-                        smallSceneModule.ShowHint(string.Format("最高频率：{0:F2} Hz," + "最低频率：{1:F2} %,不动时间:{2:F2} s,调节时间:{3:F2}s", max, min, nomone, move), -1);
-
-                        DOVirtual.DelayedCall(2, () =>
-                        {
-                            Othercallback.Invoke();
-                            smallSceneModule.ModelState = ModelState.Operated;
-                        });
+                        Othercallback.Invoke();
+                        smallSceneModule.ModelState = ModelState.Operated;
                     });
                 };
 
@@ -888,7 +902,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 }
                 else
                 {
-                    steps = new List<string> {"负荷目标" };
+                    steps = new List<string> { "负荷目标" };
                 }
                 StartFlow();
 
@@ -905,7 +919,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
         {
             TextDic["机组频率"].text = x.ToString("F2");
             TextDic["齿盘测频"].text = x.ToString("F2");
-            TextDic["机组转速"].text = (x*2).ToString("F2");
+            TextDic["机组转速"].text = (x * 2).ToString("F2");
         }, 50f, 5).OnComplete(() =>
         {
             DOVirtual.DelayedCall(3, () =>
@@ -983,7 +997,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
     Vector3 oldRot;
     void ChangeFouces(bool newPos)
     {
-        if(newPos)
+        if (newPos)
         {
             Transform ctrlGO = transform.Find("point");
             var camera = Camera.main.transform;
@@ -1004,10 +1018,10 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
         }
     }
 
-    
+
     void Settip(Text t, bool b)
     {
-         t.transform.Find("tip").gameObject.SetActive(b);
+        t.transform.Find("tip").gameObject.SetActive(b);
     }
 
 
@@ -1103,12 +1117,12 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             Mathf.Lerp(-3.03f, -2.3903f, normalizedT)
         );
         xz.DOLocalRotate(targetRotation, during);
-        if(monitorCamera  != null)
-        tg.DOMove(targetPosition, during).OnUpdate(() => {
-            // 在每一帧，更新相机位置
-            monitorCamera.transform.position = jkwz.position;
-            monitorCamera.transform.eulerAngles = jkwz.eulerAngles;
-        });
+        if (monitorCamera != null)
+            tg.DOMove(targetPosition, during).OnUpdate(() => {
+                // 在每一帧，更新相机位置
+                monitorCamera.transform.position = jkwz.position;
+                monitorCamera.transform.eulerAngles = jkwz.eulerAngles;
+            });
     }
 
     /// <summary>
@@ -1244,7 +1258,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             case "事件报告":
                 TextDic["主标题"].text = "事件报警记录";
                 SetUIPanel("事件报警");
-                if(status == AvailableStatus.打开报警界面)
+                if (status == AvailableStatus.打开报警界面)
                     smallSceneModule.ShowHint("发现报警：“调速器紧急停机动作”，“导叶紧急关闭”\r\n", 1);
                 break;
             case "主操作画面":
@@ -1294,10 +1308,22 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                     TextDic["kzKd"].text = Mathf.Lerp(0f, 0.5f, x).ToString();
                 }, 1f, 1);
                 break;
+            case "r频率增":
+                DOTween.To(() => 0f, x =>
+                {
+                    TextDic["r扰动频率"].text = Mathf.Lerp(50.00f, 52.00f, x).ToString();
+                }, 1f, 1);
+                break;
+            case "r频率减":
+                DOTween.To(() => 0f, x =>
+                {
+                    TextDic["r扰动频率"].text = Mathf.Lerp(50.00f, 48.00f, x).ToString();
+                }, 1f, 1);
+                break;
             case "频率调节PID":
                 DOTween.To(() => 0f, x =>
                 {
-                    TextDic["PlKp"].text = Mathf.Lerp(0.45f,2.75f,x).ToString();
+                    TextDic["PlKp"].text = Mathf.Lerp(0.45f, 2.75f, x).ToString();
                     TextDic["PlKd"].text = Mathf.Lerp(0f, 0.5f, x).ToString();
                 }, 1f, 1);
                 break;
@@ -1355,7 +1381,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
     {
         foreach (var item in UIButtons)
         {
-            if(item.transform.Find("tip") != null)
+            if (item.transform.Find("tip") != null)
             {
                 if (steps.Count > currentStepIndex && item.gameObject.name == steps[currentStepIndex])
                 {
@@ -1383,7 +1409,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
             SetTip();
             if (currentStepIndex >= steps.Count)
             {
-                if(callback != null)
+                if (callback != null)
                 {
                     callback.Invoke();
                     callback = null;

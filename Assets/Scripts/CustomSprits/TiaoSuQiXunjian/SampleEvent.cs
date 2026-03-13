@@ -1,6 +1,4 @@
-using DG.Tweening;
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -16,11 +14,11 @@ public class SampleEvent : MonoBehaviour, IBaseBehaviour
     public Type GetStatusEnumType() => null;
     void IBaseBehaviour.Execute(int step, UnityAction callback)
     {
-        ExecuteEvents.Invoke();
+        ExecuteEvents?.Invoke();
     }
 
     public void SetFinalState()
     {
-        FinalEvents.Invoke();
+        FinalEvents?.Invoke();
     }
 }

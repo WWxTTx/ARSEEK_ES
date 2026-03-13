@@ -115,9 +115,9 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
 
     public GameObject DlqZsd;
     public Transform DlqZsdJk;
-    void SetScreen(bool open)
+    void SetScreen(int open)
     {
-        if (!open)
+        if (open == 0)
         {
             cs[0].text = "0";
             cs[1].text = "0";
@@ -139,7 +139,29 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
             dlq.color = gre;
             zttb.color = gre;
         }
-        else
+        else if(open == 1)
+        {
+            cs[0].text = "0";
+            cs[1].text = "0";
+            cs[2].text = "0";
+            cs[3].text = "0";
+            cs[4].text = "0";
+            cs[5].text = "0";
+            cs[6].text = "100.00";//转速 
+            cs[7].text = "0";
+            cs[8].text = "0";
+            cs[9].text = "0";
+            cs[10].text = "11.8";
+            cs[11].text = "3.1";
+            cs[12].text = "0.962";
+            cs[13].text = "50.1";
+
+            cs[14].text = "空载态";//状态文字
+            cs[14].color = yel;
+            dlq.color = gre;
+            zttb.color = yel;
+        }
+        else if (open == 2)
         {
             cs[0].text = "5.8";
             cs[1].text = "5.9";
@@ -200,39 +222,40 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
         TryToNext(eventname);
         switch (eventname)
         {
-            case "控制":
-                bjjm.SetActive(false);
-                kzjm.SetActive(true);
-                break;
-            case "报警":
-                bjjm.SetActive(true);
-                kzjm.SetActive(false);
-                break;
             case "停机":
-                bjjm.SetActive(false);
-                kzjm.SetActive(false);
-                SetScreen(false);
+                SetScreen(0);
                 break;
             case "负载运行":
-                bjjm.SetActive(false);
-                kzjm.SetActive(false);
-                SetScreen(true);
+                SetScreen(2);
                 smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "断路器断开":
-                dlq.color = gre;
+                SetScreen(1);
                 smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "断路器断合":
-                dlq.color = red;
+                SetScreen(2);
                 smallSceneModule.ModelState = ModelState.Operated;
                 break;
             case "空载运行":
-                cs[14].text = "空载态";//状态文字
-                dlq.color = gre;
-                zttb.color = yel;
+                SetScreen(1);
                 smallSceneModule.ModelState = ModelState.Operated;
                 break;
+        }
+        if (eventname == "控制")
+        {
+            bjjm.SetActive(false);
+            kzjm.SetActive(true);
+        }
+        else if (eventname == "报警")
+        {
+            bjjm.SetActive(true);
+            kzjm.SetActive(false);
+        }
+        else
+        {
+            bjjm.SetActive(false);
+            kzjm.SetActive(false);
         }
     }
 
