@@ -10,6 +10,9 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     /// 房间成员列表
     /// </summary>
     public List<Member> roomMembers = new List<Member>();
+    /// <summary>
+    /// 当前被设置为主画面的用户ID
+    /// </summary>
     private int prevMainScreenId;
     /// <summary>
     /// 房间在线成员字典
@@ -44,7 +47,6 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     /// <param name="cmd"></param>
     public void SendCommand(string cmd)
     {
-        DebugHelper.Error(ChannelType.rtm, $"[send] {cmd}");
         networkChannel.SendAsync(cmd);
     }
 
@@ -219,9 +221,14 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     {
         if (GlobalInfo.IsHomeowner())
         {
+            //被设置为主画面的非房主成员离开房间，收回主画面到房主
             networkManager.ReleasePlayerColor(memberId);
-            if (memberId == prevMainScreenId)
-                networkManager.SetUserMainView(GlobalInfo.account.id, true);
+            //if (memberId == prevMainScreenId)
+            // YG: 改用GlobalInfo.mainScreenId进行判断. 上面判断会有问题
+            if (memberId == GlobalInfo.mainScreenId)
+            {
+                networkManager.SetUserMainView(GlobalInfo.roomInfo.creatorId, true);
+            }
         }
 
         SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherLeave, memberId, memberNickName));
@@ -239,6 +246,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     {
         if (onlineUsers.TryGetValue(newId, out Member newMember))
         {
+            Log.Debug("更新 " + newId + " 用户状态:" + newMember.IsControl + "（新）-" + prevMemberState.IsControl + "（旧）");
             //用户禁言状态改变
             if (newMember.IsTalk != prevMemberState.IsTalk)
             {
@@ -264,6 +272,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             //用户操作权限改变
             if (newMember.IsControl != prevMemberState.IsControl)
             {
+                Log.Debug("发送用户操作权限改变消息");
                 //networkManager.ClearUserIMState(newMember.Id);
                 SendMsg(new MsgIntBool((ushort)RoomChannelEvent.UpdateControl, newMember.Id, newMember.IsControl));
             }
@@ -296,14 +305,18 @@ public class RoomChannelAgent : NetworkChannelAgentBase
         GlobalInfo.mainScreenId = -1;
         foreach (Member m in members)
         {
-            if (m.IsMainScreen && m.Id != GlobalInfo.roomInfo.creatorId)
+            //TODO：2026.01.23 不知道为什么要把房主排除，为了初始设房主为主画面，去掉排除房主判断
+            if (m.IsMainScreen)/*&& m.Id != GlobalInfo.roomInfo.creatorId*/
             {
                 GlobalInfo.mainScreenId = m.Id;
                 break;
             }
         }
+        //初始设置房主为主画面
         if (GlobalInfo.mainScreenId == -1)
+        {
             GlobalInfo.mainScreenId = GlobalInfo.roomInfo.creatorId;
+        }
 
         //更新权限ID
         GlobalInfo.controllerIds.Clear();
@@ -314,6 +327,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             else
                 GlobalInfo.controllerIds.Remove(m.Id);
         }
+        //初始设置房主有操作权限
         if (GlobalInfo.controllerIds.Count == 0)
             GlobalInfo.controllerIds.Add(GlobalInfo.roomInfo.creatorId);
 
@@ -322,9 +336,9 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     public override void ProcessMessage(string message)
-    { 
+    {
         if (!enabled) return;
-        DebugHelper.Info(ChannelType.rtm, $"[recv] {message}");
+        DebugHelper.Info(ChannelType.rtm, $"ProcessMessage | 房间消息 | {message}");
         msgQueue.Enqueue(message);
     }
 

@@ -1,0 +1,8 @@
+<Config>
+  <!--基础IP（除了协同之外的ip）-->
+  <IPAddress value="http://10.0.1.5:90/"/>
+  <!--协同考试用IP-->>
+  <ServiceExamIPAddress value="http://139.155.5.87:21345/"/>
+  <!--协同用IP-->>
+  <ServiceIPAddress value="139.155.5.87:21345"/>
+</Config>                                                                                                          

@@ -75,7 +75,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
 
         AddMsg(new ushort[]
         {
-            (ushort)ResourcesPanelEvent.SelectCourse,
+            //(ushort)ResourcesPanelEvent.SelectCourse,//2026.01.27修改通过消息执行当前脚本方法的冗余方式
             (ushort)CoursePanelEvent.OpenMask,
             (ushort)CoursePanelEvent.CloseMask,
             (ushort)CoursePanelEvent.SwitchResource,
@@ -313,14 +313,28 @@ public class OPLSynCoursePanel : OPLCoursePanel
             SetTitle(GlobalInfo.currentCourseInfo);
             CourseSideBar.SetBaikePage();
 
+            //协同房间不需要分享主画面
+            if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && GlobalInfo.IsMainScreen())
+                NetworkManager.Instance.EnableLocalVideo(true);
+
             if (GlobalInfo.IsHomeowner())
             {
-                Log.Debug("房主权限开始协同");
                 RoomInfoTog.gameObject.SetActive(true);
                 Mask(true, true);
-                SendMsg(new MsgInt((ushort)ResourcesPanelEvent.SelectCourse, GlobalInfo.currentCourseID));
-                //房主默认分享主屏
-                //NetworkManager.Instance.EnableLocalVideo(true);
+
+                //2026.01.27修改通过消息执行当前脚本方法的冗余方式
+                //SendMsg(new MsgInt((ushort)ResourcesPanelEvent.SelectCourse, GlobalInfo.currentCourseID));
+                if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
+                {
+                    CourseSideBar.SetBaikePage();
+                    if (!NetworkManager.Instance.IsIMSyncCachedState && !NetworkManager.Instance.IsIMSyncState)
+                    {
+                        Log.Debug("OnPrepareShow | 发送百科选择消息");
+                        Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
+                        ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
+                    }
+                }
+                SendMsg(new MsgBase((ushort)RoomChannelEvent.StartMainScreen)); //2026.01.27修改初始化房主为主画面时机
             }
             else
             {
@@ -345,6 +359,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
     {
         RequestManager.Instance.GetCourse(GlobalInfo.currentCourseID, (course) =>
         {
+            Log.Debug("InitData | 协同获取课程数据");
             GlobalInfo.SaveCourseInfo(course);
             GlobalInfo.currentWikiList = course.encyclopediaList;
 
@@ -359,8 +374,10 @@ public class OPLSynCoursePanel : OPLCoursePanel
             callBack.Invoke();
         }, (failureMessage) =>
         {
-            Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-            popupDic.Add("好的", new PopupButtonData(ExitRoom, true));
+            Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>
+            {
+                { "好的", new PopupButtonData(ExitRoom, true) }
+            };
             UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("错误", "获取课程失败，请重新加入房间", popupDic));
             Log.Error($"获取课程失败！原因为：{failureMessage}");
         });
@@ -387,18 +404,21 @@ public class OPLSynCoursePanel : OPLCoursePanel
             case (ushort)CoursePanelEvent.CloseMask:
                 Mask(GlobalInfo.IsMainScreen(), true);
                 break;
-            case (ushort)ResourcesPanelEvent.SelectCourse:
-                OnSelectCourse(((MsgInt)msg).arg);
-                break;
-            //直播间切换课程
+            //2026.01.27修改通过消息执行当前脚本方法的冗余方式
+            //case (ushort)ResourcesPanelEvent.SelectCourse:
+            //    OnSelectCourse(((MsgInt)msg).arg);
+            //    break;
+            //直播间切换课程,2026.01.27应该是已弃用功能，保留打印测试验证
             case (ushort)CoursePanelEvent.SwitchResource:
                 try
                 {
+                    Debug.LogError("直播间切换课程");
                     GlobalInfo.currentCourseID = ((MsgBrodcastOperate)msg).GetData<MsgInt>().arg;
                     BaikeSelectModule.selectID = 0;
                     NetworkManager.Instance.IsIMSync = false;
                     InitData(() =>
                     {
+                        Debug.LogError("不确定再次执行Init的原因，首次进入应该不需要再次执行，直播间内切换课程功能是否还存在？");
                         UIManager.Instance.CloseUI<LoadingPanel>();
                         NetworkManager.Instance.IsIMSync = true;
                         if (GlobalInfo.IsHomeowner())
@@ -413,9 +433,13 @@ public class OPLSynCoursePanel : OPLCoursePanel
                                 }
                             }
                         }
-                    });                
+                        else
+                        {
+                            Debug.LogError("不清楚为何多做了一重房主判定，应该不会触发，测试看是否有必要");
+                        }
+                    });
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Debug.LogError(e.Message);
                 }
@@ -441,7 +465,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 MsgIntString msgIntString = (MsgIntString)msg;
                 int userId = msgIntString.arg1;
                 string label = msgIntString.arg2;
-                if (userId == GlobalInfo.mainScreenId)
+                if (!GlobalInfo.IsMainScreen() && userId == GlobalInfo.mainScreenId)
                 {
                     GameViewDecoder.label = int.Parse(label);
                     NetworkManager.Instance.AddUserVideo(label, GameViewDecoder);
@@ -538,7 +562,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
     }
 
     /// <summary>
-    /// 选择课程
+    /// 选择课程，2026.01.27修改通过消息执行当前脚本方法的冗余方式，已弃用
     /// </summary>
     /// <param name="courseId"></param>
     private void OnSelectCourse(int courseId)
@@ -547,7 +571,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
             return;
         if (NetworkManager.Instance.IsIMSyncState || NetworkManager.Instance.IsIMSyncCachedState)
             return;
-
+        Debug.LogError("房主选择课程");
         MsgInt msgInt = new MsgInt((ushort)CoursePanelEvent.SwitchResource, courseId);
         MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(msgInt.msgId, JsonTool.Serializable(msgInt));
         NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
@@ -602,6 +626,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
     /// </summary>
     protected override void ExitRoom()
     {
+        // YG: 重新开始标记为假
         ModelManager.Instance.DestroySyncComponent();
         NetworkManager.Instance.ReleaseMicrophone();
         NetworkManager.Instance.LeaveRoom();
@@ -638,7 +663,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
     /// <param name="ctrl">是否有操作权限</param>
     private void Mask(bool main, bool ctrl)
     {
-        if(GlobalInfo.roomInfo.RoomType == (int)RoomType.Synergia)
+        if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Synergia)
         {
             ModelCtrl.SetActive(false);
             MidBtnsCanvas.interactable = true;

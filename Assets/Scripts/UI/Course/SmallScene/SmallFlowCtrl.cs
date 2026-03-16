@@ -1207,6 +1207,7 @@ public class SmallFlowCtrl : MonoBase
                 if (opLinkages[index].optionName == opLinkages[index].operation.operations[i].name)
                 {
                     smallOp1 = opLinkages[index].operation.operations[i];
+                    break;
                 }
             }
 

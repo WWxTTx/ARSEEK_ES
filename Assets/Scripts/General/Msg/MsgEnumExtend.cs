@@ -1,627 +1,727 @@
+using System;
+using System.Collections.Generic;
 using UnityFramework.Runtime;
 
 /// <summary>
-/// Ä£ĞÍ²Ù×÷
+/// æ¨¡å‹æ“ä½œ
 /// </summary>
 public enum ModelOperateEvent
 {
-    Min = UIAnimEvent.Max + 1,
-    Click,
-    Scale,
-    Rotate,
-    Max,
+    Min = UIAnimEvent.Max + 1,        // ID:12
+    Click,                            // ID:13
+    Scale,                            // ID:14
+    Rotate,                           // ID:15
+    Max,                              // ID:16
 }
 
 /// <summary>
-/// µÇÂ¼½çÃæ
+/// ç™»å½•ç•Œé¢
 /// </summary>
 public enum LoginEvent
 {
-    Min = ModelOperateEvent.Max + 1,
+    Min = ModelOperateEvent.Max + 1,  // ID:17
     /// <summary>
-    /// °æ±¾¼ì²âÒ³Ãæ
+    /// ç‰ˆæœ¬æ£€æµ‹é¡µé¢
     /// </summary>
-    CheckVersion,
+    CheckVersion,                     // ID:18
     /// <summary>
-    /// µÇÂ¼Ò³Ãæ
+    /// ç™»å½•é¡µé¢
     /// </summary>
-    Login,
+    Login,                            // ID:19
     /// <summary>
-    /// ×¢²áÒ³Ãæ
+    /// æ³¨å†Œé¡µé¢
     /// </summary>
-    Register,
+    Register,                         // ID:20
     /// <summary>
-    /// Íü¼ÇÃÜÂëÒ³Ãæ
+    /// å¿˜è®°å¯†ç é¡µé¢
     /// </summary>
-    Forget,
-    Max,
+    Forget,                           // ID:21
+    Max,                              // ID:22
 }
 
 /// <summary>
-/// ÉèÖÃ½çÃæ
+/// è®¾ç½®ç•Œé¢
 /// </summary>
 public enum OptionPanelEvent
 {
-    Min = LoginEvent.Max + 1,
+    Min = LoginEvent.Max + 1,         // ID:23
     /// <summary>
-    /// ĞŞ¸ÄêÇ³Æ
+    /// ä¿®æ”¹æ˜µç§°
     /// </summary>
-    Name,
+    Name,                             // ID:24
     /// <summary>
-    /// ĞŞ¸Äµ¥Î»
+    /// ä¿®æ”¹å•ä½
     /// </summary>
-    Org,
+    Org,                              // ID:25
     /// <summary>
-    /// ÍË³öµÇÂ¼
+    /// é€€å‡ºç™»å½•
     /// </summary>
-    Logout,
-    Max,
+    Logout,                           // ID:26
+    Max,                              // ID:27
 }
 
 public enum SpriteTogEvent
 {
-    Min = OptionPanelEvent.Max + 1,
-    Close,
-    Max,
+    Min = OptionPanelEvent.Max + 1,   // ID:28
+    Close,                            // ID:29
+    Max,                              // ID:30
 }
 
 public enum ResourcesPanelEvent
 {
-    Min = SpriteTogEvent.Max + 1,
+    Min = SpriteTogEvent.Max + 1,     // ID:31
     /// <summary>
-    /// Ñ¡Ôñ¿Î³Ì
+    /// é€‰æ‹©è¯¾ç¨‹
     /// </summary>
-    SelectCourse,
+    SelectCourse,                     // ID:32
     /// <summary>
-    /// ¿Î³ÌÏêÇé
+    /// è¯¾ç¨‹è¯¦æƒ…
     /// </summary>
-    Details,
-    Max
+    Details,                          // ID:33
+    Max                               // ID:34
 }
 
 public enum BaikeSelectModuleEvent
 {
-    Min = ResourcesPanelEvent.Max + 1,
-    BaikeSelect,
-    Hide,
-    Max
+    Min = ResourcesPanelEvent.Max + 1,// ID:35
+    BaikeSelect,                      // ID:36
+    Hide,                             // ID:37
+    Max,                              // ID:38
 }
 
 public enum CoursePanelEvent
 {
-    Min = BaikeSelectModuleEvent.Max + 1,
+    Min = BaikeSelectModuleEvent.Max + 1,    // ID:39
     /// <summary>
-    /// ÓÃÓÚĞ­Í¬È¨ÏŞÇĞ»»Ê±ĞŞ¸ÄUI¿É½»»¥ĞÔ
+    /// ç”¨äºååŒæƒé™åˆ‡æ¢æ—¶ä¿®æ”¹UIå¯äº¤äº’æ€§
     /// </summary>
-    OpenMask,
-    CloseMask,
+    OpenMask,                                // ID:40
+    CloseMask,                               // ID:41
     /// <summary>
-    /// ±ê×¢Ä£Ê½
+    /// æ ‡æ³¨æ¨¡å¼
     /// </summary>
-    EditMode,
+    EditMode,                                // ID:42
     /// <summary>
-    /// Ä£ĞÍ²ã¼¶
+    /// æ¨¡å‹å±‚çº§
     /// </summary>
-    HierarchyBtn,
+    HierarchyBtn,                            // ID:43
     /// <summary>
-    /// ²Ù×÷ÁĞ±í
+    /// æ“ä½œåˆ—è¡¨
     /// </summary>
-    OperationListBtn,
+    OperationListBtn,                        // ID:44
     /// <summary>
-    /// ¶¯»­ÁĞ±í
+    /// åŠ¨ç”»åˆ—è¡¨
     /// </summary>
-    AnimListBtn,
+    AnimListBtn,                             // ID:45
     /// <summary>
-    /// Ñ¡Ôñ¿Î³Ì
+    /// é€‰æ‹©è¯¾ç¨‹
     /// </summary>
-    SwitchResource,
+    SwitchResource,                          // ID:46
     /// <summary>
-    /// °Ù¿ÆÄ£ĞÍ¼ÓÔØÍê³É
+    /// ç™¾ç§‘æ¨¡å‹åŠ è½½å®Œæˆ
     /// </summary>
-    ChangeModel,
+    ChangeModel,                             // ID:47
     /// <summary>
-    /// AR½çÃæ ×·×ÙÎ»ÖÃ
+    /// ARç•Œé¢ è¿½è¸ªä½ç½®
     /// </summary>
-    ModelLocate,
+    ModelLocate,                             // ID:48
     /// <summary>
-    /// ×ª³¡
+    /// è½¬åœº
     /// </summary>
-    Transition,
+    Transition,                              // ID:49
     /// <summary>
-    /// ÉèÖÃ
+    /// è®¾ç½®
     /// </summary>
-    Option,
+    Option,                                  // ID:50
     /// <summary>
-    /// ÍË³ö¿Î³Ì
+    /// é€€å‡ºè¯¾ç¨‹
     /// </summary>
-    Quit,
-    Max
+    Quit,                                    // ID:51
+    Max,                                     // ID:52
 }
 
 public enum ARModuleEvent
 {
-    Min = CoursePanelEvent.Max + 1,
-    Open,
-    Tracking,
-    Close,
-    Support,
-    Unsupport,
-    ExitCourse,
-    Max
+    Min = CoursePanelEvent.Max + 1,   // ID:53
+    Open,                             // ID:54
+    Tracking,                         // ID:55
+    Close,                            // ID:56
+    Support,                          // ID:57
+    Unsupport,                        // ID:58
+    ExitCourse,                       // ID:59
+    Max,                              // ID:60
 }
 
 public enum PaintEvent
 {
-    Min = ARModuleEvent.Max + 1,
-    PaintArea,
-    SyncPaint,
-    SyncUndo,
-    SyncReset,
-    ExitPaint,
-    Max
+    Min = ARModuleEvent.Max + 1,      // ID:61
+    PaintArea,                        // ID:62
+    SyncPaint,                        // ID:63
+    SyncUndo,                         // ID:64
+    SyncReset,                        // ID:65
+    ExitPaint,                        // ID:66
+    Max,                              // ID:67
 }
 
 public enum KnowledgeModuleEvent
 {
-    Min = PaintEvent.Max + 1,
-    Show,
-    Hide,
-    Max
+    Min = PaintEvent.Max + 1,         // ID:68
+    Show,                             // ID:69
+    Hide,                             // ID:70
+    Max,                              // ID:71
 }
 
 /// <summary>
-/// Í¼Æ¬¡¢ÎÄµµ¡¢ÒôÊÓÆµ
+/// å›¾ç‰‡ã€æ–‡æ¡£ã€éŸ³è§†é¢‘
 /// </summary>
 public enum HyperLinkEvent
 {
-    Min = KnowledgeModuleEvent.Max + 1,
-    HyperlinkImage,
-    HyperlinkVideo,
-    HyperlinkDOC,
-    HyperlinkAudio,
-    HyperlinkClose,
-    HyperImgClose,
-    HyperVideoClose,
-    HyperAudioClose,
-    VideoCtrl,
-    VideoValue,
-    VideoSync,
-    AudioCtrl,
-    AudioValue,
-    AudioSync,
-    Max
+    Min = KnowledgeModuleEvent.Max + 1,  // ID:72
+    HyperlinkImage,                      // ID:73
+    HyperlinkVideo,                      // ID:74
+    HyperlinkDOC,                       // ID:75
+    HyperlinkAudio,                      // ID:76
+    HyperlinkClose,                      // ID:77
+    HyperImgClose,                       // ID:78
+    HyperVideoClose,                     // ID:79
+    HyperAudioClose,                     // ID:80
+    VideoCtrl,                           // ID:81
+    VideoValue,                          // ID:82
+    VideoSync,                           // ID:83
+    AudioCtrl,                           // ID:84
+    AudioValue,                          // ID:85
+    AudioSync,                           // ID:86
+    Max,                                 // ID:87
 }
 
 /// <summary>
-/// ²ğ½â¡¢¶¯»­°Ù¿Æ
+/// æ‹†è§£ã€åŠ¨ç”»ç™¾ç§‘
 /// </summary>
 public enum IntegrationModuleEvent
 {
-    Min = HyperLinkEvent.Max + 1,
+    Min = HyperLinkEvent.Max + 1,    // ID:88
     /// <summary>
-    /// ²ğ·Ö
+    /// æ‹†åˆ†
     /// </summary>
-    Split,
+    Split,                           // ID:89
     /// <summary>
-    /// ×éºÏ
+    /// ç»„åˆ
     /// </summary>
-    Comb,
+    Comb,                            // ID:90
     /// <summary>
-    /// µ¥¶ÀÏÔÊ¾
+    /// å•ç‹¬æ˜¾ç¤º
     /// </summary>
-    Check,
+    Check,                           // ID:91
     /// <summary>
-    /// È«²¿ÏÔÊ¾
+    /// å…¨éƒ¨æ˜¾ç¤º
     /// </summary>
-    UnCheck,
+    UnCheck,                         // ID:92
     /// <summary>
-    /// Ìø¼¶Ñ¡ÖĞ
+    /// è·³çº§é€‰ä¸­
     /// </summary>
-    JumpToSelect,
+    JumpToSelect,                    // ID:93
     /// <summary>
-    /// »¹Ô­
+    /// è¿˜åŸ
     /// </summary>
-    CombAll,
+    CombAll,                         // ID:94
     /// <summary>
-    /// ¶¯»­ÇĞ»»
+    /// åŠ¨ç”»åˆ‡æ¢
     /// </summary>
-    AnimSelect,
+    AnimSelect,                      // ID:95
     /// <summary>
-    /// ¶¯»­²¥·ÅÔİÍ£
+    /// åŠ¨ç”»æ’­æ”¾æš‚åœ
     /// </summary>
-    AnimPlay,
+    AnimPlay,                        // ID:96
     /// <summary>
-    /// ¶¯»­½ø¶È
+    /// åŠ¨ç”»è¿›åº¦
     /// </summary>
-    AnimValue,
+    AnimValue,                       // ID:97
     /// <summary>
-    /// ¶¯»­½áÊø
+    /// åŠ¨ç”»ç»“æŸ
     /// </summary>
-    AnimFinish,
+    AnimFinish,                      // ID:98
     /// <summary>
-    /// ¿ØÖÆÍ¸Ã÷¶È
+    /// æ§åˆ¶é€æ˜åº¦
     /// </summary>
-    AlphaValue,
-    Max
+    AlphaValue,                      // ID:99
+    Max,                             // ID:100
 }
 
 /// <summary>
-/// Ä£Äâ²Ù×÷°Ù¿Æ
+/// æ¨¡æ‹Ÿæ“ä½œç™¾ç§‘
 /// </summary>
 public enum SmallFlowModuleEvent
 {
     Min = IntegrationModuleEvent.Max + 1,
     /// <summary>
-    /// ×ó²àui»î¶¯
+    /// å·¦ä¾§uiæ´»åŠ¨
     /// </summary>
     LeftFlex,
     /// <summary>
-    /// ÓÒ²àui»î¶¯
+    /// å³ä¾§uiæ´»åŠ¨
     /// </summary>
     RightFlex,
     /// <summary>
-    /// Ñ¡ÔñÈÎÎñ
+    /// é€‰æ‹©ä»»åŠ¡
     /// </summary>
     SelectFlow,
     /// <summary>
-    /// Ñ¡Ôñ²½Öè
+    /// é€‰æ‹©æ­¥éª¤
     /// </summary>
     SelectStep,
     /// <summary>
-    /// Ñ¡ÔñÏÂÒ»²½Öè
+    /// é€‰æ‹©ä¸‹ä¸€æ­¥éª¤
     /// </summary>
     NextStep,
     /// <summary>
-    /// Ñ¡Ôñ¹¤¾ß
+    /// é€‰æ‹©å·¥å…·
     /// </summary>
     SelectTool,
     /// <summary>
-    /// ÇĞ»»¹¤¾ßÏäµÀ¾ß
+    /// åˆ‡æ¢å·¥å…·ç®±é“å…·
     /// </summary>
     ChangeProp,
     /// <summary>
-    /// ¾Û½¹¶ÔÏó±ä»¯ ĞŞ¸Ä²Ù×÷È¨ÏŞÕ¼ÓÃ
+    /// èšç„¦å¯¹è±¡å˜åŒ– ä¿®æ”¹æ“ä½œæƒé™å ç”¨
     /// </summary>
     FocusChanged,
     /// <summary>
-    /// ¹Û²ì
+    /// è§‚å¯Ÿ
     /// </summary>
     Look,
     Look2D,
     /// <summary>
-    /// ²Ù×÷
+    /// æ“ä½œ
     /// </summary>
     Operate,
     /// <summary>
-    /// ÉÏÎ»»úÑ¡ÖĞ
+    /// ä¸Šä½æœºé€‰ä¸­
     /// </summary>
     MasterComputerSelect,
     /// <summary>
-    /// ÉÏÎ»»ú²Ù×÷
+    /// ä¸Šä½æœºæ“ä½œ
     /// </summary>
     MasterComputerOperate,
     /// <summary>
-    /// ÊäÈë²Ù×÷
+    /// è¾“å…¥æ“ä½œ
     /// </summary>
     Input,
     /// <summary>
-    /// ÁªÏµ²Ù×÷
+    /// è”ç³»æ“ä½œ
     /// </summary>
     Contact,
     /// <summary>
-    /// ²Ù×÷¿ªÊ¼Ö´ĞĞ
+    /// æ“ä½œå¼€å§‹æ‰§è¡Œ
     /// </summary>
     StartExecute,
     /// <summary>
-    /// ²Ù×÷±íÏÖ¡¢Áª¶¯Ö´ĞĞÍê³É
-    /// ×Ô¶¯Ìø²½
+    /// æ“ä½œè¡¨ç°ã€è”åŠ¨æ‰§è¡Œå®Œæˆ
+    /// è‡ªåŠ¨è·³æ­¥
     /// </summary>
     StepEnd,
     /// <summary>
-    /// ²Ù×÷Ö´ĞĞÍê³É
+    /// æ“ä½œæ‰§è¡Œå®Œæˆ
     /// </summary>
     CompleteExecute,
     /// <summary>
-    /// ²½ÖèÍê³É
+    /// æ­¥éª¤å®Œæˆ
     /// </summary>
     CompleteStep,
     /// <summary>
-    /// µ±Ç°ÈÎÎñÈ«²¿²½ÖèÍê³É
+    /// å½“å‰ä»»åŠ¡å…¨éƒ¨æ­¥éª¤å®Œæˆ
     /// </summary>
     CompleteAll,
     /// <summary>
-    /// ¹Ø±Õ¼à¿Ø
+    /// å…³é—­ç›‘æ§
     /// </summary>
     HideMonitor,
     UIHighlight,
     /// <summary>
-    /// ²Ù×÷¼ÇÂ¼
+    /// æ“ä½œè®°å½•
     /// </summary>
     OperatingRecord,
     /// <summary>
-    /// ÊäÈë²Ù×÷¼ÇÂ¼
+    /// è¾“å…¥æ“ä½œè®°å½•
     /// </summary>
     OperatingRecordInput,
     /// <summary>
-    /// ĞŞ¸ÄÊäÈë²Ù×÷¼ÇÂ¼
+    /// ä¿®æ”¹è¾“å…¥æ“ä½œè®°å½•
     /// </summary>
     OperatingRecordChange,
     /// <summary>
-    /// Çå³ı¼ÇÂ¼
+    /// æ¸…é™¤è®°å½•
     /// </summary>
     OperatingRecordClear,
     /// <summary>
-    /// Ğ¡µØÍ¼×î´ó»¯
+    /// å°åœ°å›¾æœ€å¤§åŒ–
     /// </summary>
     MaxMap,
     /// <summary>
-    /// ÊäÈë²Ù×÷¼ÇÂ¼
+    /// è¾“å…¥æ“ä½œè®°å½•
     /// </summary>
     SelectInput,
     /// <summary>
-    /// ÁªÏµ
+    /// è”ç³»
     /// </summary>
     SelectContact,
     /// <summary>
-    /// Ö´ĞĞ2D²Ù×÷
+    /// æ‰§è¡Œ2Dæ“ä½œ
     /// </summary>
     Operate2D,
+    ShowUIOperation,                        // ID:129
     /// <summary>
-    /// ÏÔÊ¾²Ù×÷UI
+    /// é“å…·çŠ¶æ€
     /// </summary>
-    ShowUIOperation,
+    OpState,                                // ID:130
     /// <summary>
-    /// ¹Ø±ÕÏà»ú²Ù×÷
+    /// å…³é—­ç›¸æœºæ“ä½œ
     /// </summary>
-    CloseCameraOperation,
+    CloseCameraOperation,                   // ID:131
     /// <summary>
-    /// ´ò¿ªÏà»ú²Ù×÷
+    /// æ‰“å¼€ç›¸æœºæ“ä½œ
     /// </summary>
-    OpenCameraOperation,
+    OpenCameraOperation,                    // ID:132
     /// <summary>
-    /// ÊÓ½ÇÒıµ¼
+    /// è§†è§’å¼•å¯¼
     /// </summary>
-    Guide,
+    Guide,                                  // ID:133
     /// <summary>
-    /// ÏµÍ³¼ÇÂ¼
+    /// ç³»ç»Ÿè®°å½•
     /// </summary>
-    SystemRecord,
+    SystemRecord,                           // ID:134
     /// <summary>
-    /// ¹¤¾ßÀ¸ÏÔÊ¾
+    /// å·¥å…·æ æ˜¾ç¤º
     /// </summary>
-    ShowTool,
-    Max
+    ShowTool,                               // ID:135
+    Max,                                    // ID:136
 }
 
 /// <summary>
-/// Ï°Ìâ°Ù¿Æ
+/// ä¹ é¢˜ç™¾ç§‘
 /// </summary>
 public enum ExercisesModuleEvent
 {
-    Min = SmallFlowModuleEvent.Max + 1,
+    Min = SmallFlowModuleEvent.Max + 1,  // ID:137
     /// <summary>
-    /// Ñ¡Ôñ´ğ°¸
+    /// é€‰æ‹©ç­”æ¡ˆ
     /// </summary>
-    ChooseAnswer,
+    ChooseAnswer,                        // ID:138
     /// <summary>
-    /// ²é¿´´ğ°¸
+    /// æŸ¥çœ‹ç­”æ¡ˆ
     /// </summary>
-    ConfirmAnswer,
+    ConfirmAnswer,                       // ID:139
     /// <summary>
-    /// ²é¿´Í¼Æ¬
+    /// æŸ¥çœ‹å›¾ç‰‡
     /// </summary>
-    OpenAnswerImg,
-    CloseAnswerImg,
+    OpenAnswerImg,                       // ID:140
+    CloseAnswerImg,                      // ID:141
     /// <summary>
-    /// ²é¿´ÊÓÆµ
+    /// æŸ¥çœ‹è§†é¢‘
     /// </summary>
-    OpenAnswerVideo,
-    CloseAnswerVideo,
-    Max
+    OpenAnswerVideo,                     // ID:142
+    CloseAnswerVideo,                    // ID:143
+    Max,                                 // ID:144
 }
 
 /// <summary>
-/// ½ÇÉ«Í¬²½
+/// è§’è‰²åŒæ­¥
 /// </summary>
 public enum GazeEvent
 {
-    Min = ExercisesModuleEvent.Max + 1,
-    SyncCamera,
-    UserPose,
-    Max,
+    Min = ExercisesModuleEvent.Max + 1,  // ID:145
+    SyncCamera,                          // ID:146
+    UserPose,                            // ID:147
+    Max,                                 // ID:148
 }
 
 /// <summary>
-/// Ä£ĞÍ²ã¼¶Ãæ°å
+/// æ¨¡å‹å±‚çº§é¢æ¿
 /// </summary>
 public enum HierarchyEvent
 {
-    Min = GazeEvent.Max + 1,
-    Hide,
+    Min = GazeEvent.Max + 1,             // ID:149
+    Hide,                               // ID:150
     /// <summary>
-    /// Õ¹¿ª½Úµã
+    /// å±•å¼€èŠ‚ç‚¹
     /// </summary>
-    Expand,
+    Expand,                             // ID:151
     /// <summary>
-    /// ÊÕÆğ½Úµã
+    /// æ”¶èµ·èŠ‚ç‚¹
     /// </summary>
-    Collapse,
+    Collapse,                           // ID:152
     /// <summary>
-    /// µã»÷½Úµã
+    /// ç‚¹å‡»èŠ‚ç‚¹
     /// </summary>
-    Click,
+    Click,                              // ID:153
     /// <summary>
-    /// ¸üĞÂ½Úµã¿Î¼ş×ÊÁÏÌáÊ¾
+    /// æ›´æ–°èŠ‚ç‚¹è¯¾ä»¶èµ„æ–™æç¤º
     /// </summary>
-    UpdateAttachment,
-    Interactable,
-    Max
+    UpdateAttachment,                   // ID:154
+    Interactable,                       // ID:155
+    Max,                                // ID:156
 }
 
 /// <summary>
-/// ¶¯»­ÁĞ±íÃæ°å
+/// åŠ¨ç”»åˆ—è¡¨é¢æ¿
 /// </summary>
 public enum AdaptiveListEvent
 {
-    Min = HierarchyEvent.Max + 1,
-    Hide,
-    Select,
-    SelectWithoutNotify,
-    Max
+    Min = HierarchyEvent.Max + 1,        // ID:157
+    Hide,                                // ID:158
+    Select,                              // ID:159
+    SelectWithoutNotify,                 // ID:160
+    Max,                                 // ID:161
 }
 
-
 /// <summary>
-/// ²Ù×÷ÁĞ±íÃæ°å
+/// æ“ä½œåˆ—è¡¨é¢æ¿
 /// </summary>
 public enum OperationListEvent
 {
-    Min = AdaptiveListEvent.Max + 1,
-    Open,
-    Show,
-    Hide,
-    Max
+    Min = AdaptiveListEvent.Max + 1,     // ID:162
+    Open,                                // ID:163
+    Show,                                // ID:164
+    Hide,                                // ID:165
+    Max,                                 // ID:166
 }
 
 /// <summary>
-/// Ğ­Í¬×´Ì¬Í¬²½
+/// ååŒçŠ¶æ€åŒæ­¥
 /// </summary>
 public enum StateEvent
 {
-    Min = OperationListEvent.Max + 1,
+    Min = OperationListEvent.Max + 1,    // ID:167
     /// <summary>
-    /// Í¬²½°æ±¾×¼±¸²Ù×÷
+    /// åŒæ­¥ç‰ˆæœ¬å‡†å¤‡æ“ä½œ
     /// </summary>
-    PreSyncVersion,
-    Max
+    PreSyncVersion,                     // ID:168
+    Max,                                // ID:169
 }
 
 /// <summary>
-/// ÍøÂçÍ¨µÀ
+/// ç½‘ç»œé€šé“
 /// </summary>
 public enum NetworkChannelEvent
 {
-    Min = StateEvent.Max + 1,
-    Open,
-    Closed,
-    Error,
-    HeartMiss,
-    Max
+    Min = StateEvent.Max + 1,            // ID:170
+    Open,                                // ID:171
+    Closed,                              // ID:172
+    Error,                               // ID:173
+    HeartMiss,                           // ID:174
+    Max,                                 // ID:175
 }
 
 /// <summary>
-/// ·¿¼äÍ¨µÀ
+/// æˆ¿é—´é€šé“
 /// </summary>
 public enum RoomChannelEvent
 {
-    Min = NetworkChannelEvent.Max + 1,
-    UpdateRoomList,
-    JoinRoomSuccess,
-    JoinRoomFail,
-    LeaveRoom,
-    OtherJoin,
-    OtherLeave,
-    UpdateMainScreen,
-    UpdateControl,
-    TalkState,
-    UpdateMemberList,
-    LiveRoomMemberModuleClose,
-    LiveRoomMemberModuleShow,
-    LiveRoomSettingModuleClose,
+    Min = NetworkChannelEvent.Max + 1,     // ID:176
+    UpdateRoomList,                       // ID:177
+    JoinRoomSuccess,                      // ID:178
+    JoinRoomFail,                         // ID:179
+    LeaveRoom,                            // ID:180
+    OtherJoin,                            // ID:181
+    OtherLeave,                           // ID:182
+    StartMainScreen,                      // ID:183
+    UpdateMainScreen,                     // ID:184
+    UpdateControl,                        // ID:185
+    TalkState,                            // ID:186
+    UpdateMemberList,                     // ID:187
+    LiveRoomMemberModuleClose,            // ID:188
+    LiveRoomMemberModuleShow,             // ID:189
+    LiveRoomSettingModuleClose,           // ID:190
     /// <summary>
-    /// ¸üĞÂ·¿¼äĞÅÏ¢
+    /// æ›´æ–°æˆ¿é—´ä¿¡æ¯
     /// </summary>
-    RoomInfo,
+    RoomInfo,                             // ID:191
     /// <summary>
-    /// ·¿¼ä½âÉ¢
+    /// æˆ¿é—´è§£æ•£
     /// </summary>
-    RoomClose,
-    Max
+    RoomClose,                            // ID:192
+    Max,                                  // ID:193
 }
 
 /// <summary>
-/// ÒôÊÓÆµÍ¨µÀ
+/// éŸ³è§†é¢‘é€šé“
 /// </summary>
 public enum MediaChannelEvent
 {
-    Min = RoomChannelEvent.Max + 1,
-    AddView,
-    RemoveView,
-    ClearView,
-    MicError,
-    MicOnAir,
-    Max
+    Min = RoomChannelEvent.Max + 1,    // ID:194
+    AddView,                           // ID:195
+    RemoveView,                        // ID:196
+    ClearView,                         // ID:197
+    MicError,                          // ID:198
+    MicOnAir,                          // ID:199
+    Max,                               // ID:200
 }
 
 public enum ExamPanelEvent
 {
-    Min = MediaChannelEvent.Max + 1,
-    ExerciseScore,
+    Min = MediaChannelEvent.Max + 1,    // ID:201
+    ExerciseScore,                      // ID:202
     /// <summary>
-    /// ¿¼ºË×´Ì¬ 
+    /// è€ƒæ ¸çŠ¶æ€ 
     /// </summary>
-    Start,
-    //Pause,
+    Start,                              // ID:203
+    Resume,                             // ID:204
+    Stop,                               // ID:205
     /// <summary>
-    /// Í¬²½¼ÆÊ±
+    /// æˆ¿ä¸»è®¡æ—¶ç»“æŸ
     /// </summary>
-    Resume,
-    Stop,
+    Timeout,                            // ID:206
     /// <summary>
-    /// ·¿Ö÷¼ÆÊ±½áÊø
+    /// æœ¬åœ°è®¡æ—¶ç»“æŸ
     /// </summary>
-    Timeout,
+    LocalTimeout,                       // ID:207
     /// <summary>
-    /// ±¾µØ¼ÆÊ±½áÊø
+    /// ç¡®ä¿ç»“æŸè€ƒæ ¸åæ¸…ç©ºçŠ¶æ€æ¶ˆæ¯
     /// </summary>
-    LocalTimeout,
+    Flush,                              // ID:208
     /// <summary>
-    /// È·±£½áÊø¿¼ºËºóÇå¿Õ×´Ì¬ÏûÏ¢
+    /// æäº¤æˆç»©
     /// </summary>
-    Flush,
+    Submit,                             // ID:209
     /// <summary>
-    /// Ìá½»³É¼¨
+    /// é€€å‡ºæˆ¿é—´
     /// </summary>
-    Submit,
-    /// <summary>
-    /// ÍË³ö·¿¼ä
-    /// </summary>
-    Quit,
-    Max
+    Quit,                               // ID:210
+    Max,                                // ID:211
 }
 
 /// <summary>
-/// Ö±²¥´ğÌâÏûÏ¢
+/// ç›´æ’­ç­”é¢˜æ¶ˆæ¯
 /// </summary>
 public enum JudgeOnlineEvent
 {
-    Min = ExamPanelEvent.Max + 1,
-    Start,
-    Answer,
-    Complete,
-    End,
-    Max
+    Min = ExamPanelEvent.Max + 1,     // ID:212
+    Start,                            // ID:213
+    Answer,                           // ID:214
+    Complete,                         // ID:215
+    End,                              // ID:216
+    Max,                              // ID:217
 }
 
 public enum ShortcutEvent
 {
-    Min = JudgeOnlineEvent.Max + 1,
+    Min = JudgeOnlineEvent.Max + 1,   // ID:218
     /// <summary>
-    /// °´ÏÂÈÎÒâ¼ü ÔÚuibaseÖĞÒÑ¾­Ìí¼Ó
+    /// æŒ‰ä¸‹ä»»æ„é”® åœ¨uibaseä¸­å·²ç»æ·»åŠ 
     /// </summary>
-    PressAnyKey,
-    Max
+    PressAnyKey,                      // ID:219
+    Max,                              // ID:220
 }
 
-
 /// <summary>
-/// ²Ù×÷¼ÇÂ¼ÁĞ±íÃæ°å
+/// æ“ä½œè®°å½•åˆ—è¡¨é¢æ¿
 /// </summary>
 public enum HistoryEvent
 {
-    Min = ShortcutEvent.Max + 1,
-    Open,
-    Show,
-    Hide,
-    Max
+    Min = ShortcutEvent.Max + 1,      // ID:221
+    Open,                             // ID:222
+    Show,                             // ID:223
+    Hide,                             // ID:224
+    Max,                              // ID:225
+}
+
+/// <summary>
+/// æšä¸¾å·¥å…·ç±»ï¼šå®ç°æšä¸¾å€¼è½¬åç§°
+/// </summary>
+public static class EnumTool
+{
+    /// <summary>
+    /// é¢„æ³¨å†Œé¡¹ç›®ä¸­æ‰€æœ‰çš„äº‹ä»¶æšä¸¾ç±»å‹ï¼ˆæ–°å¢æ ¸å¿ƒé…ç½®ï¼‰
+    /// åç»­æ–°å¢æšä¸¾ï¼Œåªéœ€åœ¨è¿™é‡Œæ·»åŠ ç±»å‹å³å¯
+    /// </summary>
+    private static readonly List<Type> EventEnumTypes = new List<Type>
+    {
+        typeof(ModelOperateEvent),
+        typeof(LoginEvent),
+        typeof(OptionPanelEvent),
+        typeof(SpriteTogEvent),
+        typeof(ResourcesPanelEvent),
+        typeof(BaikeSelectModuleEvent),
+        typeof(CoursePanelEvent),
+        typeof(ARModuleEvent),
+        typeof(PaintEvent),
+        typeof(KnowledgeModuleEvent),
+        typeof(HyperLinkEvent),
+        typeof(IntegrationModuleEvent),
+        typeof(SmallFlowModuleEvent),
+        typeof(ExercisesModuleEvent),
+        typeof(GazeEvent),
+        typeof(HierarchyEvent),
+        typeof(AdaptiveListEvent),
+        typeof(OperationListEvent),
+        typeof(StateEvent),
+        typeof(NetworkChannelEvent),
+        typeof(RoomChannelEvent),
+        typeof(MediaChannelEvent),
+        typeof(ExamPanelEvent),
+        typeof(JudgeOnlineEvent),
+        typeof(ShortcutEvent),
+        typeof(HistoryEvent)
+    };
+
+    /// <summary>
+    /// å°†æšä¸¾å®ä¾‹è½¬æ¢ä¸ºå­—ç¬¦ä¸²åç§°
+    /// </summary>
+    /// <param name="value">æšä¸¾å€¼</param>
+    /// <returns>æšä¸¾åç§°å­—ç¬¦ä¸²</returns>
+    public static string GetEnumName(Enum value)
+    {
+        return Enum.GetName(value.GetType(), value);
+    }
+
+    /// <summary>
+    /// æ³›å‹æ–¹æ³•ï¼šæ ¹æ®æšä¸¾ç±»å‹å’Œæ•°å€¼è·å–æšä¸¾åç§°
+    /// </summary>
+    /// <typeparam name="T">æšä¸¾ç±»å‹</typeparam>
+    /// <param name="value">æšä¸¾æ•°å€¼</param>
+    /// <returns>æšä¸¾åç§°</returns>
+    public static string GetEnumNameByValue<T>(int value) where T : Enum
+    {
+        if (Enum.IsDefined(typeof(T), value))
+        {
+            return Enum.GetName(typeof(T), value);
+        }
+        return "Undefined";
+    }
+
+    /// <summary>
+    /// ã€æ–°å¢æ ¸å¿ƒæ–¹æ³•ã€‘ä»…é€šè¿‡æ•°å€¼ï¼Œéå†æ‰€æœ‰æ³¨å†Œçš„æšä¸¾ç±»å‹æŸ¥æ‰¾åŒ¹é…é¡¹
+    /// </summary>
+    /// <param name="enumValue">æšä¸¾æ•°å€¼</param>
+    /// <returns>åŒ¹é…ç»“æœï¼šæ ¼å¼=æšä¸¾ç±»å‹å.æšä¸¾å€¼åï¼Œæ— åŒ¹é…è¿”å›Undefined</returns>
+    public static string GetEnumNameByUnknownType(int enumValue)
+    {
+        // éå†æ‰€æœ‰é¢„æ³¨å†Œçš„æšä¸¾ç±»å‹
+        foreach (Type enumType in EventEnumTypes)
+        {
+            // æ ¡éªŒæ•°å€¼æ˜¯å¦åœ¨å½“å‰æšä¸¾çš„å®šä¹‰ä¸­
+            if (Enum.IsDefined(enumType, enumValue))
+            {
+                string enumName = Enum.GetName(enumType, enumValue);
+                // è¿”å›æ ¼å¼ï¼šLoginEvent.CheckVersionï¼Œå¯è¯»æ€§æ›´å¼º
+                return $"{enumType.Name}.{enumName}";
+            }
+        }
+        // æ‰€æœ‰æšä¸¾éƒ½æœªåŒ¹é…åˆ°è¯¥æ•°å€¼
+        return "Undefined";
+    }
+
+    /// <summary>
+    /// ã€æ‰©å±•æ–¹æ³•ã€‘ä»…é€šè¿‡æ•°å€¼è·å–åŒ¹é…çš„æšä¸¾ç±»å‹ï¼Œæ— åŒ¹é…è¿”å›null
+    /// </summary>
+    public static Type GetEnumTypeByValue(int enumValue)
+    {
+        foreach (Type enumType in EventEnumTypes)
+        {
+            if (Enum.IsDefined(enumType, enumValue))
+            {
+                return enumType;
+            }
+        }
+        return null;
+    }
 }

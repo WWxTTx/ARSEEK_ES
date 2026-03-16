@@ -351,6 +351,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
                             }
                             else
                             {
+                                // 修复：新消息到来时重新启用同步，确保消息能被执行
+                                if (!IsStartSync)
+                                {
+                                    IsStartSync = true;
+                                }
                                 opsReceive.Enqueue(packet.data);
                                 stateHelper.UpdateState(packet.data);
                             }

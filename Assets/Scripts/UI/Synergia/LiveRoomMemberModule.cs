@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 using static UnityFramework.Runtime.ServiceRequestData;
 
 /// <summary>
@@ -20,7 +21,6 @@ public class LiveRoomMemberModule : UIModuleBase
     /// </summary>
     private ScrollRect MemberScrollView;
     /// <summary>
-    /// 人数
     /// 人数
     /// </summary>
     private Text MemberCount;
@@ -73,6 +73,7 @@ public class LiveRoomMemberModule : UIModuleBase
             (ushort)RoomChannelEvent.UpdateMemberList,
             (ushort)RoomChannelEvent.OtherJoin,
             (ushort)RoomChannelEvent.OtherLeave,
+            (ushort)RoomChannelEvent.StartMainScreen,
             (ushort)RoomChannelEvent.UpdateMainScreen,
             (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.TalkState,
@@ -148,7 +149,7 @@ public class LiveRoomMemberModule : UIModuleBase
                 {
                     if (!NetworkManager.Instance.IsUserOnline(GlobalInfo.mainScreenId))
                     {
-                        if (!mainScreenOffline)
+                        if (!mainScreenOffline && !NetworkManager.Instance.IsLeavingRoom)
                         {
                             mainScreenOffline = true;
                             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
@@ -169,6 +170,10 @@ public class LiveRoomMemberModule : UIModuleBase
             case (ushort)RoomChannelEvent.OtherLeave:
                 MsgIntString leavedMember = (MsgIntString)msg;
                 OnOtherLeave(leavedMember.arg1, leavedMember.arg2);
+                break;
+            case (ushort)RoomChannelEvent.StartMainScreen:
+                Log.Debug("初始设置房主为主画面：" + GlobalInfo.mainScreenId + "--" + GlobalInfo.roomInfo.creatorId);
+                NetworkManager.Instance.SetUserMainView(GlobalInfo.roomInfo.creatorId, true);
                 break;
             case (ushort)RoomChannelEvent.UpdateMainScreen:
                 MsgIntBool screenMsg = (MsgIntBool)msg;
@@ -216,18 +221,9 @@ public class LiveRoomMemberModule : UIModuleBase
     /// <param name="newJoinedId"></param>
     /// <param name="newJoinedName"></param>
     private void OnOtherJoin(int newJoinedId, string newJoinedName)
-    {                   
-        // 直播房间，有其他成员加入时 且自身是主画面 打开直播画面发送
-        if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && GlobalInfo.IsMainScreen())
-        {
-            NetworkManager.Instance.EnableLocalVideo(true);
-        }
-        else
-            NetworkManager.Instance.EnableLocalVideo(false);
-
+    {
         if (newJoinedId == GlobalInfo.roomInfo.creatorId)
         {
-            //提示其他成员 房主进入
             if (!GlobalInfo.IsHomeowner())
                 UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("房主加入房间"));
         }
@@ -250,11 +246,7 @@ public class LiveRoomMemberModule : UIModuleBase
                     //todo 有成员加入房间时，房主异常离线的情况?
                     if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Synergia)
                     {
-                        // 马上执行会发现成员列表中对方还没有更新
-                        DOVirtual.DelayedCall(0.1f, () =>
-                        {
-                            NetworkManager.Instance.SetUserControl(newJoinedId, true);
-                        });
+                        NetworkManager.Instance.SetUserControl(newJoinedId, true);
                     }
                     UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo(string.Format("{0}加入房间", newJoinedName)));
                 }
@@ -282,12 +274,6 @@ public class LiveRoomMemberModule : UIModuleBase
             }
         }
         RemoveMember(leavedUserId);
-
-        //有人离开房间 且离开后不足两人 关闭直播画面发送
-        if(allMemberItem.Count < 2)
-        {
-            NetworkManager.Instance.EnableLocalVideo(false);
-        }
     }
 
     /// <summary>
@@ -334,9 +320,10 @@ public class LiveRoomMemberModule : UIModuleBase
             if (isMainScreen)
             {
                 SendMsg(new MsgBase((ushort)CoursePanelEvent.OpenMask));
-                if(!GlobalInfo.IsHomeowner() && !GlobalInfo.IsOperator())
+                if (!GlobalInfo.IsHomeowner() && !GlobalInfo.IsOperator())
                 {
-                    UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo($"{NetworkManager.Instance.GetUserName(id)}被设置为主画面"));
+                    UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp,
+                        new ToastPanelInfo($"{NetworkManager.Instance.GetUserName(id)}被设置为主画面"));
                 }
             }
         }
@@ -349,10 +336,17 @@ public class LiveRoomMemberModule : UIModuleBase
     /// <param name="isControl"></param>
     private void OnControllerUpdate(int id, bool isControl)
     {
+        Log.Debug("成员权限变更回调:" + id + "--" + isControl);
         if (GlobalInfo.account.id == id)
         {
             if (isControl)
             {
+                // YG: 改成手动加载百科
+                //GlobalInfo.BaikeLoading = true;
+                //ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, GlobalInfo.currentWiki.id), true);
+
+                // YG: 改成等待百科加载完成
+                //StartCoroutine(WaitForBaikeComplete(() => { 
                 NetworkManager.Instance.SyncCachedVersion();
                 SendMsg(new MsgBase((ushort)CoursePanelEvent.CloseMask));
                 SendMsg(new MsgBase((ushort)MediaChannelEvent.RemoveView));
@@ -366,6 +360,7 @@ public class LiveRoomMemberModule : UIModuleBase
                     popupDic.Add("知道了", new PopupButtonData(null, true));
                     UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "你已获得操作权限", popupDic));
                 }
+                //}));
             }
             else
             {
@@ -395,11 +390,13 @@ public class LiveRoomMemberModule : UIModuleBase
         {
             if (GlobalInfo.IsHomeowner())
             {
-                UIManager.Instance.OpenModuleUI<LocalTipModule>(ParentPanel, Background.transform, new LocalTipModule.ModuleData(GlobalInfo.isAllTalk ? "已解除全员禁言" : "已开启全员禁言"));
+                UIManager.Instance.OpenModuleUI<LocalTipModule>(ParentPanel, Background.transform,
+                    new LocalTipModule.ModuleData(GlobalInfo.isAllTalk ? "已解除全员禁言" : "已开启全员禁言"));
             }
             else
             {
-                UIManager.Instance.OpenModuleUI<ToastPanel>(SynCoursePanel, UILevel.PopUp, new ToastPanelInfo(GlobalInfo.isAllTalk ? "已解除全员禁言" : "已开启全员禁言"));
+                UIManager.Instance.OpenModuleUI<ToastPanel>(SynCoursePanel, UILevel.PopUp,
+                    new ToastPanelInfo(GlobalInfo.isAllTalk ? "已解除全员禁言" : "已开启全员禁言"));
             }
         }
     }
@@ -558,10 +555,10 @@ public class LiveRoomMemberModule : UIModuleBase
                 {
                     NetworkManager.Instance.SetUserMainView(GlobalInfo.mainScreenId, false);
 
+                    //将除房主的用户操作权收回
                     int operatorId = -1;
                     if (GlobalInfo.controllerIds.Count > 1)
                         operatorId = GlobalInfo.controllerIds.Except(new List<int> { GlobalInfo.roomInfo.creatorId }).First();
-                    //将除房主的用户主画面和操作权收回
                     if (operatorId != -1 && operatorId != info.Id)
                     {
                         NetworkManager.Instance.SetUserControl(operatorId, false);
@@ -601,28 +598,30 @@ public class LiveRoomMemberModule : UIModuleBase
         if (GlobalInfo.IsHomeowner())
         {
             opConToggle.onValueChanged.RemoveAllListeners();
-            opConToggle.onValueChanged.AddListener((isOn) =>
-            {
-                if (isOn)
-                {
-                    //将除房主以外的成员主画面和操作权收回
-                    if (GlobalInfo.controllerIds.Count > 1)
-                    {
-                        NetworkManager.Instance.SetUserControl(GlobalInfo.controllerIds.Except(new List<int> { GlobalInfo.roomInfo.creatorId }).First(), false);
-                    }
-                    NetworkManager.Instance.SetUserControl(info.Id, true);
-                }
-                else
-                {
-                    NetworkManager.Instance.ReleasePlayerColor(info.Id);
-                    NetworkManager.Instance.SetUserControl(info.Id, false);
-                    //被收回权限的成员是当前主画面时，主画面回到房主
-                    if (info.Id == GlobalInfo.mainScreenId)
-                    {
-                        NetworkManager.Instance.SetUserMainView(GlobalInfo.roomInfo.creatorId, true);
-                    }
-                }
-            });
+            opConToggle.interactable = false;
+            //TODO 2026.1.21 多人权限控制有问题，暂时去掉直播多人权限控制
+            //opConToggle.onValueChanged.AddListener((isOn) =>
+            //{
+            //    if (isOn)
+            //    {
+            //        //将除房主以外的成员主画面和操作权收回
+            //        if (GlobalInfo.controllerIds.Count > 1)
+            //        {
+            //            NetworkManager.Instance.SetUserControl(GlobalInfo.controllerIds.Except(new List<int> { GlobalInfo.roomInfo.creatorId }).First(), false);
+            //        }
+            //        NetworkManager.Instance.SetUserControl(info.Id, true);
+            //    }
+            //    else
+            //    {
+            //        NetworkManager.Instance.ReleasePlayerColor(info.Id);
+            //        NetworkManager.Instance.SetUserControl(info.Id, false);
+            //        //被收回权限的成员是当前主画面时，主画面回到房主
+            //        if (info.Id == GlobalInfo.mainScreenId)
+            //        {
+            //            NetworkManager.Instance.SetUserMainView(GlobalInfo.roomInfo.creatorId, true);
+            //        }
+            //    }
+            //});
         }
 
         //注册语音控制按钮
@@ -765,13 +764,16 @@ public class LiveRoomMemberModule : UIModuleBase
         mvToggle.interactable = GlobalInfo.IsHomeowner();
         if (info.Id == GlobalInfo.roomInfo.creatorId && info.Id == GlobalInfo.mainScreenId)
             mvToggle.interactable = false;
-        mvToggle.SetIsOnWithoutNotify(info.Id == GlobalInfo.mainScreenId);
+        mvToggle.SetIsOnWithoutNotify(info.Id == GlobalInfo.mainScreenId);//设置主画面toggle
 
+
+        // LUO: 罗老师修复bug
+        opConToggle.interactable = false;
         //权限显示
         if (info.Id == GlobalInfo.roomInfo.creatorId)
         {
             //房主移交主屏权限后，可选择取消自己的操作权限
-            opConToggle.interactable = GlobalInfo.IsHomeowner() && GlobalInfo.mainScreenId != info.Id;
+            //opConToggle.interactable = GlobalInfo.IsHomeowner() && GlobalInfo.mainScreenId != info.Id;// TODO 2026.1.21 多人权限控制有问题，暂时去掉直播多人权限控制
             ////房主占一位操作权
             //opConToggle.interactable = false;
             opConToggle.SetIsOnWithoutNotify(GlobalInfo.controllerIds.Contains(info.Id));
@@ -780,7 +782,7 @@ public class LiveRoomMemberModule : UIModuleBase
         {
             opConToggle.gameObject.SetActive(true);
             opConToggle.SetIsOnWithoutNotify(GlobalInfo.controllerIds.Contains(info.Id));
-            opConToggle.interactable = GlobalInfo.IsHomeowner();
+            //opConToggle.interactable = GlobalInfo.IsHomeowner();    //TODO 2026.1.21 多人权限控制有问题，暂时去掉直播多人权限控制
         }
 
         //语音控制显示
@@ -904,7 +906,7 @@ public class LiveRoomMemberModule : UIModuleBase
 
 #if UNITY_STANDALONE
         Background.localScale = Vector3.one * 0.2f;
-        Background.DOScale(Vector3.one , JoinAnimePlayTime);
+        Background.DOScale(Vector3.one, JoinAnimePlayTime);
 #else
         Background.anchoredPosition = new Vector2(Background.sizeDelta.x, Background.anchoredPosition.y);
         Background.DOAnchorPos3DX(0f, JoinAnimePlayTime);
@@ -927,7 +929,7 @@ public class LiveRoomMemberModule : UIModuleBase
         {
             canvasGroup.blocksRaycasts = false;
 #if UNITY_STANDALONE
-                ExitSequence.Join(Background.DOScale(Vector3.one * 0.2f, ExitAnimePlayTime));
+            ExitSequence.Join(Background.DOScale(Vector3.one * 0.2f, ExitAnimePlayTime));
 #else
             ExitSequence.Join(DOTween.To(() => new Vector2(0f, Background.anchoredPosition.y), (value) => Background.anchoredPosition = value, new Vector2(Background.sizeDelta.x, Background.anchoredPosition.y), ExitAnimePlayTime));
 #endif
