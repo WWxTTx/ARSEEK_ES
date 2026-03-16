@@ -1572,13 +1572,26 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
     public GameObject tempText;
     public void AddConmandEvent(string t)
     {
+        ClearMsgObj();
         Text temp = Instantiate(tempText, zlTextParent).GetComponent<Text>();
         temp.text = t;
     }
     public void AddErroEvent(string t)
     {
+        ClearMsgObj();
         Text temp = Instantiate(tempText, bjTextParent).GetComponent<Text>();
         temp.text = t;
+    }
+    void ClearMsgObj()
+    {
+        foreach (Transform item in bjTextParent)
+        {
+            Destroy(item.gameObject);
+        }
+        foreach (Transform item in zlTextParent)
+        {
+            Destroy(item.gameObject);
+        }
     }
 
     /// <summary>

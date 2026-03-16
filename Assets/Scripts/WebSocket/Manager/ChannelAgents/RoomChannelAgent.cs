@@ -7,12 +7,12 @@ using Newtonsoft.Json.Linq;
 public class RoomChannelAgent : NetworkChannelAgentBase
 {
     /// <summary>
-    /// ·¿¼ä³ÉÔ±ÁĞ±í
+    /// æˆ¿é—´æˆå‘˜åˆ—è¡¨
     /// </summary>
     public List<Member> roomMembers = new List<Member>();
     private int prevMainScreenId;
     /// <summary>
-    /// ·¿¼äÔÚÏß³ÉÔ±×Öµä
+    /// æˆ¿é—´åœ¨çº¿æˆå‘˜å­—å…¸
     /// </summary>
     public Dictionary<int, Member> onlineUsers = new Dictionary<int, Member>();
     private Dictionary<int, Member> tempOnlineUsers = new Dictionary<int, Member>();
@@ -21,7 +21,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     private float deltaTime;
 
     /// <summary>
-    /// ÏûÏ¢½ÓÊÕ¶ÓÁĞ
+    /// æ¶ˆæ¯æ¥æ”¶é˜Ÿåˆ—
     /// </summary>
     private Queue<string> msgQueue = new Queue<string>();
     private string currMsg;
@@ -39,17 +39,17 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ·¢ËÍÏûÏ¢
+    /// å‘é€æ¶ˆæ¯
     /// </summary>
     /// <param name="cmd"></param>
     public void SendCommand(string cmd)
     {
-        DebugHelper.Info(ChannelType.rtm, $"[send] {cmd}");
+        DebugHelper.Error(ChannelType.rtm, $"[send] {cmd}");
         networkChannel.SendAsync(cmd);
     }
 
     /// <summary>
-    /// »ñÈ¡ÓÃ»§ĞÅÏ¢
+    /// è·å–ç”¨æˆ·ä¿¡æ¯
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
@@ -67,7 +67,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ÏûÏ¢´¦Àí
+    /// æ¶ˆæ¯å¤„ç†
     /// </summary>
     private void LateUpdate()
     {
@@ -86,23 +86,23 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                 switch (type)
                 {
                     case NetworkManager.MEMBER_LIST:
-                        //³ÉÔ±ÁĞ±íÏûÏ¢
+                        //æˆå‘˜åˆ—è¡¨æ¶ˆæ¯
                         UpdateRoomMembers(JsonTool.DeSerializable<List<Member>>(jObject[NetworkManager.PAYLOAD]["members"].ToString()));
                         break;
                     case NetworkManager.MEMBER_IN:
-                        //³ÉÔ±½øÈë·¿¼äÏûÏ¢
+                        //æˆå‘˜è¿›å…¥æˆ¿é—´æ¶ˆæ¯
                         OtherJoinRoom(int.Parse(jObject[NetworkManager.PAYLOAD]["member"]["id"].ToString()), jObject[NetworkManager.PAYLOAD]["member"]["nickName"].ToString());
                         break;
                     case NetworkManager.MEMBER_OUT:
-                        //³ÉÔ±Àë¿ª·¿¼äÏûÏ¢
+                        //æˆå‘˜ç¦»å¼€æˆ¿é—´æ¶ˆæ¯
                         OtherLeaveRoom(int.Parse(jObject[NetworkManager.PAYLOAD]["member"]["id"].ToString()), jObject[NetworkManager.PAYLOAD]["member"]["nickName"].ToString());
                         break;
                     case NetworkManager.SILENT_ALL:
-                        //È«Ô±½ûÑÔÏûÏ¢
+                        //å…¨å‘˜ç¦è¨€æ¶ˆæ¯
                         UpdateAllPlayerTalkState(false, true);
                         break;
                     case NetworkManager.SILENT_OFF_ALL:
-                        //È«Ô±È¡Ïû½ûÑÔÏûÏ¢
+                        //å…¨å‘˜å–æ¶ˆç¦è¨€æ¶ˆæ¯
                         UpdateAllPlayerTalkState(true, true);
                         break;
                 }
@@ -111,9 +111,9 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ¸üĞÂÓÃ»§
+    /// æ›´æ–°ç”¨æˆ·
     /// </summary>
-    /// <param name="newId">·¢Éú¸üĞÂµÄÓÃ»§id</param>
+    /// <param name="newId">å‘ç”Ÿæ›´æ–°çš„ç”¨æˆ·id</param>
     /// <param name="members"></param>
     private void UpdateRoomMembers(List<Member> members)
     {
@@ -121,28 +121,28 @@ public class RoomChannelAgent : NetworkChannelAgentBase
         {
             if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Synergia && members.Find(m => m.Id == GlobalInfo.roomInfo.creatorId) == null)
             {
-                // ¼ÓÈë·¿¼äÊ±Èô·¿Ö÷Òì³£ÀëÏß£¬ÌáÊ¾ÍË³ö·¿¼ä
-                // ±ÜÃâĞ­Í¬·¿¼äÎŞ·¿Ö÷ÎªĞÂ³ÉÔ±·ÖÅäÈ¨ÏŞÑÕÉ«
+                // åŠ å…¥æˆ¿é—´æ—¶è‹¥æˆ¿ä¸»å¼‚å¸¸ç¦»çº¿ï¼Œæç¤ºé€€å‡ºæˆ¿é—´
+                // é¿å…ååŒæˆ¿é—´æ— æˆ¿ä¸»ä¸ºæ–°æˆå‘˜åˆ†é…æƒé™é¢œè‰²
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                popupDic.Add("È·¶¨", new PopupButtonData(() =>
+                popupDic.Add("ç¡®å®š", new PopupButtonData(() =>
                 {
                     ModelManager.Instance.DestroySyncComponent();
                     NetworkManager.Instance.ReleaseMicrophone();
                     NetworkManager.Instance.LeaveRoom();
                 }, true));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("ÌáÊ¾", "·¿Ö÷²»ÔÚ·¿¼äÄÚ£¬ÇëÍË³ö·¿¼äÖØÊÔ", popupDic, null, false));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("æç¤º", "æˆ¿ä¸»ä¸åœ¨æˆ¿é—´å†…ï¼Œè¯·é€€å‡ºæˆ¿é—´é‡è¯•", popupDic, null, false));
             }
         }
 
         roomMembers = members;
 
-        //»º´æµ±Ç°ÓÃ»§ÁĞ±í
+        //ç¼“å­˜å½“å‰ç”¨æˆ·åˆ—è¡¨
         cacheOnlineUsers.Clear();
         foreach (KeyValuePair<int, Member> valuePair in onlineUsers)
         {
             cacheOnlineUsers.Add(valuePair.Key, valuePair.Value);
         }
-        //¸üĞÂÔÚÏßÓÃ»§ÁĞ±í
+        //æ›´æ–°åœ¨çº¿ç”¨æˆ·åˆ—è¡¨
         onlineUsers.Clear();
         foreach (var member in roomMembers)
         {
@@ -150,7 +150,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                 onlineUsers.Add(member.Id, member);
         }
 
-        //ÔÚÏßÓÃ»§×´Ì¬·¢Éú±ä»¯isTalk/isControl/isChat/isMainScreen
+        //åœ¨çº¿ç”¨æˆ·çŠ¶æ€å‘ç”Ÿå˜åŒ–isTalk/isControl/isChat/isMainScreen
         foreach (var member in onlineUsers)
         {
             if (cacheOnlineUsers.TryGetValue(member.Key, out Member prevMemberState))
@@ -165,7 +165,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ¸üĞÂÈ«Ô±±ÕÂó×´Ì¬
+    /// æ›´æ–°å…¨å‘˜é—­éº¦çŠ¶æ€
     /// </summary>
     /// <param name="isAllTalk"></param>
     private void UpdateAllPlayerTalkState(bool isAllTalk, bool showToast = true)
@@ -192,12 +192,12 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ³ÉÔ±¼ÓÈë·¿¼ä
+    /// æˆå‘˜åŠ å…¥æˆ¿é—´
     /// </summary>
     /// <param name="newJoinedId"></param>
     private void OtherJoinRoom(int newJoinedId, string newJoinedName)
     {
-        // ĞÂĞ­Í¬·şÎñ·ÖÎªmember_in ºÍmember_list; ½ÓÊÕµ½member_inÊ±newJoinerId¿ÉÄÜ»¹²»ÔÚµ±Ç°³ÉÔ±ÁĞ±íÖĞ
+        // æ–°ååŒæœåŠ¡åˆ†ä¸ºmember_in å’Œmember_list; æ¥æ”¶åˆ°member_inæ—¶newJoinerIdå¯èƒ½è¿˜ä¸åœ¨å½“å‰æˆå‘˜åˆ—è¡¨ä¸­
         //if (!onlineUsers.TryGetValue(newJoinedId, out Member newJoinedMember))
         //    return;
 
@@ -211,7 +211,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ³ÉÔ±Àë¿ª·¿¼ä
+    /// æˆå‘˜ç¦»å¼€æˆ¿é—´
     /// </summary>
     /// <param name="memberId"></param>
     /// <param name="memberNickName"></param>
@@ -231,44 +231,44 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ¸üĞÂÓÃ»§×´Ì¬
+    /// æ›´æ–°ç”¨æˆ·çŠ¶æ€
     /// </summary>
-    /// <param name="newId">ÓÃ»§Id</param>
-    /// <param name="prevMemberState">ÓÃ»§Ö®Ç°µÄ×´Ì¬</param>
+    /// <param name="newId">ç”¨æˆ·Id</param>
+    /// <param name="prevMemberState">ç”¨æˆ·ä¹‹å‰çš„çŠ¶æ€</param>
     private void UpdateMember(int newId, Member prevMemberState)
     {
         if (onlineUsers.TryGetValue(newId, out Member newMember))
         {
-            //ÓÃ»§½ûÑÔ×´Ì¬¸Ä±ä
+            //ç”¨æˆ·ç¦è¨€çŠ¶æ€æ”¹å˜
             if (newMember.IsTalk != prevMemberState.IsTalk)
             {
                 if (GlobalInfo.account.id == newMember.Id)
                 {
                     networkManager.EnableLocalMic(newMember.IsTalk && newMember.IsChat);
-                    UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo(newMember.IsTalk ? "½ûÑÔ½â³ı" : "ÄãÒÑ±»½ûÑÔ"));
+                    UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo(newMember.IsTalk ? "ç¦è¨€è§£é™¤" : "ä½ å·²è¢«ç¦è¨€"));
                 }
                 else
                 {
-                    //ÒÆ³ı±»½ûÑÔÓÃ»§µÄAudioDecoder
+                    //ç§»é™¤è¢«ç¦è¨€ç”¨æˆ·çš„AudioDecoder
                     if (!newMember.IsTalk)
                         networkManager.RemoveUserAudio(newMember.Id);
                 }
             }
 
-            //ÓÃ»§Ö÷»­Ãæ¸Ä±ä
+            //ç”¨æˆ·ä¸»ç”»é¢æ”¹å˜
             if (newMember.IsMainScreen != prevMemberState.IsMainScreen)
             {
                 SendMsg(new MsgIntBool((ushort)RoomChannelEvent.UpdateMainScreen, newMember.Id, newMember.IsMainScreen));
             }
 
-            //ÓÃ»§²Ù×÷È¨ÏŞ¸Ä±ä
+            //ç”¨æˆ·æ“ä½œæƒé™æ”¹å˜
             if (newMember.IsControl != prevMemberState.IsControl)
             {
                 //networkManager.ClearUserIMState(newMember.Id);
                 SendMsg(new MsgIntBool((ushort)RoomChannelEvent.UpdateControl, newMember.Id, newMember.IsControl));
             }
 
-            //ÓÃ»§ÓïÒô×´Ì¬¸Ä±ä
+            //ç”¨æˆ·è¯­éŸ³çŠ¶æ€æ”¹å˜
             if (newMember.IsChat != prevMemberState.IsChat)
             {
                 if (GlobalInfo.account.id == newMember.Id)
@@ -277,7 +277,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                 }
                 else
                 {
-                    //ÒÆ³ı¹ØÂóÓÃ»§µÄAudioDecoder
+                    //ç§»é™¤å…³éº¦ç”¨æˆ·çš„AudioDecoder
                     if (!newMember.IsChat)
                         networkManager.RemoveUserAudio(newMember.Id);
                 }
@@ -286,13 +286,13 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ¸üĞÂ·¿¼äÈ«¾ÖÖµ£ºµ±Ç°Ö÷»­Ãæ¡¢²Ù×÷ÓÃ»§ID¡¢ÓÃ»§ÑÕÉ«
+    /// æ›´æ–°æˆ¿é—´å…¨å±€å€¼ï¼šå½“å‰ä¸»ç”»é¢ã€æ“ä½œç”¨æˆ·IDã€ç”¨æˆ·é¢œè‰²
     /// </summary>
     /// <param name="members"></param>
     private void UpdateGlobalValue(List<Member> members)
     {
         prevMainScreenId = GlobalInfo.mainScreenId;
-        //¸üĞÂÖ÷»­ÃæID
+        //æ›´æ–°ä¸»ç”»é¢ID
         GlobalInfo.mainScreenId = -1;
         foreach (Member m in members)
         {
@@ -305,7 +305,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
         if (GlobalInfo.mainScreenId == -1)
             GlobalInfo.mainScreenId = GlobalInfo.roomInfo.creatorId;
 
-        //¸üĞÂÈ¨ÏŞID
+        //æ›´æ–°æƒé™ID
         GlobalInfo.controllerIds.Clear();
         foreach (Member m in members)
         {
@@ -317,7 +317,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
         if (GlobalInfo.controllerIds.Count == 0)
             GlobalInfo.controllerIds.Add(GlobalInfo.roomInfo.creatorId);
 
-        //¸üĞÂÓÃ»§ÑÕÉ«
+        //æ›´æ–°ç”¨æˆ·é¢œè‰²
         networkManager.UpdatePlayerColor(members);
     }
 
