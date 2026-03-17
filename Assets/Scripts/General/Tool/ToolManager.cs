@@ -48,6 +48,7 @@ namespace UnityFramework.Runtime
             GlobalInfo.isExam = false;
             GlobalInfo.isLive = false;
             GlobalInfo.isOffLine = false;
+            GlobalInfo.UpdateCourseMode();
             GlobalInfo.courseDicExists.Clear();
             UIManager.Instance.OpenUI<LoginPanel>();
         }

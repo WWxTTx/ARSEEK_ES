@@ -510,6 +510,9 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 }));
                 break;
             case (ushort)StateEvent.PreSyncVersion:
+                // 断线重连时取消弹窗和语音
+                UIManager.Instance.CloseUI<PopupPanel>();
+                SpeechManager.Instance.StopSpeech();
                 ClearBaikeModules(true);
                 ModelManager.Instance.DestroyModels(true);
                 ModelManager.Instance.DestroyScripts(true);
@@ -648,6 +651,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
         GlobalInfo.isLive = false;
+        GlobalInfo.UpdateCourseMode();
         UIManager.Instance.CloseUI<PopupPanel>();
         UIManager.Instance.CloseUI<PopupPanel_AutoConfirm>();
         //ModelManager.Instance.ControlGlobalVolume();

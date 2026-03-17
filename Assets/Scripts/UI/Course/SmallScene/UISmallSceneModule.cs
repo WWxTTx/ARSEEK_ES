@@ -402,7 +402,8 @@ public class UISmallSceneModule : UIModuleBase
             RequestManager.Instance.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
             {
                 SpeechManager.Instance.SaveData(data);
-                OpenInfo();
+                if(CourseMode.Training == GlobalInfo.courseMode)
+                    OpenInfo();
             }, errorMsg =>
             {
                 Debug.LogError("获取百科语音失败");
@@ -1602,6 +1603,13 @@ public class UISmallSceneModule : UIModuleBase
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.Operate:
+
+                //如果是同步且需要操作内容 先不操作
+                if (!GlobalInfo.DoStep)
+                {
+                    return;
+                }
+
                 int userIdOp = ((MsgBrodcastOperate)msg).senderId;
                 MsgOperation msgOp = ((MsgBrodcastOperate)msg).GetData<MsgOperation>();
                 {

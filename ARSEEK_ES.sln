@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IngameDebugConsole.Editor",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RenderHeads.AVProMovieCapture.Editor", "RenderHeads.AVProMovieCapture.Editor.csproj", "{CA04786A-613B-D8C4-DB09-B94B9E7CC7AF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniTask.Editor", "UniTask.Editor.csproj", "{F8620C15-9E75-20E5-3824-4DCAB286ED71}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,10 @@ Global
 		{CA04786A-613B-D8C4-DB09-B94B9E7CC7AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA04786A-613B-D8C4-DB09-B94B9E7CC7AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA04786A-613B-D8C4-DB09-B94B9E7CC7AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8620C15-9E75-20E5-3824-4DCAB286ED71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8620C15-9E75-20E5-3824-4DCAB286ED71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8620C15-9E75-20E5-3824-4DCAB286ED71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8620C15-9E75-20E5-3824-4DCAB286ED71}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

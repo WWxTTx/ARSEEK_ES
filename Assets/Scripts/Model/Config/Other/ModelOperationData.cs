@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using System;
 using System.Collections;
@@ -2457,27 +2458,29 @@ public class BehavePlayerNavigation : BehaveDotween
             return;
         }
 
+        //联机模式中有时ctrlGO会再开始协程后变成false导致协程执行报错，改为异步执行
         playerController.Model.GetComponent<Animator>().SetBool("isMove", true);
-        ctrlGO.AutoComponent<MonoStub>().StartCoroutine(StartNavigation(playerController, () =>
-        {
-            callback?.Invoke();
-        }));
-      
+        StartNavigationAsync(playerController, callback).Forget();
     }
 
-    private IEnumerator StartNavigation(PlayerController playerController, UnityAction callback)
+    private async UniTask StartNavigationAsync(PlayerController playerController, UnityAction callback)
     {
         if (Vector3.Distance(ctrlGO.transform.position, playerController.transform.position) > minMoveDictance)
         {
             playerController.StartNavigation(ctrlGO.transform);
-            yield return new WaitUntil(() => playerController.NavPathComplete);
+
+            // 等待导航完成
+            await UniTask.WaitUntil(() => playerController.NavPathComplete);
 
             playerController.Model.GetComponent<Animator>().SetBool("isMove", false);
             float angleDiff = ctrlGO.transform.eulerAngles.y - playerController.transform.eulerAngles.y;
             playerController.EndNavigation(ctrlGO.transform, angleDiff.NormalizedAngle180() / 90f * GlobalInfo.playTimeRatio);
 
-            yield return new WaitUntil(() => playerController.NavEnd);
-            yield return new WaitForSecondsRealtime(playerController.cameraRotateDuration);
+            // 等待导航结束
+            await UniTask.WaitUntil(() => playerController.NavEnd);
+
+            // 等待相机旋转时间
+            await UniTask.WaitForSeconds(playerController.cameraRotateDuration);
         }
         else
         {

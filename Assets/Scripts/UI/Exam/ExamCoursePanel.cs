@@ -193,6 +193,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
         GlobalInfo.isLive = false;
         GlobalInfo.isExam = false;
+        GlobalInfo.UpdateCourseMode();
         GlobalInfo.canEditUserInfo = true;
 
         Resources.UnloadUnusedAssets();

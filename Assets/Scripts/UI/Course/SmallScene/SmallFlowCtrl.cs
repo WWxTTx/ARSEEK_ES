@@ -217,29 +217,33 @@ public class SmallFlowCtrl : MonoBase
             return;
         }
 
-        // 检查操作中是否有弹窗
+        // 检查操作中是否有弹窗 只有引导模式需要自动生成弹窗
         bool hasPopup = false;
         BehavePopup popupBehave = null;
 
-        foreach (var op in state.operation.operations)
+        if (GlobalInfo.courseMode == CourseMode.Training)
         {
-            if (op.name.Equals(state.optionName))
+            foreach (var op in state.operation.operations)
             {
-                if (op.behaveBases != null)
+                if (op.name.Equals(state.optionName))
                 {
-                    foreach (var behave in op.behaveBases)
+                    if (op.behaveBases != null)
                     {
-                        if (behave is BehavePopup popup)
+                        foreach (var behave in op.behaveBases)
                         {
-                            hasPopup = true;
-                            popupBehave = popup;
-                            break;
+                            if (behave is BehavePopup popup)
+                            {
+                                hasPopup = true;
+                                popupBehave = popup;
+                                break;
+                            }
                         }
                     }
+                    break;
                 }
-                break;
             }
         }
+
 
         if (hasPopup && popupBehave != null && useGuide)
         {
@@ -998,8 +1002,6 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
     {
-        NetworkManager.Instance.IsIMSync = false;
-
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
@@ -1789,7 +1791,7 @@ public class SmallFlowCtrl : MonoBase
                         }
                         catch
                         {
-                            Debug.LogError(operation.name + "    " + op.behaveBases[k].behaveType + "  该物体配置错误");
+                            //Debug.LogError(operation.name + "    " + op.behaveBases[k].behaveType + "  该物体没有配置最终状态");
                         }
                     }
 
@@ -2017,23 +2019,24 @@ public class SmallFlowCtrl : MonoBase
                     model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), msgModelRotate.angleZ);
                 }
                 break;
-            //case (ushort)SmallFlowModuleEvent.StepEnd:
-            //    // 状态同步
-            //    if ((msg as MsgBrodcastOperate).senderId != GlobalInfo.account.id || NetworkManager.Instance.IsIMSyncState || NetworkManager.Instance.IsIMSyncCachedState)
-            //    {
-            //        MsgStepEnd msgStepEnd = (msg as MsgBrodcastOperate).GetData<MsgStepEnd>();
-            //        if (msgStepEnd.correctOp)
-            //        {
-            //            RecordSucessOp(new SmallOp1()
-            //            {
-            //                operation = GetModelOperation(msgStepEnd.modelInfoId),
-            //                optionName = msgStepEnd.operationName,
-            //                prop = GetModelInfo(msgStepEnd.propId)
-            //            });
-            //            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, msgStepEnd.modelInfoId));
-            //        }
-            //    }
-            //    break;
+            case (ushort)SmallFlowModuleEvent.StepEnd:
+                MsgOperation msgOp = ((MsgBrodcastOperate)msg).GetData<MsgOperation>();
+                // 状态同步
+                if ((msg as MsgBrodcastOperate).senderId != GlobalInfo.account.id || NetworkManager.Instance.IsIMSyncState || NetworkManager.Instance.IsIMSyncCachedState)
+                {
+                    MsgStepEnd msgStepEnd = (msg as MsgBrodcastOperate).GetData<MsgStepEnd>();
+                    if (msgOp.correctOp)
+                    {
+                        RecordSucessOp(new SmallOp1()
+                        {
+                            operation = GetModelOperation(msgStepEnd.modelInfoId),
+                            optionName = msgStepEnd.operationName,
+                            prop = GetModelInfo(msgOp.propId)
+                        });
+                        FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, msgStepEnd.modelInfoId));
+                    }
+                }
+                break;
         }    
     }
 

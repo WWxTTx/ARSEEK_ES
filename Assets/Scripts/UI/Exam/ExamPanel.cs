@@ -927,6 +927,7 @@ public class ExamPanel : HoverHintPanel
         base.Close(uiData, callback);
         GlobalInfo.isLive = false;
         GlobalInfo.isExam = false;
+        GlobalInfo.UpdateCourseMode();
         GlobalInfo.canEditUserInfo = true;
     }
 

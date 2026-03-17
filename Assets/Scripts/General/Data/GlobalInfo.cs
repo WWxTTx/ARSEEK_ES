@@ -1,10 +1,36 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
 using static UnityFramework.Runtime.ServiceRequestData;
 
+/// <summary>
+/// 课程模式类别
+/// </summary>
+public enum CourseMode
+{
+    /// <summary>
+    /// 培训模式（默认）
+    /// </summary>
+    Training = 0,
+    /// <summary>
+    /// 联机 单人操作 直播
+    /// </summary>
+    Livebroadcast = 1,
+    /// <summary>
+    /// 联机 多人操作 协同
+    /// </summary>
+    Collaboration = 2,
+    /// <summary>
+    /// 考核模式
+    /// </summary>
+    Exam = 3,
+    /// <summary>
+    /// 多人考核模式
+    /// </summary>
+    OnlineExam = 4
+}
 
 public class GlobalInfo
 {
@@ -60,6 +86,29 @@ public class GlobalInfo
     /// 课程语音模式
     /// </summary>
     public const string courseVoice = "CourseVoice";
+    #endregion
+
+    public static bool DoStep = true;
+    #region 课程模式
+    /// <summary>
+    /// 当前课程模式
+    /// </summary>
+    public static CourseMode courseMode = CourseMode.Training;
+
+    /// <summary>
+    /// 更新课程模式（根据 isExam 和 isLive 自动计算）
+    /// </summary>
+    public static void UpdateCourseMode()
+    {
+        if (isExam)
+        {
+            courseMode = isLive ? CourseMode.OnlineExam : CourseMode.Exam;
+        }
+        else
+        {
+            courseMode = isLive ? CourseMode.Livebroadcast : CourseMode.Collaboration;
+        }
+    }
     #endregion
 
     #region 服务器时间及计时相关

@@ -120,19 +120,29 @@ public class SpeechManager : Singleton<SpeechManager>
     /// <returns></returns>
     public void DelayStart(string stepId, int index, TipType tipType)
     {
+        if (StepSpeechData == null)
+        {
+            StartCoroutine(WaitStepSpeechData(stepId, index, tipType));
+            return;
+        }
+
         PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
         if (audioSource == null || playerController == null)
             return;
 
         if (!playerController.NavEnd || lasttype == TipType.StepComplete)
         {
-            if (next == null)
-                next = StartCoroutine(RePlayStart(stepId));
+            if (nextCts == null)
+            {
+                nextCts = new CancellationTokenSource();
+                RePlayStart(stepId, nextCts.Token).Forget();
+            }
             else
             {
-                StopCoroutine(next);
-                next = null;
-                next = StartCoroutine(RePlayStart(stepId));
+                nextCts.Cancel();
+                nextCts.Dispose();
+                nextCts = new CancellationTokenSource();
+                RePlayStart(stepId, nextCts.Token).Forget();
             }
         }
         else
@@ -141,13 +151,15 @@ public class SpeechManager : Singleton<SpeechManager>
         }
     }
 
-    public IEnumerator RePlayStart(string ID)
+    public async UniTaskVoid RePlayStart(string ID, CancellationToken ct)
     {
-        yield return new WaitForSeconds(0.8f);
+        await UniTask.Delay(800, cancellationToken: ct);
         PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-        yield return new WaitUntil(() => playerController.NavEnd && !IsAudioPlaying);
-        yield return new WaitForSeconds(0.2f);
-        yield return new WaitUntil(() => playerController.NavEnd && !IsAudioPlaying);
+        if (playerController != null)
+        {
+            await UniTask.WaitUntil(() => playerController.NavEnd && !IsAudioPlaying, cancellationToken: ct);
+            await UniTask.Delay(200, cancellationToken: ct);
+        }
         Speech(ID, 0, TipType.StepName);
         lasttype = TipType.StepName;
     }
@@ -160,7 +172,7 @@ public class SpeechManager : Singleton<SpeechManager>
     public IEnumerator WaitStepSpeechData(string stepId, int index, TipType tipType)
     {
         yield return new WaitUntil(() => StepSpeechData != null);
-        Speech(stepId, index, tipType);
+        DelayStart(stepId, index, tipType);
     }
 
     /// <summary>
@@ -170,20 +182,14 @@ public class SpeechManager : Singleton<SpeechManager>
     /// <param name="index">步骤内index</param>
     /// <param name="isAuto">是否自动触发</param>
     TipType lasttype = TipType.StepName;
-    Coroutine next;
+    CancellationTokenSource nextCts;
     public void Speech(string stepId, int index, TipType tipType)
     {
         if (!SpeechMode || GlobalInfo.currentWiki == null)
             return;
 
-        if (StepSpeechData == null)
-        {
-            StartCoroutine(WaitStepSpeechData(stepId, index, tipType));
-            return;
-        }
-
         SpeechData speechData = GetSpeechData(stepId, index, tipType);
-        if (StepSpeechData.Count == 0 || speechData == null || speechData.audioUrl == null)
+        if (speechData == null || StepSpeechData.Count == 0 ||  speechData.audioUrl == null)
         { 
             Debug.LogWarning($"获取{tipType.ToString()}语音数据失败, stepId {stepId}, index {index}");
         }
@@ -201,7 +207,10 @@ public class SpeechManager : Singleton<SpeechManager>
                 //特殊 开始和结束的提示弹窗 会挤占其他提示语音
                 if (stepId.Contains("Step0") || index == 1 && IsAudioPlaying)
                 {
-                    next = StartCoroutine(RePlayStart(stepId));
+                    nextCts?.Cancel();
+                    nextCts?.Dispose();
+                    nextCts = new CancellationTokenSource();
+                    RePlayStart(stepId, nextCts.Token).Forget();
                 }
                 return;
             }
@@ -216,7 +225,7 @@ public class SpeechManager : Singleton<SpeechManager>
     {
         stepId = "BK" + GlobalInfo.currentWiki.id + stepId.Substring(6, stepId.Length - 6);
 
-        if (StepSpeechData.ContainsKey(stepId))
+        if (StepSpeechData!= null && StepSpeechData.ContainsKey(stepId))
         {
             if (StepSpeechData[stepId].TryGetValue(tipType, out List<SpeechData> data))
             {
@@ -406,12 +415,16 @@ public class SpeechManager : Singleton<SpeechManager>
 
     private void SetSubTitle(string text)
     {
-        subTitleText.text = text;
+        if(subTitleText!= null)
+            subTitleText.text = text;
         subTitleBackground.SetActive(!string.IsNullOrEmpty(text));
     }
 
     public void StopSpeech()
     {
+        nextCts?.Cancel();
+        nextCts?.Dispose();
+        nextCts = null;
         Cancell();
         audioSource.Stop();
         subTitleBackground.SetActive(false);

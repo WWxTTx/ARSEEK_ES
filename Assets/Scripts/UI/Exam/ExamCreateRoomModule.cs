@@ -164,6 +164,7 @@ public class ExamCreateRoomModule : CreateRoomModule
     {
         //记录当前房间信息
         GlobalInfo.isLive = true;
+        GlobalInfo.UpdateCourseMode();
         GlobalInfo.roomInfo = thisRoomInfo;
 
         GlobalInfo.currentCourseID = thisCourseId;

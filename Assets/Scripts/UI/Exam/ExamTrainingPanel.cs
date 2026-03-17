@@ -107,6 +107,7 @@ public class ExamTrainingPanel : UIPanelBase
     {
         Cursor.lockState = CursorLockMode.None;
         GlobalInfo.isExam = true;
+        GlobalInfo.UpdateCourseMode();
         GlobalInfo.CursorLockMode = CursorLockMode.None;
         base.Open(uiData);
 
@@ -820,6 +821,7 @@ public class ExamTrainingPanel : UIPanelBase
         JoinRoomPanel.SetActive(false);
 
         GlobalInfo.isLive = true;
+        GlobalInfo.UpdateCourseMode();
         UIManager.Instance.CloseUI<ExamTrainingPanel>();
 
         if (GlobalInfo.IsHomeowner())

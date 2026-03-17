@@ -549,6 +549,7 @@ public class CreateRoomModule : ResourcesModule
     {
         //记录当前房间信息
         GlobalInfo.isLive = true;
+        GlobalInfo.UpdateCourseMode();
         GlobalInfo.roomInfo = thisRoomInfo;
         PlayerPrefs.SetString(GlobalInfo.lastSynergiaRoomId, GlobalInfo.roomInfo.Uuid);
         if (ParentPanel is TrainingPanel)

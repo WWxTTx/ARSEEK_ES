@@ -2,10 +2,9 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
-using static UnityEngine.GraphicsBuffer;
 
 /// <summary>
-/// 录制提示文字
+/// 语音提示文字
 /// </summary>
 public class UISmallSceneInfoModule : UIModuleBase
 {

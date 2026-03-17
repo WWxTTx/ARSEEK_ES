@@ -79,27 +79,28 @@ public class UISmallSceneFlowModule : UIModuleBase
 
         if (GlobalInfo.EnableFlow)
         {
-            this.WaitTime(0.1f, () =>
+            mTreeView.NeedRepositionAll = true;
+            if (smallFlowCtrl.flows.Length > 0 && mTreeView != null)
             {
-                mTreeView.NeedRepositionAll = true;
+                //默认选择第一步
+                TreeViewItem treeViewItem = mTreeView.GetTreeItemById(viewItemIds[smallFlowCtrl.flows[0].ID]);
+                MsgStringInt msgStringInt = new MsgStringInt((ushort)SmallFlowModuleEvent.SelectFlow, smallFlowCtrl.flows[0].ID, treeViewItem.transform.GetSiblingIndex());
+                FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate()
+                {
+                    senderId = GlobalInfo.account.id,
+                    msgId = msgStringInt.msgId,
+                    data = JsonTool.Serializable(msgStringInt)
+                });
+            }
+            //this.WaitTime(0.1f, () =>
+            //{
                 //避免中途界面销毁
                 //try
                 {
-                    if (smallFlowCtrl.flows.Length > 0 && mTreeView != null)
-                    {
-                        //默认选择第一步
-                        TreeViewItem treeViewItem = mTreeView.GetTreeItemById(viewItemIds[smallFlowCtrl.flows[0].ID]);
-                        MsgStringInt msgStringInt = new MsgStringInt((ushort)SmallFlowModuleEvent.SelectFlow, smallFlowCtrl.flows[0].ID, treeViewItem.transform.GetSiblingIndex());
-                        FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate()
-                        {
-                            senderId = GlobalInfo.account.id,
-                            msgId = (ushort)SmallFlowModuleEvent.SelectFlow,
-                            data = JsonTool.Serializable(msgStringInt)
-                        });
-                    }
+               
                 }
                 //catch { }
-            });
+            //});
         }    
     }
 

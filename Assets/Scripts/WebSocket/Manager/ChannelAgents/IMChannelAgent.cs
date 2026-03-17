@@ -1,9 +1,10 @@
-﻿using System;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Windows.Interop;
 using UnityEngine;
 using UnityFramework.Runtime;
-using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// rti同步通道代理类
@@ -194,7 +195,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             }
 
             currentOp = stateHelper.DequeueCachedStateOp();
-            TryExecuteCurrentOp();
+            TryExecuteCurrentOp();///
         }
         //完成缓存状态同步
         if (IsStartSync && IsSyncCachedState && stateHelper.ReceivedCachedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f)
@@ -231,7 +232,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             GlobalInfo.playTimeRatio = 1f;
 
             //请求同步相机
-            NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
+            //NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
         }
 
         //执行操作消息 //&& !GlobalInfo.isARTracking
@@ -257,17 +258,18 @@ public class IMChannelAgent : NetworkChannelAgentBase
             return;
 
         Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {JsonTool.Serializable(currentOp)}");
+
+        if (string.IsNullOrEmpty(currentOp.data))
+            return;
+
+        if (currentOp.msgId == (ushort)CoursePanelEvent.SwitchResource
+            || currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect
+            || currentOp.msgId == (ushort)ExamPanelEvent.Start)
+        {
+            IsStartSync = false;
+        }
         try
         {
-            if (string.IsNullOrEmpty(currentOp.data))
-                return;
-
-            if (currentOp.msgId == (ushort)CoursePanelEvent.SwitchResource
-                || currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect
-                || currentOp.msgId == (ushort)ExamPanelEvent.Start)
-            {
-                IsStartSync = false;
-            }
             FormMsgManager.Instance.SendMsg(currentOp);
         }
         catch (Exception e)
@@ -386,6 +388,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
         GlobalInfo.isLive = true;
+        GlobalInfo.UpdateCourseMode();
         //确保进入课程模块后再进行消息同步
         IsStartSync = UIManager.Instance.IsOpen<ExamPanel>() || UIManager.Instance.IsOpen<ExamCoursePanel>() || UIManager.Instance.IsOpen<OPLSynCoursePanel>();/*true;*/
         IsSyncBaikeState = false;
@@ -404,6 +407,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     {
         if (cachedPacket == null || GlobalInfo.version > cachedPacket.version)
         {
+            GlobalInfo.DoStep = false;
             return;
         }
 
@@ -413,16 +417,19 @@ public class IMChannelAgent : NetworkChannelAgentBase
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
         GlobalInfo.isLive = true;
+        GlobalInfo.UpdateCourseMode();
         IsStartSync = true;
         IsSyncBaikeState = false;
         opsReceive.Clear();
 
         CurrentStateToSync = cachedPacket.state;
         stateHelper.UpdateCachedStateVersion(cachedPacket);
+        Debug.Log($"<color=#14A857>重连者添加缓存状态:</color>)" + JsonTool.Serializable(cachedPacket));
 
         deltaTime = 0;
 
         GlobalInfo.version = cachedPacket.version;
+        GlobalInfo.DoStep = true;
     }
 
     /// <summary>
