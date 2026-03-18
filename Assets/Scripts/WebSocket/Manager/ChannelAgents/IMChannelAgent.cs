@@ -230,16 +230,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
             IsSyncState = false;
             GlobalInfo.uiAnimRatio = 1f;
             GlobalInfo.playTimeRatio = 1f;
-
-            //请求同步相机
-            //NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
         }
 
         //执行操作消息 //&& !GlobalInfo.isARTracking
         while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
-
             currentOp = opsReceive.Dequeue();
             TryExecuteCurrentOp();
         }
@@ -405,13 +401,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// </summary>
     public void SyncCachedVersion()
     {
-        if (cachedPacket == null || GlobalInfo.version > cachedPacket.version)
-        {
-            GlobalInfo.DoStep = false;
-            return;
-        }
-
-        DebugHelper.Info(ChannelType.rti, $"[cached] {cachedPacket.version}{JsonTool.Serializable(cachedPacket)}");
+        //DebugHelper.Info(ChannelType.rti, $"[cached] {cachedPacket.version}{JsonTool.Serializable(cachedPacket)}");
 
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
@@ -429,7 +419,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         deltaTime = 0;
 
         GlobalInfo.version = cachedPacket.version;
-        GlobalInfo.DoStep = true;
     }
 
     /// <summary>

@@ -1243,7 +1243,6 @@ public class UISmallSceneModule : UIModuleBase
         RetakeBackpackModel(true);
         if (success)
         {
-
         }
         else//操作执行失败
         {
@@ -1603,13 +1602,6 @@ public class UISmallSceneModule : UIModuleBase
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.Operate:
-
-                //如果是同步且需要操作内容 先不操作
-                if (!GlobalInfo.DoStep)
-                {
-                    return;
-                }
-
                 int userIdOp = ((MsgBrodcastOperate)msg).senderId;
                 MsgOperation msgOp = ((MsgBrodcastOperate)msg).GetData<MsgOperation>();
                 {
@@ -1617,6 +1609,12 @@ public class UISmallSceneModule : UIModuleBase
                     data.operation = smallFlowCtrl.GetModelOperation(msgOp.modelOperation);
                     data.prop = smallFlowCtrl.GetModelInfo(msgOp.propId);
                     data.optionName = msgOp.operationName;
+
+                    //如果不是当前步骤的并列操作，则不执行
+                    if (!smallFlowCtrl.IsOperationInCurrentStep(data.operation, data.optionName, data.prop))
+                    {
+                        return;
+                    }
 
                     //获得对modelOperation的操作权
                     AcquireOperatePermission(userIdOp, data.operation, data.optionName);
@@ -1775,23 +1773,6 @@ public class UISmallSceneModule : UIModuleBase
             }
             RefreshHighlight();
         }
-    }
-
-    /// <summary>
-    /// 异常结束
-    /// </summary>
-    /// <param name="message">提示</param>
-    private void OnFatalFinish(string message)
-    {
-        //取消选中 终止操作
-        ModelState = ModelState.Unselect;
-
-        FatalFinishMessage = message;
-        if (operationHistoryModule != null)
-        {
-            operationHistoryModule.DisableInputItems();
-        }
-        ShowFatalPopup();
     }
 
     public void ShowFatalPopup()

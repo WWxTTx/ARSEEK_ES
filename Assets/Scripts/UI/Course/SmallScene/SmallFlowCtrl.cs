@@ -4,6 +4,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Metadata.W3cXsd2001;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -743,6 +745,28 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 检查操作是否属于当前步骤的并列操作中
+    /// </summary>
+    /// <param name="operation">操作对象</param>
+    /// <param name="optionName">操作名称</param>
+    /// <param name="prop">道具</param>
+    /// <returns>是否属于当前步骤的并列操作</returns>
+    public bool IsOperationInCurrentStep(ModelOperation operation, string optionName, ModelInfo prop)
+    {
+        if (operation == null)
+            return false;
+
+        if (nowFlowStep == null || nowFlowStep.ops == null)
+            return false;
+
+        // 检查操作是否在当前步骤的ops列表中
+        return nowFlowStep.ops.Exists(op =>
+            op.operation == operation &&
+            op.optionName == optionName &&
+            op.prop == prop);
+    }
+
+    /// <summary>
     /// 选择任务
     /// </summary>
     public void SelectFlow(int index_Flow)
@@ -1356,24 +1380,26 @@ public class SmallFlowCtrl : MonoBase
                 }
                 Execute(nonPopupBehaves, 0, nonPopupBehaves.Count, () =>
                 {
-                    cache.Remove(info.ID);
-
-                    // 排除不影响道具状态的操作
-                    if (!(optionName.Equals(observeFlag)
-                      || optionName.Equals(focusFlag)
-                      || optionName.Equals(inputFlag)
-                      || optionName.Equals(clickFlag)
-                      || optionName.StartsWith(backpackFlag)
-                      || optionName.StartsWith(retrieveFlag))) //todo 目前是特殊处理: 工具箱_"背包道具"
+                    if(operation != null)
                     {
-                        operation.currentState = optionName;
+                        cache.Remove(info.ID);
+
+                        // 排除不影响道具状态的操作
+                        if (!(optionName.Equals(observeFlag)
+                          || optionName.Equals(focusFlag)
+                          || optionName.Equals(inputFlag)
+                          || optionName.Equals(clickFlag)
+                          || optionName.StartsWith(backpackFlag)
+                          || optionName.StartsWith(retrieveFlag))) //todo 目前是特殊处理: 工具箱_"背包道具"
+                        {
+                            operation.currentState = optionName;
+                        }
+
+                        Debug.Log(operation.name + "-" + optionName + "操作执行完成");
+                        CheckKeywords(operation, optionName, false);
+                        callback?.Invoke(op);
                     }
-
-                    Debug.Log(operation.name + "-" + optionName + "操作执行完成");
-                    CheckKeywords(operation, optionName, false);
-                    callback?.Invoke(op);
                 });
-
                 return;
             }
         }
@@ -1414,14 +1440,22 @@ public class SmallFlowCtrl : MonoBase
         }
         else
         {
-            StartCoroutine(WaitAudioEnd(onComplete));
+            nextCts = new CancellationTokenSource();
+            WaitAudioEnd(onComplete).Forget();
         }
     }
 
-    private IEnumerator WaitAudioEnd(UnityAction onComplete)
+    CancellationTokenSource nextCts;
+
+    /// <summary>
+    /// 协程版等待在联机时会出错
+    /// </summary>
+    /// <param name="onComplete"></param>
+    /// <returns></returns>
+    private async UniTaskVoid WaitAudioEnd(UnityAction onComplete)
     {
-        yield return null;
-        yield return new WaitUntil(() => !SpeechManager.Instance.IsAudioPlaying);
+        await UniTask.Delay(0, cancellationToken: nextCts.Token);
+        await UniTask.WaitUntil(() => !SpeechManager.Instance.IsAudioPlaying, cancellationToken: nextCts.Token);
         onComplete?.Invoke();
     }
 
@@ -1841,11 +1875,13 @@ public class SmallFlowCtrl : MonoBase
                 }
             }
         }
+        // 设置流程和步骤索引（无论 EnableFlow 是否为 true 都需要设置）
+        this.index_NowFlow = index_NowFlow;
+        // 直接设置私有字段，避免触发 setter 中的完整逻辑
+        _index_NowStep = index_NowStep;
+
         if (GlobalInfo.EnableFlow)
         {
-            this.index_NowFlow = index_NowFlow;
-            this.index_NowStep = index_NowStep;
-
             ExecuteStepNavigation();
         }
 
@@ -2162,7 +2198,8 @@ public class SmallFlowCtrl : MonoBase
     protected override void OnDestroy()
     {
         base.OnDestroy();
-        //AbortAllOperations();
+        nextCts?.Dispose();
+        nextCts = null;
         StopAllCoroutines();
     }
 }

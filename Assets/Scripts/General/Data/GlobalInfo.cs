@@ -88,7 +88,6 @@ public class GlobalInfo
     public const string courseVoice = "CourseVoice";
     #endregion
 
-    public static bool DoStep = true;
     #region 课程模式
     /// <summary>
     /// 当前课程模式
