@@ -295,9 +295,6 @@ public class UISmallSceneFlowModule : UIModuleBase
                 isOnClick = true;
                 break;
             case (ushort)HierarchyEvent.Click:
-                if (SpeechManager.Instance.IsTipPlaying)
-                    return;
-
                 if (smallSceneModule.FatalFinish)
                 {
                     smallSceneModule.ShowFatalPopup();

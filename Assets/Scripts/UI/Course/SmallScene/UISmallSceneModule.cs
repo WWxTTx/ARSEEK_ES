@@ -443,7 +443,6 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)RoomChannelEvent.OtherLeave,
             (ushort)SmallFlowModuleEvent.StartExecute
         });
-
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", false);
 
         InitModel(uiData);
@@ -546,8 +545,11 @@ public class UISmallSceneModule : UIModuleBase
         });
     }
 
+    public bool uismallInited = false;
     void Init()
     {
+        Debug.Log("状态 操作消息注册完成");
+        uismallInited = true;
         TapRecognizer.Instance.RegistOnRightMouseClick(() =>
         {
             if (ModelState == ModelState.Focused)
@@ -1452,8 +1454,7 @@ public class UISmallSceneModule : UIModuleBase
                 break;
             case (ushort)HistoryEvent.Open:
                 bool showMoule = ((MsgBool)msg).arg1;
-                operationHistoryModule = (UISmallSceneOperationHistory)UIManager.Instance.OpenModuleUI<UISmallSceneOperationHistory>(ParentPanel,
-                    transform.parent, new InpuAndHistoryData(smallFlowCtrl, this, GlobalInfo.isExam));
+                operationHistoryModule = (UISmallSceneOperationHistory)UIManager.Instance.OpenModuleUI<UISmallSceneOperationHistory>(ParentPanel, transform.parent, new InpuAndHistoryData(smallFlowCtrl, this, GlobalInfo.isExam));
                 if (showMoule)
                 {
                     SendMsg(new MsgBase((ushort)HistoryEvent.Show));
@@ -1518,6 +1519,8 @@ public class UISmallSceneModule : UIModuleBase
                 UIManager.Instance.CloseUI<PopupPanel>(new UIPopupData(string.Empty, msgStringTuple.arg2.Item3, null));
                 smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1);
                 smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2);
+
+                Debug.Log("状态 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
                 break;
             case (ushort)SmallFlowModuleEvent.Guide:
@@ -1609,12 +1612,6 @@ public class UISmallSceneModule : UIModuleBase
                     data.operation = smallFlowCtrl.GetModelOperation(msgOp.modelOperation);
                     data.prop = smallFlowCtrl.GetModelInfo(msgOp.propId);
                     data.optionName = msgOp.operationName;
-
-                    //如果不是当前步骤的并列操作，则不执行
-                    if (!smallFlowCtrl.IsOperationInCurrentStep(data.operation, data.optionName, data.prop))
-                    {
-                        return;
-                    }
 
                     //获得对modelOperation的操作权
                     AcquireOperatePermission(userIdOp, data.operation, data.optionName);
@@ -1733,10 +1730,12 @@ public class UISmallSceneModule : UIModuleBase
 
     private void OnStepChanged()
     {
+        //针对监控功能 跳步骤打的补丁 不应该写在这儿 但是先将就用
         if (CameraViewRawImage != null)
             CameraViewRawImage.texture = null;
         if(CameraView != null)
             CameraView.gameObject.SetActive(false);
+
         RetakeBackpackModel(true);
         ModelState = ModelState.Unselect;
         ClearHighlight();
@@ -1975,7 +1974,7 @@ public class UISmallSceneModule : UIModuleBase
         //语音模式使用语音提示，非语音模式设置弹窗
         if(SpeechManager.Instance.SpeechMode && opIndex != -1)
         {
-            SpeechManager.Instance.Speech(smallFlowCtrl.CurrentStep().ID, opIndex, TipType.Tips);
+            SpeechManager.Instance.PlayImmediate(smallFlowCtrl.CurrentStep().ID, opIndex, TipType.Tips);
         }
         else
         {
@@ -2294,6 +2293,11 @@ public class UISmallSceneModule : UIModuleBase
         }
     }
     #endregion
+
+    private new void OnDestroy()
+    {
+        uismallInited = false;
+    }
 
     #region 安全工器具
     /// <summary>

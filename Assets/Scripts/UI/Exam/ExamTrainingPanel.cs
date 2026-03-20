@@ -106,8 +106,7 @@ public class ExamTrainingPanel : UIPanelBase
     public override void Open(UIData uiData = null)
     {
         Cursor.lockState = CursorLockMode.None;
-        GlobalInfo.isExam = true;
-        GlobalInfo.UpdateCourseMode();
+        GlobalInfo.SetCourseMode(CourseMode.Exam);
         GlobalInfo.CursorLockMode = CursorLockMode.None;
         base.Open(uiData);
 
@@ -242,7 +241,7 @@ public class ExamTrainingPanel : UIPanelBase
                     searchKeyword = string.Empty;
                     UIManager.Instance.CloseUI<ExamTrainingPanel>();
                     UIManager.Instance.OpenUI<HomePagePanel>();
-                    GlobalInfo.isExam = false;
+                    GlobalInfo.SetCourseMode(CourseMode.Training);
                 }, true));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "离开会中断资源下载，确认要离开吗？", popupDic, null, false));
             }
@@ -820,8 +819,7 @@ public class ExamTrainingPanel : UIPanelBase
         RoomPassword.text = string.Empty;
         JoinRoomPanel.SetActive(false);
 
-        GlobalInfo.isLive = true;
-        GlobalInfo.UpdateCourseMode();
+        GlobalInfo.SetCourseMode(CourseMode.OnlineExam);
         UIManager.Instance.CloseUI<ExamTrainingPanel>();
 
         if (GlobalInfo.IsHomeowner())

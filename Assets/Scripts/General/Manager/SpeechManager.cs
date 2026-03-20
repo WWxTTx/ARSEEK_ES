@@ -25,10 +25,6 @@ public class SpeechManager : Singleton<SpeechManager>
     /// 音频是否正在播放
     /// </summary>
     public bool IsAudioPlaying { get { return audioSource.isPlaying; } }
-    /// <summary>
-    /// 检查标准是否正在播放
-    /// </summary>
-    public bool IsTipPlaying { get; set; }
 
     public bool SpeechMode;
     public static int EncyclopediaId;
@@ -47,11 +43,11 @@ public class SpeechManager : Singleton<SpeechManager>
     /// <summary>
     /// 语速：单个字符秒数
     /// </summary>
-    private float SecPerChar = 0.24f;//对应网页-1 其他值未测量
+    private float SecPerChar = 0.25f;//对应网页-1 其他值未测量
     /// <summary>
     /// pausePunctuations停顿时长
     /// </summary>
-    private float PauseTime = 0.2f;
+    private float PauseTime = 0f;
     /// <summary>
     /// 用于断句的标点符号
     /// </summary>
@@ -113,7 +109,6 @@ public class SpeechManager : Singleton<SpeechManager>
     /// 延迟执行开始提示 
     ///如果是开始 且角色正在移动 则等待结束后播放开始
     ///如果是开始 且当前播放的是结束 则等待结束后播放开始
-    ///如果是开始 且当提示窗口正在等待响应 则等待结束后播放开始
     /// </summary>
     /// <param name="ID"></param>
     /// <param name="predicate"></param>
@@ -147,7 +142,7 @@ public class SpeechManager : Singleton<SpeechManager>
         }
         else
         {
-            Speech(stepId, index, tipType);
+            PlayImmediate(stepId, index, tipType);
         }
     }
 
@@ -160,7 +155,7 @@ public class SpeechManager : Singleton<SpeechManager>
             await UniTask.WaitUntil(() => playerController.NavEnd && !IsAudioPlaying, cancellationToken: ct);
             await UniTask.Delay(200, cancellationToken: ct);
         }
-        Speech(ID, 0, TipType.StepName);
+        PlayImmediate(ID, 0, TipType.StepName);
         lasttype = TipType.StepName;
     }
 
@@ -183,43 +178,6 @@ public class SpeechManager : Singleton<SpeechManager>
     /// <param name="isAuto">是否自动触发</param>
     TipType lasttype = TipType.StepName;
     CancellationTokenSource nextCts;
-    public void Speech(string stepId, int index, TipType tipType)
-    {
-        if (!SpeechMode || GlobalInfo.currentWiki == null)
-            return;
-
-        SpeechData speechData = GetSpeechData(stepId, index, tipType);
-        if (speechData == null || StepSpeechData.Count == 0 ||  speechData.audioUrl == null)
-        { 
-            Debug.LogWarning($"获取{tipType.ToString()}语音数据失败, stepId {stepId}, index {index}");
-        }
-        //相同类型可以互相打断
-        else if(lasttype == tipType)
-        {
-            Cancell();
-            DoSpeech(speechData, tipType);
-        }
-        else
-        {
-            //检查标准Tips类型不可被打断，开始和操作结束提示可以被打断
-            if (IsTipPlaying)
-            {
-                //特殊 开始和结束的提示弹窗 会挤占其他提示语音
-                if (stepId.Contains("Step0") || index == 1 && IsAudioPlaying)
-                {
-                    nextCts?.Cancel();
-                    nextCts?.Dispose();
-                    nextCts = new CancellationTokenSource();
-                    RePlayStart(stepId, nextCts.Token).Forget();
-                }
-                return;
-            }
-            else
-                Cancell();
-
-            DoSpeech(speechData, tipType);
-        }
-    }
 
     public SpeechData GetSpeechData(string stepId, int index, TipType tipType)
     {
@@ -247,10 +205,7 @@ public class SpeechManager : Singleton<SpeechManager>
         if (tipType == TipType.Tips)
         {
             onDataFetched?.Invoke(speechData);
-            IsTipPlaying = true;
         }
-        else
-            IsTipPlaying = false;
 
         LoadLocalAsset.Instance.LoadAudio(speechData.audioUrl, audioClip =>
         {
@@ -391,7 +346,6 @@ public class SpeechManager : Singleton<SpeechManager>
         }
         finally // 确保无论成功、取消还是异常都会执行
         {
-            IsTipPlaying = false;
             onComplete?.Invoke();// 清除提示字幕
             SetSubTitle(string.Empty); // 清除字幕
         }
@@ -428,5 +382,51 @@ public class SpeechManager : Singleton<SpeechManager>
         Cancell();
         audioSource.Stop();
         subTitleBackground.SetActive(false);
+    }
+
+    /// <summary>
+    /// 立即播放语音（用于用户手动选择步骤）
+    /// 清除等待中的播放，打断当前播放，完全不考虑TipType
+    /// </summary>
+    public void PlayImmediate(string stepId, int index, TipType tipType)
+    {
+        // 取消等待中的延迟播放
+        nextCts?.Cancel();
+        nextCts?.Dispose();
+        nextCts = null;
+
+        // 停止当前播放（无论什么类型）
+        StopSpeech();
+
+        // 等待 StepSpeechData 初始化
+        if (StepSpeechData == null)
+        {
+            StartCoroutine(WaitAndPlayImmediate(stepId, index, tipType));
+            return;
+        }
+
+        // 直接播放，跳过所有 TipType 检查
+        SpeechData speechData = GetSpeechData(stepId, index, tipType);
+        if (speechData != null && speechData.audioUrl != null)
+        {
+            DoSpeech(speechData, tipType);
+        }
+    }
+
+    /// <summary>
+    /// 等待 StepSpeechData 初始化后立即播放
+    /// </summary>
+    private IEnumerator WaitAndPlayImmediate(string stepId, int index, TipType tipType)
+    {
+        yield return new WaitUntil(() => StepSpeechData != null);
+        // 再次检查是否已被取消
+        if (nextCts == null)
+        {
+            SpeechData speechData = GetSpeechData(stepId, index, tipType);
+            if (speechData != null && speechData.audioUrl != null)
+            {
+                DoSpeech(speechData, tipType);
+            }
+        }
     }
 }

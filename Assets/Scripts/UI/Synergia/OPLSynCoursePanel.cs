@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using System;
 using System.Collections.Generic;
@@ -317,33 +318,36 @@ public class OPLSynCoursePanel : OPLCoursePanel
             if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && GlobalInfo.IsMainScreen())
                 NetworkManager.Instance.EnableLocalVideo(true);
 
+            Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
             if (GlobalInfo.IsHomeowner())
             {
+                Debug.Log($"[协同调试] 房主初始化 | wikiListCount:{GlobalInfo.currentWikiList?.Count}");
+
                 RoomInfoTog.gameObject.SetActive(true);
                 Mask(true, true);
 
                 //2026.01.27修改通过消息执行当前脚本方法的冗余方式
-                //SendMsg(new MsgInt((ushort)ResourcesPanelEvent.SelectCourse, GlobalInfo.currentCourseID));
                 if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
                 {
                     CourseSideBar.SetBaikePage();
                     if (!NetworkManager.Instance.IsIMSyncCachedState && !NetworkManager.Instance.IsIMSyncState)
                     {
-                        Log.Debug("OnPrepareShow | 发送百科选择消息");
-                        Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
+                        Debug.Log($"[协同调试] 房主发送BaikeSelect消息 | Wiki:{GlobalInfo.currentWikiList[0].id}");
                         ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
                     }
                 }
+
                 SendMsg(new MsgBase((ushort)RoomChannelEvent.StartMainScreen)); //2026.01.27修改初始化房主为主画面时机
             }
             else
             {
-                Log.Debug($"非房主权限开始协同 {GlobalInfo.IsOperator()}");
                 Paint.interactable = GlobalInfo.IsOperator();
                 switch (GlobalInfo.roomInfo.RoomType)
                 {
                     case (int)RoomType.Synergia:
                         Mask(true, true);
+                        Debug.Log($"[协同调试] 非房主初始化 | IsOperator:{GlobalInfo.IsOperator()} | Wiki:{GlobalInfo.currentWikiList[0].id}]");
+                        ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
                         break;
                     default:
                         break;

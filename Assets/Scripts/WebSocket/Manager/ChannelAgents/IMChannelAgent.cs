@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
@@ -195,7 +196,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             }
 
             currentOp = stateHelper.DequeueCachedStateOp();
-            TryExecuteCurrentOp();///
+            TryExecuteCurrentOp();
         }
         //完成缓存状态同步
         if (IsStartSync && IsSyncCachedState && stateHelper.ReceivedCachedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f)
@@ -250,13 +251,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// </summary>
     private void TryExecuteCurrentOp()
     {
-        if (currentOp == null)
-            return;
-
-        Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {JsonTool.Serializable(currentOp)}");
-
         if (string.IsNullOrEmpty(currentOp.data))
             return;
+
+        string content = JsonTool.Serializable(currentOp);
+        Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
 
         if (currentOp.msgId == (ushort)CoursePanelEvent.SwitchResource
             || currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect
@@ -264,47 +263,47 @@ public class IMChannelAgent : NetworkChannelAgentBase
         {
             IsStartSync = false;
         }
-        try
-        {
-            FormMsgManager.Instance.SendMsg(currentOp);
-        }
-        catch (Exception e)
-        {
-            if (networkManager.IsLeavingRoom)
-            {
-                IsStartSync = true;
-                return;
-            }
 
-            Log.Error($"执行消息错误: {e.Message}");
-            IsStartSync = false;
-            Invoke("Delayed", 2);
-            return;
+        // 保证消息可执行
+        if (!FormMsgManager.Instance.IsDicEventMsgCont(currentOp.msgId))
+        {
+            DelayedSend(currentOp, content).Forget();
+        }
+        else
+        {
+            //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
+            if (currentOp.msgId == 36 && msg36Sened)
+                return;
+
+            FormMsgManager.Instance.SendMsg(currentOp);
+            Debug.Log("状态 发送消息" + content);
+        }
+
+        //需要等待36消息先执行 创建场景
+        if (currentOp.msgId == 36)
+        {
+            msg36Sened = true;
         }
     }
 
+    bool msg36Sened = false;
     /// <summary>
-    /// 重新广播
+    /// 重连时消息是并发的，这里相当于重新排序
     /// </summary>
-    private void Delayed()
+    private async UniTaskVoid DelayedSend(MsgBrodcastOperate currentOp, string content)
     {
-        Log.Debug("重新广播消息:" + JsonTool.Serializable(currentOp));
+        Debug.Log("状态 等待UISmallSceneModule注册消息");
+        await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null && FindObjectOfType<UISmallSceneModule>().uismallInited && msg36Sened);
 
-        try
-        {
-            FormMsgManager.Instance.SendMsg(currentOp);
-            IsStartSync = true;
-        }
-        catch (Exception e)
-        {
-            Log.Error("重新广播消息失败，错误为:" + e);
-
-            if (networkManager.IsLeavingRoom)
-            {
-                IsStartSync = true;
-                return;
-            }
-        }
+        //操作完成消息要再延后一点发，避免导致操作执行信息无法执行
+        if (currentOp.msgId == 118)
+            await UniTask.DelayFrame(1000);
+        else if (currentOp.msgId == 105)
+            await UniTask.DelayFrame(500);
+        else
+            await UniTask.DelayFrame(1);
+        FormMsgManager.Instance.SendMsg(currentOp);
+        Debug.Log("状态 发送消息" + content);
     }
 
     public override void ProcessMessage(string message)
@@ -319,12 +318,19 @@ public class IMChannelAgent : NetworkChannelAgentBase
             return;
 
         string type = jObject[NetworkManager.TYPE].ToString();
-        
+
+        // 添加入口日志
+        Debug.Log($"[RTI调试] ProcessMessage入口 | IsOperator:{GlobalInfo.IsOperator()} | controllerIds:[{string.Join(",", GlobalInfo.controllerIds)}] | 当前用户ID:{GlobalInfo.account?.id}");
+
         switch (type)
         {
             case NetworkManager.RTI_ACTION:
                 int version = int.Parse(jObject[NetworkManager.PAYLOAD][NetworkManager.VERSION].ToString());
                 string datamsg = jObject[NetworkManager.PAYLOAD][NetworkManager.COMMAND].ToString();
+
+                // 添加版本信息日志
+                Debug.Log($"[RTI调试] RTI_ACTION | version:{version} | localVersion:{GlobalInfo.version} | versionDiff:{version - GlobalInfo.version}");
+
                 if (string.IsNullOrEmpty(datamsg))
                 {
                     IsWaitingResponse = false;
@@ -342,6 +348,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
                         if (GlobalInfo.IsOperator())
                         {
+                            // 进入操作者分支
+                            Debug.Log($"[RTI调试] 进入IsOperator分支 | IsStartSync:{IsStartSync}");
+
                             //中途加入或本地为旧版本
                             if (GlobalInfo.version < version - 1)
                             {
@@ -360,6 +369,13 @@ public class IMChannelAgent : NetworkChannelAgentBase
                             //更新本地版本
                             GlobalInfo.version = version;
                         }
+                        else
+                        {
+                            // 修复时序问题：非操作者也缓存消息，等待获得权限后处理
+                            Debug.LogWarning($"[RTI调试] 非操作者缓存消息 | controllerIds:[{string.Join(",", GlobalInfo.controllerIds)}] | 消息内容:{datamsg?.Substring(0, Math.Min(100, datamsg?.Length ?? 0))}");
+                            pendingOps.Enqueue(packet.data);
+                            pendingVersion = version;
+                        }
                     }
                 }
                 catch (Exception e)
@@ -373,6 +389,50 @@ public class IMChannelAgent : NetworkChannelAgentBase
                 }
                 break;
         }
+    }
+
+    /// <summary>
+    /// 待处理的消息队列（用于非操作者缓存消息）
+    /// </summary>
+    private Queue<MsgBrodcastOperate> pendingOps = new Queue<MsgBrodcastOperate>();
+    private int pendingVersion = 0;
+
+    /// <summary>
+    /// 处理缓存的消息（获得操作权限后调用）
+    /// </summary>
+    public void ProcessPendingMessages()
+    {
+        if (pendingOps.Count == 0)
+            return;
+
+        Debug.Log($"[RTI调试] ProcessPendingMessages | 处理缓存消息数量:{pendingOps.Count} | pendingVersion:{pendingVersion}");
+
+        // 如果版本差距大，需要同步版本
+        if (GlobalInfo.version < pendingVersion - 1 && cachedPacket != null)
+        {
+            SyncVersion(cachedPacket);
+        }
+        else
+        {
+            // 启用同步
+            if (!IsStartSync)
+            {
+                IsStartSync = true;
+            }
+
+            // 处理所有缓存的消息
+            while (pendingOps.Count > 0)
+            {
+                var op = pendingOps.Dequeue();
+                opsReceive.Enqueue(op);
+                stateHelper.UpdateState(op);
+            }
+
+            // 更新版本
+            GlobalInfo.version = pendingVersion;
+        }
+
+        pendingVersion = 0;
     }
 
     /// <summary>
@@ -401,7 +461,10 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// </summary>
     public void SyncCachedVersion()
     {
-        //DebugHelper.Info(ChannelType.rti, $"[cached] {cachedPacket.version}{JsonTool.Serializable(cachedPacket)}");
+        if (cachedPacket == null)
+            return;
+
+        DebugHelper.Info(ChannelType.rti, $"[cached] {cachedPacket.version}{JsonTool.Serializable(cachedPacket)}");
 
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
@@ -507,6 +570,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
         lock (asynLock)
             opsQueue.Clear();
         opsReceive.Clear();
+        pendingOps.Clear();
+        pendingVersion = 0;
         CurrentStateToSync = null;
         cachedPacket = null;
         stateHelper.Clear(true);

@@ -518,9 +518,6 @@ public class PlayerController : MonoBase
         switch (msg.msgId)
         {
             case (ushort)SmallFlowModuleEvent.StartExecute:
-                //协同/考核非本人操作
-                if (SmallFlowCtrl.Dummy)
-                    return;
                 ModelFollowTween.Pause();
                 ModelRotateTween.Pause();
                 Model.transform.SetParent(transform);

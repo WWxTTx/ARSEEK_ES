@@ -1589,7 +1589,10 @@ public class BehaveMonitor : BehaveDotween
 
     public override void Execute(UnityAction callback = null)
     {
-        UnityEngine.Object.FindObjectOfType<UISmallSceneModule>().GetComponent<UISmallSceneModule>().CameraView.gameObject.SetActive(true);
+        UISmallSceneModule uISmallSceneModule = UnityEngine.Object.FindObjectOfType<UISmallSceneModule>().GetComponent<UISmallSceneModule>();
+        if(uISmallSceneModule != null)
+            uISmallSceneModule.CameraView.gameObject.SetActive(true);
+
         renderTexture = new RenderTexture(456, 404, 0, RenderTextureFormat.ARGB32);
         renderTexture.wrapMode = TextureWrapMode.Clamp;
         renderTexture.filterMode = FilterMode.Bilinear;

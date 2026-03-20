@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Windows.Interop;
 
 namespace UnityFramework.Runtime
 {
@@ -138,6 +139,13 @@ namespace UnityFramework.Runtime
                     }
                 }
             }
+        }
+
+
+
+        public bool IsDicEventMsgCont(ushort id)
+        {
+            return dicEventMsg.ContainsKey(id);
         }
 
         /// <summary>

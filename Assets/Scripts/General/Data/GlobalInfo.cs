@@ -479,21 +479,21 @@ public class GlobalInfo
     }
 
     /// <summary>
-    /// 是否是操作者
+    /// 用户是否是操作者
     /// </summary>
     /// <returns></returns>
     public static bool IsOperator()
     {
         if (roomInfo == null || account == null)
             return false;
-        if (isExam)
+        if (isExam || courseMode == CourseMode.Collaboration)
             return true;
         return controllerIds.Contains(account.id);
     }
 
 
     /// <summary>
-    /// 用户是否是操作者
+    /// 是否是操作者
     /// </summary>
     /// <returns></returns>
     public static bool IsUserOperator(int userId)

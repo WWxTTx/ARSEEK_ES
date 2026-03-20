@@ -268,7 +268,7 @@ public enum SmallFlowModuleEvent
     /// <summary>
     /// 选择步骤
     /// </summary>
-    SelectStep,
+    SelectStep,                      // ID:105
     /// <summary>
     /// 选择下一步骤
     /// </summary>
@@ -293,7 +293,7 @@ public enum SmallFlowModuleEvent
     /// <summary>
     /// 操作
     /// </summary>
-    Operate,
+    Operate,                     // ID:112
     /// <summary>
     /// 上位机选中
     /// </summary>

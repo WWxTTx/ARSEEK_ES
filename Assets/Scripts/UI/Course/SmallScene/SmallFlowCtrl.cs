@@ -180,18 +180,31 @@ public class SmallFlowCtrl : MonoBase
         {
             _index_NowStep = value;
 
+            // 自动播放：使用 DelayStart
             if (useGuide && nowFlowStep != null && nowFlowStep.initState != null && nowFlowStep.initState.Count > 0)
             {
                 ExecuteInitStateSequentially(nowFlowStep.initState, nowFlowStep, 0, 0, () =>
                 {
-                    SpeechManager.Instance.DelayStart(nowFlowStep.ID, 0, TipType.StepName);
+                    ByStepPlayAudio();
                 });
             }
             else
             {
-                SpeechManager.Instance.DelayStart(nowFlowStep.ID, 0, TipType.StepName);
+                ByStepPlayAudio();
             }
+        }
+    }
 
+    void ByStepPlayAudio()
+    {
+        if (isAutoPlay)
+        {
+            SpeechManager.Instance.DelayStart(nowFlowStep.ID, 0, TipType.StepName);
+        }
+        else
+        {
+            // 非自动播放：立即播放
+            SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepName);
         }
     }
 
@@ -258,7 +271,7 @@ public class SmallFlowCtrl : MonoBase
                 ExecuteInitStateSequentially(initStates, currentStep, index + 1, currentPopupIndex, onComplete);
             };
             popupBehave.Execute(onclick);
-            SpeechManager.Instance.Speech(currentStep.ID, currentPopupIndex, TipType.Tips);
+            SpeechManager.Instance.PlayImmediate(currentStep.ID, currentPopupIndex, TipType.Tips);
         }
         else
         {
@@ -287,6 +300,13 @@ public class SmallFlowCtrl : MonoBase
 
     //是否开启强制引导视角（todo 后台配置）
     private bool useGuide;
+
+    /// <summary>
+    /// 是否为自动播放（true: 通过Next()自动进入下一步; false: 用户手动选择步骤）
+    /// 自动播放：使用 DelayStart，等待角色停止移动、等待上一步结束提示播放完成
+    /// 非自动播放：使用 PlayImmediate，立即打断当前播放，直接开始新的语音
+    /// </summary>
+    private bool isAutoPlay = true;
 
     /// <summary>
     /// 各步骤初始视角
@@ -801,7 +821,7 @@ public class SmallFlowCtrl : MonoBase
                     if (operation.operation != null)
                         SetFinalState(operation.operation, operation.operation.initState);
                     else
-                        Debug.LogError(step.hint + "    配置错误    " + operation.optionName);
+                        Debug.LogError(step.hint + "    没有配置操作对象    " + operation.optionName);
                 }
             }
         }
@@ -888,6 +908,7 @@ public class SmallFlowCtrl : MonoBase
 
     private void DoSelectStep(int stepIndex)
     {
+        isAutoPlay = false; // 非自动播放模式（用户手动选择步骤）
         // todo 未配置初始视角的步骤，采用上一个步骤的视角？=> 在index_NowStep setter中执行
         // 漫游模式不采用，操作表现可能包含导航
         if (useGuide && stepView.ContainsKey(index_NowFlow) && stepView[index_NowFlow].ContainsKey(stepIndex))
@@ -1030,7 +1051,7 @@ public class SmallFlowCtrl : MonoBase
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
         // Tips 类型语音,自动进入0 与 smallSceneModule.ShowHint冲突 增加了一个标志位，如果是配置了流程解说 则不重复执行提示0
-        SpeechManager.Instance.Speech(nowFlowStep.ID, 0, TipType.Tips);
+        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.Tips);
         ExecuteOperation(data.operation, data.optionName, data.prop, (op) =>
         {
             if (op != null)
@@ -1100,7 +1121,7 @@ public class SmallFlowCtrl : MonoBase
                         stepCompleted ? nowFlowStep?.hint_success : string.Empty, hint, index_NowFlow, index_NowStep, ModelOperationIndex(data.operation), userNo, userName,
                         GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
 
-                        SpeechManager.Instance.Speech(nowFlowStep.ID, 0, TipType.StepComplete);
+                        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
                         if (!hasWaitLinkage)
                         {
                             callback?.Invoke(true);
@@ -1110,7 +1131,7 @@ public class SmallFlowCtrl : MonoBase
                         if (opLinkages.Count != 0)
                         {
                             //此处修改使用的全局参数 Dummy 考核的赋值没有检查
-                            FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, Dummy));
+                            FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
                             FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CloseCameraOperation));
 
                             ExecuteFlowLinkOperation(opLinkages, () =>
@@ -1322,7 +1343,6 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true时不执行操作表现，用于协同/考核时跳过非本人操作的相机表现</param> 
     public void ExecuteOperation(ModelOperation operation, string optionName, ModelInfo prop = null, Action<OperationBase> callback = null, bool dummy = false)
     {
-        Dummy = dummy;
         for (int i = 0; i < operation.operations.Count; i++)
         {
             if (operation.operations[i].name.Equals(optionName))
@@ -1409,10 +1429,6 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
-    /// 协同/考核时跳过相机表现的同步
-    /// </summary>
-    public static bool Dummy = false;
-    /// <summary>
     /// 执行行为组
     /// </summary>
     /// <param name="behaveBases"></param>
@@ -1440,12 +1456,9 @@ public class SmallFlowCtrl : MonoBase
         }
         else
         {
-            nextCts = new CancellationTokenSource();
             WaitAudioEnd(onComplete).Forget();
         }
     }
-
-    CancellationTokenSource nextCts;
 
     /// <summary>
     /// 协程版等待在联机时会出错
@@ -1454,8 +1467,8 @@ public class SmallFlowCtrl : MonoBase
     /// <returns></returns>
     private async UniTaskVoid WaitAudioEnd(UnityAction onComplete)
     {
-        await UniTask.Delay(0, cancellationToken: nextCts.Token);
-        await UniTask.WaitUntil(() => !SpeechManager.Instance.IsAudioPlaying, cancellationToken: nextCts.Token);
+        await UniTask.Delay(1);
+        await UniTask.WaitUntil(() => !SpeechManager.Instance.IsAudioPlaying);
         onComplete?.Invoke();
     }
 
@@ -1964,6 +1977,7 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public void Next()
     {
+        isAutoPlay = true; // 自动播放模式
         if (index_NowFlow <= flows.Length - 1)
         {
             FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord, nowFlowStep.hint_success, string.Empty, index_NowFlow, index_NowStep, 0, 
@@ -2198,8 +2212,6 @@ public class SmallFlowCtrl : MonoBase
     protected override void OnDestroy()
     {
         base.OnDestroy();
-        nextCts?.Dispose();
-        nextCts = null;
         StopAllCoroutines();
     }
 }

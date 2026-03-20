@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+using DG.Tweening;
 using System.Collections.Generic;
 using UnityEngine;
 using static UnityFramework.Runtime.ServiceRequestData;
@@ -45,10 +45,8 @@ namespace UnityFramework.Runtime
         public static void GoToLogin()
         {
             UIManager.Instance.CloseAllUI();
-            GlobalInfo.isExam = false;
-            GlobalInfo.isLive = false;
+            GlobalInfo.SetCourseMode(CourseMode.Training);
             GlobalInfo.isOffLine = false;
-            GlobalInfo.UpdateCourseMode();
             GlobalInfo.courseDicExists.Clear();
             UIManager.Instance.OpenUI<LoginPanel>();
         }
@@ -116,7 +114,7 @@ namespace UnityFramework.Runtime
                     {
                         NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
                     }
-                    else if (GlobalInfo.IsOperator())
+                    else
                     {
                         if (synergia)
                             NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);

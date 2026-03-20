@@ -730,15 +730,18 @@ public class UISmallSceneOperationHistory : UIModuleBase
             }
             else
             {
-                data.smallSceneModule.OnErrorShow();
-                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+                //仅单机模式需要错误提示
+                if(GlobalInfo.courseMode == CourseMode.Training)
+                {
+                    data.smallSceneModule.OnErrorShow();
+                    FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+                }
             }
         }
     }
 
     private void OnStepChanged()
     {
-        //RefreshUIHighlight();
         contactInputField.text = string.Empty;
         inputField.text = data.smallSceneModule.FocusModelDescrption;
     }
