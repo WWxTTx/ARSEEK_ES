@@ -10,12 +10,12 @@ using static UnityFramework.Runtime.RequestData;
 using UnityEngine.EventSystems;
 
 
-//使用案例
+//浣跨敤鏂规硶
 //var audio = (ShowAudioModule)UIManager.Instance.OpenModuleUI<ShowAudioModule>(this, ShowModulePoint);
-//audio.ShowAudioHandler("http://niuyeshuzi-carvideos.oss-cn-hangzhou.aliyuncs.com/CarAudio/DT0.mp3", "音频播放");
+//audio.ShowAudioHandler("http://niuyeshuzi-carvideos.oss-cn-hangzhou.aliyuncs.com/CarAudio/DT0.mp3", "闊抽鏍囬");
 
 /// <summary>
-/// 音频播放模块
+/// 闊抽鎾斁妯″潡
 /// </summary>
 public class ShowAudioModule : UIModuleBase
 {
@@ -46,7 +46,7 @@ public class ShowAudioModule : UIModuleBase
 
     private int id;
     /// <summary>
-    /// 是否显示关闭按钮
+    /// 鏄惁鏄剧ず鍏抽棴鎸夐挳
     /// </summary>
     private bool showCloseBtn;
 
@@ -54,7 +54,7 @@ public class ShowAudioModule : UIModuleBase
 
     private bool interactable;
 
-    //进度同步
+    //鍚屾
     private float updateInterval = 2f;
     private DateTime lastUpdateTime;
     private DateTime now;
@@ -77,7 +77,7 @@ public class ShowAudioModule : UIModuleBase
         InitVariables();
     }
 
-    private void InitVariables ()
+    private void InitVariables()
     {
         audioSource = GetComponent<AudioSource>();
 
@@ -91,9 +91,9 @@ public class ShowAudioModule : UIModuleBase
         AudioTime = this.GetComponentByChildName<Text>("AudioTime");
 
         CanvasGroup = GetComponent<CanvasGroup>();
-        interactable = !GlobalInfo.isLive || GlobalInfo.IsOperator();
+        interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
         CanvasGroup.blocksRaycasts = interactable;
-        if (GlobalInfo.isLive)
+        if (GlobalInfo.IsLiveMode())
         {
             SliderCanvasGroup.blocksRaycasts = false;
             SliderCanvasGroup.alpha = interactable ? 0.2f : 0f;
@@ -156,10 +156,10 @@ public class ShowAudioModule : UIModuleBase
     }
 
     /// <summary>
-    /// 设置音频地址及名称
+    /// 鏍规嵁闊抽鍦板潃鎾斁
     /// </summary>
-    /// <param name="url">地址</param>
-    /// <param name="title">名称</param>
+    /// <param name="url">鍦板潃</param>
+    /// <param name="title">鏍囬</param>
     public void ShowAudioHandler(string url, string title)
     {
         //UIManager.Instance.OpenUI<LoadingPanel>(UILevel.PopUp);
@@ -183,38 +183,38 @@ public class ShowAudioModule : UIModuleBase
         }
 
         var uwr = UnityWebRequestMultimedia.GetAudioClip(path, audioType);
-        yield return uwr.SendWebRequest(); 
+        yield return uwr.SendWebRequest();
 
         if (uwr.result == UnityWebRequest.Result.ConnectionError || uwr.result == UnityWebRequest.Result.ProtocolError)
         {
             ShowAudio.SetActive(false);
             UIManager.Instance.OpenModuleUI<LocalTipModule_Button>(ParentPanel, ShowAudio.transform.parent,
-                new LocalTipModule_Button.ModuleData("音频加载失败", "刷新", () => ShowAudioHandler(path, title), 1));
+                new LocalTipModule_Button.ModuleData("闊抽鍔犺浇澶辫触", "鍒锋柊", () => ShowAudioHandler(path, title), 1));
         }
-        else if(uwr.isDone)
+        else if (uwr.isDone)
         {
             try
             {
-                //"样本给声音中"
+                //"鍔犺浇闊抽璧勬簮"
                 audioClip = DownloadHandlerAudioClip.GetContent(uwr);
                 ShowAudioHandler(audioClip);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                Log.Error($"音频加载失败, {ex.Message}");
+                Log.Error($"闊抽鍔犺浇澶辫触, {ex.Message}");
                 ShowAudio.SetActive(false);
                 UIManager.Instance.OpenModuleUI<LocalTipModule_Button>(ParentPanel, ShowAudio.transform.parent,
-                    new LocalTipModule_Button.ModuleData("音频加载失败", "刷新", () => ShowAudioHandler(path, title), 1));
+                    new LocalTipModule_Button.ModuleData("闊抽鍔犺浇澶辫触", "鍒锋柊", () => ShowAudioHandler(path, title), 1));
             }
         }
         UIManager.Instance.CloseUI<LoadingPanel>();
     }
 
     /// <summary>
-    /// 设置音频文件及名称
+    /// 鏍规嵁闊抽鏂囦欢鎾斁
     /// </summary>
     /// <param name="clip">AudioClip</param>
-    /// <param name="title">名称</param>
+    /// <param name="title">鏍囬</param>
     public void ShowAudioHandler(AudioClip clip)
     {
         ShowAudio.SetActive(true);
@@ -247,7 +247,7 @@ public class ShowAudioModule : UIModuleBase
 
         AudioTimeSlider.value = audioSource.time / audioClip.length;
 
-        if (GlobalInfo.isLive && GlobalInfo.IsMainScreen())
+        if (GlobalInfo.IsLiveMode() && GlobalInfo.IsMainScreen())
         {
             now = DateTime.Now;
             if ((now - lastUpdateTime).TotalSeconds > updateInterval)
@@ -346,7 +346,7 @@ public class ShowAudioModule : UIModuleBase
             canvas.overrideSorting = GlobalInfo.InEditMode;
     }
 
-    #region 动效
+    #region 鍔ㄦ晥
     protected override float joinAnimePlayTime => 0.3f;
     protected override float exitAnimePlayTime => 0.2f;
 

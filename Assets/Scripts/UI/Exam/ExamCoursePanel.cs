@@ -191,9 +191,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     {
         base.Close(uiData, callback);
 
-        GlobalInfo.isLive = false;
-        GlobalInfo.isExam = false;
-        GlobalInfo.UpdateCourseMode();
+        GlobalInfo.SetCourseMode(CourseMode.Training);
         GlobalInfo.canEditUserInfo = true;
 
         Resources.UnloadUnusedAssets();

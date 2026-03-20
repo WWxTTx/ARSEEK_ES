@@ -163,8 +163,7 @@ public class ExamCreateRoomModule : CreateRoomModule
     protected override void JoinRoomCallback()
     {
         //记录当前房间信息
-        GlobalInfo.isLive = true;
-        GlobalInfo.UpdateCourseMode();
+        GlobalInfo.SetCourseMode(CourseMode.OnlineExam);
         GlobalInfo.roomInfo = thisRoomInfo;
 
         GlobalInfo.currentCourseID = thisCourseId;

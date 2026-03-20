@@ -87,7 +87,7 @@ public class VideoChannelAgent : NetworkChannelAgentBase
     {
         base.OnChannelOpen();
         //考核非房主或协同主画面
-        networkManager.EnableLocalVideo((GlobalInfo.isExam && !GlobalInfo.IsHomeowner()) || GlobalInfo.IsMainScreen());
+        networkManager.EnableLocalVideo((GlobalInfo.IsExamMode() && !GlobalInfo.IsHomeowner()) || GlobalInfo.IsMainScreen());
     }
 
     protected override void OnChannelClosed()
@@ -116,12 +116,12 @@ public class VideoChannelAgent : NetworkChannelAgentBase
         if (label.StartsWith(gameViewPrefix))
         {
             //考试模式非房主不处理视频帧数据
-            if (GlobalInfo.isExam && !GlobalInfo.IsHomeowner())
+            if (GlobalInfo.IsExamMode() && !GlobalInfo.IsHomeowner())
             {
                 return;
             }
             //非考试模式并且有操作权限不接受主屏数据
-            if (!GlobalInfo.isExam && GlobalInfo.IsOperator())
+            if (!GlobalInfo.IsExamMode() && GlobalInfo.IsOperator())
             {
                 return;
             }

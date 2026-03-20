@@ -432,7 +432,7 @@ public class OPLResourcesDownloadModule : ResourcesModule
             }
         }
 
-        if (ResourcesDownloader.DownloadingCount > 0 && !GlobalInfo.isLive)
+        if (ResourcesDownloader.DownloadingCount > 0 && !GlobalInfo.IsLiveMode())
         {
             var popupDic = new Dictionary<string, PopupButtonData>();
             {

@@ -281,7 +281,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         get { return mIMChannelAgent.IsStartSync; }
         set
         {
-            if (!GlobalInfo.isLive)
+            if (!GlobalInfo.IsLiveMode())
                 return;
             mIMChannelAgent.IsStartSync = value;
         }
@@ -311,7 +311,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         get { return mIMChannelAgent.IsSyncBaikeState; }
         set
         {
-            if (!GlobalInfo.isLive)
+            if (!GlobalInfo.IsLiveMode())
                 return;
             mIMChannelAgent.IsSyncBaikeState = value;
         }

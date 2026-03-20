@@ -1277,7 +1277,7 @@ public class SmallFlowCtrl : MonoBase
     {
         // 操作执行完成，释放操作权限
         MsgStepEnd msgStepEnd = new MsgStepEnd((ushort)SmallFlowModuleEvent.StepEnd, modelInfoId, optionName, hasFocusMode);
-        if (GlobalInfo.isLive && (GlobalInfo.roomInfo.RoomType != 0 || GlobalInfo.roomInfo.ExamType == (int)ExamRoomType.Group))
+        if (GlobalInfo.IsLiveMode() && (GlobalInfo.roomInfo.RoomType != 0 || GlobalInfo.roomInfo.ExamType == (int)ExamRoomType.Group))
         {
             // 本人操作
             if (!dummy)

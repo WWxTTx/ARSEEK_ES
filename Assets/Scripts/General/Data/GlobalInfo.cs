@@ -108,6 +108,42 @@ public class GlobalInfo
             courseMode = isLive ? CourseMode.Livebroadcast : CourseMode.Collaboration;
         }
     }
+
+    /// <summary>
+    /// 判断是否是考核模式（Exam 或 OnlineExam）
+    /// </summary>
+    public static bool IsExamMode()
+    {
+        return courseMode == CourseMode.Exam || courseMode == CourseMode.OnlineExam;
+    }
+
+    /// <summary>
+    /// 判断是否是直播/在线模式（Livebroadcast, Collaboration 或 OnlineExam）
+    /// </summary>
+    public static bool IsLiveMode()
+    {
+        return courseMode == CourseMode.Livebroadcast ||
+               courseMode == CourseMode.Collaboration ||
+               courseMode == CourseMode.OnlineExam;
+    }
+
+    /// <summary>
+    /// 判断是否是在线模式（非 Training）
+    /// </summary>
+    public static bool IsOnlineMode()
+    {
+        return courseMode != CourseMode.Training;
+    }
+
+    /// <summary>
+    /// 设置课程模式（统一入口，同时更新 isExam 和 isLive）
+    /// </summary>
+    public static void SetCourseMode(CourseMode mode)
+    {
+        courseMode = mode;
+        isExam = (mode == CourseMode.Exam || mode == CourseMode.OnlineExam);
+        isLive = (mode == CourseMode.Livebroadcast || mode == CourseMode.Collaboration || mode == CourseMode.OnlineExam);
+    }
     #endregion
 
     #region 服务器时间及计时相关
@@ -486,7 +522,7 @@ public class GlobalInfo
     {
         if (roomInfo == null || account == null)
             return false;
-        if (isExam || courseMode == CourseMode.Collaboration)
+        if (IsExamMode() || courseMode == CourseMode.Collaboration)
             return true;
         return controllerIds.Contains(account.id);
     }
@@ -500,7 +536,7 @@ public class GlobalInfo
     {
         if (roomInfo == null || account == null)
             return false;
-        if (isExam)
+        if (IsExamMode())
             return true;
         return controllerIds.Contains(userId);
     }
@@ -513,7 +549,7 @@ public class GlobalInfo
     /// <returns></returns>
     public static bool ShouldProcess(int sendUserId, bool force = false)
     {
-        if (!isLive)
+        if (!IsLiveMode())
             return true;
 
         if (IsOperator() && sendUserId == account.id)

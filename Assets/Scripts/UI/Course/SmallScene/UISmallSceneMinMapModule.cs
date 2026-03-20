@@ -206,7 +206,7 @@ public class UISmallSceneMinMapModule : UIModuleBase
         inMap = isShow;
         if (isShow)
         {
-            if (GlobalInfo.isExam)
+            if (GlobalInfo.IsExamMode())
                 mapUI.parent = ((ExamCoursePanel)ParentPanel).ShowModulePoint;
             else
                 mapUI.parent = ((OPLCoursePanel)ParentPanel).ShowModulePoint;

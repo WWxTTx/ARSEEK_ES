@@ -141,7 +141,7 @@ public class ExamTrainingPanel : UIPanelBase
         });
 
         //考核只有管理员才能创建房间
-        if (GlobalInfo.isExam && GlobalInfo.account.roleType != 1)
+        if (GlobalInfo.IsExamMode() && GlobalInfo.account.roleType != 1)
             StartLiveBtn.GetComponent<Button>().interactable = false;
 
         ExitBtn.onClick.AddListener(Exit);
@@ -251,7 +251,7 @@ public class ExamTrainingPanel : UIPanelBase
             searchKeyword = string.Empty;
             UIManager.Instance.CloseUI<ExamTrainingPanel>();
             UIManager.Instance.OpenUI<HomePagePanel>();
-            GlobalInfo.isExam = false;
+            GlobalInfo.SetCourseMode(CourseMode.Training);
         }
     }
 

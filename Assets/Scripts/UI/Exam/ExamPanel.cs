@@ -806,7 +806,7 @@ public class ExamPanel : HoverHintPanel
             }
         }
 
-        if (GlobalInfo.isExam && info.Id != GlobalInfo.account.id)
+        if (GlobalInfo.IsExamMode() && info.Id != GlobalInfo.account.id)
         {
             tf.FindChildByName("State").gameObject.SetActive(true);
             if (inExam)
@@ -925,9 +925,7 @@ public class ExamPanel : HoverHintPanel
         StopAllCoroutines();
         Timer.DelTimer(name);
         base.Close(uiData, callback);
-        GlobalInfo.isLive = false;
-        GlobalInfo.isExam = false;
-        GlobalInfo.UpdateCourseMode();
+        GlobalInfo.SetCourseMode(CourseMode.Training);
         GlobalInfo.canEditUserInfo = true;
     }
 

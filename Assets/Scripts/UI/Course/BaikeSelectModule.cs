@@ -56,7 +56,7 @@ public class BaikeSelectModule : UIModuleBase
 
         VideoPreviewGetter = this.AutoComponent<GetFirstVideoImage>();
 
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
         {
             headerPrefix = "操作项列表";
         }
@@ -102,7 +102,7 @@ public class BaikeSelectModule : UIModuleBase
         this.GetComponentByChildName<Text>("HideText").text = "当前课程暂无百科";
         this.FindChildByName("Hide").gameObject.SetActive(GlobalInfo.currentWikiList == null || GlobalInfo.currentWikiList.Count == 0);
 
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
         {
             InitExamItems();
         }

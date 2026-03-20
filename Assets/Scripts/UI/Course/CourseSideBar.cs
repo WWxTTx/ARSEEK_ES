@@ -134,7 +134,7 @@ public class CourseSideBar : MonoBase
             {
 #if UNITY_STANDALONE
                 //考核自动显示historyModule
-                if (GlobalInfo.isExam)
+                if (GlobalInfo.IsExamMode())
                     HistoryTog.isOn = true;
 #endif
                 SendMsg(new MsgBase((ushort)BaikeSelectModuleEvent.Hide));
@@ -216,7 +216,7 @@ public class CourseSideBar : MonoBase
             if (isOn)
             {
                 CloseExclusiveModule();
-                if(!GlobalInfo.isExam)
+                if(!GlobalInfo.IsExamMode())
                     OperationListTog.isOn = false;
                 SendMsg(new MsgBool((ushort)HistoryEvent.Open, true));
             }
@@ -412,9 +412,9 @@ public class CourseSideBar : MonoBase
 
             #region 操作列表模块
             case (ushort)CoursePanelEvent.OperationListBtn:
-                OperationListTog.gameObject.SetActive(!GlobalInfo.isExam);
+                OperationListTog.gameObject.SetActive(!GlobalInfo.IsExamMode());
                 HistoryTog.gameObject.SetActive(true);
-                KnowledgeTog.gameObject.SetActive(!GlobalInfo.isExam);
+                KnowledgeTog.gameObject.SetActive(!GlobalInfo.IsExamMode());
 #if UNITY_ANDROID || UNITY_IOS
                 //SplitLine.gameObject.SetActive(true);
                 if (!EnableVerticalLayout)
@@ -434,7 +434,7 @@ public class CourseSideBar : MonoBase
 #else
                 OperationListTog.isOn = true;
 #endif
-                if (GlobalInfo.isExam)
+                if (GlobalInfo.IsExamMode())
                 {  
                     //默认打开操作记录列表
                     HistoryTog.isOn = true;

@@ -211,7 +211,7 @@ public class DismantlingController : MonoBehaviour
     /// <param name="obj"></param>
     private void LocalSelection(GameObject obj, int userId)
     {
-        if (GlobalInfo.isLive && !GlobalInfo.ShouldProcess(userId))
+        if (GlobalInfo.IsLiveMode() && !GlobalInfo.ShouldProcess(userId))
         {
             return;
         }
@@ -556,7 +556,7 @@ public class DismantlingController : MonoBehaviour
             {
                 //SetAlpha(-1);
 
-                if(!GlobalInfo.isLive || GlobalInfo.IsUserOperator(controlUser))
+                if(!GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator(controlUser))
                     mSelectionCtrl.Highlight(selectModel, controlUser);
                 mSelectionCtrl.CanDeselect = true;
 
@@ -623,7 +623,7 @@ public class DismantlingController : MonoBehaviour
         {
             if(!NetworkManager.Instance.IsIMSyncCachedState || userId != GlobalInfo.account.id)
             {
-                if(!GlobalInfo.isLive || GlobalInfo.IsUserOperator(userId))
+                if(!GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator(userId))
                     SelectionCtrl.SelectModel(go, userId);
             }
 

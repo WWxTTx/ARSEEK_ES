@@ -182,7 +182,7 @@ public class ModelRotate : MonoBase
                 isMouseDown = false;
                 if (Vector3.Distance(lastEuler, transform.localEulerAngles) > 0.001f)
                 {
-                    if (GlobalInfo.isLive && GlobalInfo.IsOperator())
+                    if (GlobalInfo.IsLiveMode() && GlobalInfo.IsOperator())
                     {
                         ToolManager.SendBroadcastMsg(new MsgStringVector3((ushort)ModelOperateEvent.Rotate, transform.name, transform.localEulerAngles));
                     }
@@ -203,7 +203,7 @@ public class ModelRotate : MonoBase
     public void BeginRotate()
     {
         //TODO
-        if (GlobalInfo.isLive && !GlobalInfo.IsOperator())
+        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsOperator())
             return;
 
         RefreshAxis();
@@ -432,7 +432,7 @@ public class ModelRotate : MonoBase
 
         if (msg.msgId == (ushort)ModelOperateEvent.Rotate)
         {
-            if (GlobalInfo.isLive)
+            if (GlobalInfo.IsLiveMode())
             {
                 MsgStringVector3 msgStringVector3 = ((MsgBrodcastOperate)msg).GetData<MsgStringVector3>();
                 //状态同步

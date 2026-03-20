@@ -49,7 +49,7 @@ public class TreeViewItemData : MonoBehaviour
         get { return userId; }
         set
         {
-            if (GlobalInfo.isLive)
+            if (GlobalInfo.IsLiveMode())
                 userId = value;
             else
                 userId = 0;
@@ -190,8 +190,8 @@ public class TreeViewItemData : MonoBehaviour
                 //if (IsSelected && !Reselectable)//TODO old待删
                 if (Time.time - timer < 1 && !Reselectable)//双击且可编辑
                 {
-                    //if (GlobalInfo.currentCourseInfo.creatorId == GlobalInfo.account.id && !GlobalInfo.isLive && !GlobalInfo.isExam)//TODO old待删
-                    if (GlobalInfo.account.roleType == 1 && !GlobalInfo.isLive && !GlobalInfo.isExam)
+                    //if (GlobalInfo.currentCourseInfo.creatorId == GlobalInfo.account.id && !GlobalInfo.IsLiveMode() && !GlobalInfo.IsExamMode())//TODO old待删
+                    if (GlobalInfo.account.roleType == 1 && !GlobalInfo.IsLiveMode() && !GlobalInfo.IsExamMode())
                     {
                         prevObjectEditName = Name.text;
                         if (prevObjectEditName.Equals("未命名"))

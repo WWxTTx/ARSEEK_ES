@@ -439,7 +439,7 @@ public class UISmallSceneFlowModule : UIModuleBase
 #if UNITY_ANDROID || UNITY_IOS
         JoinSequence.Join(Background.DOAnchorPos3DX(0, JoinAnimePlayTime));
 #else
-        if (!GlobalInfo.isExam)
+        if (!GlobalInfo.IsExamMode())
             JoinSequence.Join(Background.DOAnchorPos3DX(44f, JoinAnimePlayTime));
 #endif
     }

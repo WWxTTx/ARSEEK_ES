@@ -443,8 +443,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
-        GlobalInfo.isLive = true;
-        GlobalInfo.UpdateCourseMode();
+        // 根据当前模式设置在线模式：考核模式设为 OnlineExam，其他设为 Collaboration
+        if (GlobalInfo.IsExamMode())
+            GlobalInfo.SetCourseMode(CourseMode.OnlineExam);
+        else
+            GlobalInfo.SetCourseMode(CourseMode.Collaboration);
         //确保进入课程模块后再进行消息同步
         IsStartSync = UIManager.Instance.IsOpen<ExamPanel>() || UIManager.Instance.IsOpen<ExamCoursePanel>() || UIManager.Instance.IsOpen<OPLSynCoursePanel>();/*true;*/
         IsSyncBaikeState = false;
@@ -469,8 +472,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
-        GlobalInfo.isLive = true;
-        GlobalInfo.UpdateCourseMode();
+        // 根据当前模式设置在线模式：考核模式设为 OnlineExam，其他设为 Collaboration
+        if (GlobalInfo.IsExamMode())
+            GlobalInfo.SetCourseMode(CourseMode.OnlineExam);
+        else
+            GlobalInfo.SetCourseMode(CourseMode.Collaboration);
         IsStartSync = true;
         IsSyncBaikeState = false;
         opsReceive.Clear();

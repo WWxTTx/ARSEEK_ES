@@ -137,7 +137,7 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
                     return;
 
                 //切换考核百科时启动录制
-                if (gameObject.activeSelf && encoder != null && _movieCapture != null && GlobalInfo.isExam)
+                if (gameObject.activeSelf && encoder != null && _movieCapture != null && GlobalInfo.IsExamMode())
                 {
                     foreach (var item in GlobalInfo.currentWikiList)
                     {
@@ -163,14 +163,14 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
                 uploading.Clear();
                 break;
                 //case (ushort)ExamPanelEvent.Pause:
-                //    if (encoder != null && _movieCapture != null && GlobalInfo.isExam)
+                //    if (encoder != null && _movieCapture != null && GlobalInfo.IsExamMode())
                 //    {
                 //        //暂停
                 //        _movieCapture.PauseCapture();
                 //    }
                 //    break;
                 //case (ushort)ExamPanelEvent.Resume:
-                //    if (encoder != null && _movieCapture != null && GlobalInfo.isExam)
+                //    if (encoder != null && _movieCapture != null && GlobalInfo.IsExamMode())
                 //    {
                 //        //继续播放
                 //        _movieCapture.ResumeCapture();
@@ -222,7 +222,7 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
 
         if (GlobalInfo.IsHomeowner()) return;
 
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
         {
             if (encoder != null && _movieCapture != null && _movieCapture.IsCapturing())
             {

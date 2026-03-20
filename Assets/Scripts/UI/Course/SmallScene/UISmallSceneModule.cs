@@ -467,16 +467,16 @@ public class UISmallSceneModule : UIModuleBase
         {
             SmallSceneData data = uiData as SmallSceneData;
             if (data.flows != null)
-                smallFlowCtrl.Init(GlobalInfo.isExam || !GlobalInfo.EnableFlow, true, data.flows);//todo强制引导视角
+                smallFlowCtrl.Init(GlobalInfo.IsExamMode() || !GlobalInfo.EnableFlow, true, data.flows);//todo强制引导视角
             else
             {
-                smallFlowCtrl.Init(GlobalInfo.isExam || !GlobalInfo.EnableFlow, true);
+                smallFlowCtrl.Init(GlobalInfo.IsExamMode() || !GlobalInfo.EnableFlow, true);
                 SaveFlowStepName();
             }
         }
         else
         {
-            smallFlowCtrl.Init(GlobalInfo.isExam || !GlobalInfo.EnableFlow, true);
+            smallFlowCtrl.Init(GlobalInfo.IsExamMode() || !GlobalInfo.EnableFlow, true);
             SaveFlowStepName();
         }
 
@@ -511,7 +511,7 @@ public class UISmallSceneModule : UIModuleBase
         }
 
         //考核去掉模型提示高亮，0提示高亮，1射线选中高亮
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
             HighlightEffectManager.Instance.maskPriorityList.Add(0);
         else
             HighlightEffectManager.Instance.maskPriorityList.Clear();
@@ -1055,7 +1055,7 @@ public class UISmallSceneModule : UIModuleBase
         }
         else
         {
-            if (GlobalInfo.isExam)
+            if (GlobalInfo.IsExamMode())
             {
                 ExecuteOperation(modelOperation, true);
             }
@@ -1081,7 +1081,7 @@ public class UISmallSceneModule : UIModuleBase
 
         var modelOperation = modelInfo.GetComponent<ModelOperation>();
         bool isOnOperation = true;
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
         {
 
         }
@@ -1196,7 +1196,7 @@ public class UISmallSceneModule : UIModuleBase
 
         ModelState = ModelState.Operating;
         bool isOnOperation = true;
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
         {
 
         }
@@ -1248,7 +1248,7 @@ public class UISmallSceneModule : UIModuleBase
         }
         else//操作执行失败
         {
-            if (!GlobalInfo.isExam && !freeOperation)
+            if (!GlobalInfo.IsExamMode() && !freeOperation)
                 OnErrorShow();
 
             smallFlowCtrl.RestoreState(modelOperation, restoredState);
@@ -1360,7 +1360,7 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     public void OnErrorShow()
     {
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
             return;
         SoundManager.Instance.PlayEffect("FalseProblem");
         DOTween.Kill("ErrorShow");
@@ -1446,7 +1446,7 @@ public class UISmallSceneModule : UIModuleBase
                 if (show)
                 {
                     SendMsg(new MsgBase((ushort)OperationListEvent.Show));
-                    SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.LeftFlex, /*true*/!GlobalInfo.isExam));
+                    SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.LeftFlex, /*true*/!GlobalInfo.IsExamMode()));
                 }
                 break;
             case (ushort)OperationListEvent.Hide:
@@ -1454,11 +1454,11 @@ public class UISmallSceneModule : UIModuleBase
                 break;
             case (ushort)HistoryEvent.Open:
                 bool showMoule = ((MsgBool)msg).arg1;
-                operationHistoryModule = (UISmallSceneOperationHistory)UIManager.Instance.OpenModuleUI<UISmallSceneOperationHistory>(ParentPanel, transform.parent, new InpuAndHistoryData(smallFlowCtrl, this, GlobalInfo.isExam));
+                operationHistoryModule = (UISmallSceneOperationHistory)UIManager.Instance.OpenModuleUI<UISmallSceneOperationHistory>(ParentPanel, transform.parent, new InpuAndHistoryData(smallFlowCtrl, this, GlobalInfo.IsExamMode()));
                 if (showMoule)
                 {
                     SendMsg(new MsgBase((ushort)HistoryEvent.Show));
-                    SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.LeftFlex, /*true*/!GlobalInfo.isExam));
+                    SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.LeftFlex, /*true*/!GlobalInfo.IsExamMode()));
                 }
                 break;
 #if UNITY_STANDALONE
@@ -1781,16 +1781,16 @@ public class UISmallSceneModule : UIModuleBase
         error.color = new Color(error.color.r, error.color.g, error.color.b, 1);
         error.DOFade(0, 0.5f).SetLoops(3).SetEase(Ease.InOutQuad).SetId("ErrorShow");
 
-        if (GlobalInfo.isExam || GlobalInfo.isLive)
+        if (GlobalInfo.IsExamMode() || GlobalInfo.IsLiveMode())
         {
             Dictionary<string, PopupButtonData> popupData = new Dictionary<string, PopupButtonData>();
             popupData.Add("知道了", new PopupButtonData(null, true));
-            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", FatalFinishMessage + (GlobalInfo.isExam ? "\r\n当前试题已结束" : "\r\n当前百科已结束"), popupData, null, false));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", FatalFinishMessage + (GlobalInfo.IsExamMode() ? "\r\n当前试题已结束" : "\r\n当前百科已结束"), popupData, null, false));
         }
         else
         {
             Dictionary<string, PopupButtonData> popupData = new Dictionary<string, PopupButtonData>();
-            if (!GlobalInfo.isLive)
+            if (!GlobalInfo.IsLiveMode())
             {
                 popupData.Add("退出课程", new PopupButtonData(() =>
                 {
@@ -2075,7 +2075,7 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     public void RefreshHighlight()
     {
-        if (GlobalInfo.isExam || !GlobalInfo.EnableFlow)
+        if (GlobalInfo.IsExamMode() || !GlobalInfo.EnableFlow)
             return;
 
         var newHighlights = new HashSet<Component>();
@@ -2180,11 +2180,14 @@ public class UISmallSceneModule : UIModuleBase
 
         SpeechManager.Instance.StopSpeech();
 
-        UIManager.Instance.CloseModuleUI<UISmallSceneFlowModule>(ParentPanel);
-        UIManager.Instance.CloseModuleUI<UISmallSceneToolModule>(ParentPanel);
-        UIManager.Instance.CloseModuleUI<UISmallSceneOperationHistory>(ParentPanel);
-        UIManager.Instance.CloseModuleUI<UISmallSceneMinMapModule>(ParentPanel);
-        UIManager.Instance.CloseAllModuleUI<ToastPanel>(ParentPanel);
+        // 注意：不要在这里调用 CloseModuleUI，因为如果是通过 CloseAllModuleUI 关闭的，
+        // 会导致在遍历列表时修改列表，引发异常或跳过元素。
+        // 子模块的关闭由 CloseAllModuleUI 统一处理。
+        // UIManager.Instance.CloseModuleUI<UISmallSceneFlowModule>(ParentPanel);
+        // UIManager.Instance.CloseModuleUI<UISmallSceneToolModule>(ParentPanel);
+        // UIManager.Instance.CloseModuleUI<UISmallSceneOperationHistory>(ParentPanel);
+        // UIManager.Instance.CloseModuleUI<UISmallSceneMinMapModule>(ParentPanel);
+        // UIManager.Instance.CloseAllModuleUI<ToastPanel>(ParentPanel);
 
         UnityEngine.AI.NavMesh.RemoveAllNavMeshData();
 
@@ -2294,8 +2297,9 @@ public class UISmallSceneModule : UIModuleBase
     }
     #endregion
 
-    private new void OnDestroy()
+    protected override void OnDestroy()
     {
+        base.OnDestroy();
         uismallInited = false;
     }
 

@@ -204,7 +204,7 @@ public class OPLPaintModule : HoverHintModule
         component.AddEvent(EventTriggerType.BeginDrag, arg => PaintAreaOnBeginDrag());
         component.AddEvent(EventTriggerType.Drag, arg => PaintAreaOnDrag());
         component.AddEvent(EventTriggerType.EndDrag, arg => PaintAreaOnEndDrag());
-        PaintArea.SetActive(!GlobalInfo.isLive || GlobalInfo.IsOperator());
+        PaintArea.SetActive(!GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator());
     }
 
     /// <summary>
@@ -365,7 +365,7 @@ public class OPLPaintModule : HoverHintModule
         isDrag = false;
         currentLr = null;
 
-        if (GlobalInfo.isLive && GlobalInfo.IsOperator())
+        if (GlobalInfo.IsLiveMode() && GlobalInfo.IsOperator())
         {
             MsgSyncPaint msgBase = new MsgSyncPaint((ushort)PaintEvent.SyncPaint, paintWidth, paintType, paintColor, GetSendPoses(), GlobalInfo.CanvasWidth, GlobalInfo.CanvasHeight);//Screen.width, Screen.height
             MsgBrodcastOperate msg = new MsgBrodcastOperate(msgBase.msgId, JsonTool.Serializable(msgBase));
@@ -388,7 +388,7 @@ public class OPLPaintModule : HoverHintModule
         currentPoses = GetPointPoses(screenPos, currentLr.LineThickness / 3);
         currentLr.Points = currentPoses;
 
-        if (GlobalInfo.isLive && GlobalInfo.IsOperator())
+        if (GlobalInfo.IsLiveMode() && GlobalInfo.IsOperator())
         {
             MsgSyncPaint msgBase = new MsgSyncPaint((ushort)PaintEvent.SyncPaint, paintWidth, paintType, paintColor, new Vector2[1] { screenPos }, GlobalInfo.CanvasWidth, GlobalInfo.CanvasHeight);//Screen.width, Screen.height
             MsgBrodcastOperate msg = new MsgBrodcastOperate(msgBase.msgId, JsonTool.Serializable(msgBase));

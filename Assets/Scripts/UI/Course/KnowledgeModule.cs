@@ -199,7 +199,7 @@ public class KnowledgeModule : UIModuleBase
         AddKnowledgeBtn = this.GetComponentByChildName<Button>("AddKnowledgeBtn");
         AddHyperlinkBtn = this.GetComponentByChildName<Button>("AddHyperlinkBtn");
 
-        if (GlobalInfo.isLive || GlobalInfo.isExam || GlobalInfo.account.roleType != 1)
+        if (GlobalInfo.IsLiveMode() || GlobalInfo.IsExamMode() || GlobalInfo.account.roleType != 1)
         {
             CanEditCourseware = false;
         }
@@ -224,7 +224,7 @@ public class KnowledgeModule : UIModuleBase
                     {
                         SelectionModel?.onSelectModel.AddListener(SelectionEvent);
                         SelectionModel?.onClearSelection.AddListener(ClearSelectionEvent);
-                        if (GlobalInfo.isLive)
+                        if (GlobalInfo.IsLiveMode())
                         {
                             if (GlobalInfo.IsOperator())
                                 currentObject = dismantlingController.SelectionCtrl.GetUserSelectedGo(GlobalInfo.account.id)?.transform;

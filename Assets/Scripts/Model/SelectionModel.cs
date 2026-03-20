@@ -143,7 +143,7 @@ public class SelectionModel : MonoBase
     {
         if (go != null)
         {
-            ModelManager.Instance.ControlHighlightEffect(go.transform, true, GlobalInfo.isLive ? NetworkManager.Instance.GetPlayerColor(userId) : highlightColor);
+            ModelManager.Instance.ControlHighlightEffect(go.transform, true, GlobalInfo.IsLiveMode() ? NetworkManager.Instance.GetPlayerColor(userId) : highlightColor);
         }
     }
 
@@ -230,7 +230,7 @@ public class SelectionModel : MonoBase
             case (ushort)ModelOperateEvent.Click:
                 MsgIntString userSelectedName = ((MsgBrodcastOperate)msg).GetData<MsgIntString>();
                 int userId = userSelectedName.arg1;
-                if (GlobalInfo.isLive && !GlobalInfo.IsUserOperator(userId))
+                if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsUserOperator(userId))
                     return;
                 if (NetworkManager.Instance.IsIMSyncCachedState && userId == GlobalInfo.account.id)
                     return;

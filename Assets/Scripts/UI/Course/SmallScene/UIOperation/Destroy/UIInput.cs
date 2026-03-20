@@ -9,19 +9,19 @@ using UnityFramework.Runtime;
 [Serializable]
 public class InputData
 {
-    [Tooltip("±êÌâ")]
+    [Tooltip("æ ‡é¢˜")]
     public string title;
-    [Tooltip("ÊäÈë")]
+    [Tooltip("è¾“å…¥æç¤º")]
     public string input;
 }
 
 /// <summary>
-/// ¼ì²éÊäÈëUI
+/// è¾“å…¥è§‚å¯ŸUI
 /// </summary>
 public class UIInput : UIObserve
 {
     /// <summary>
-    /// ²Ù×÷¼¯ºÏ
+    /// è¾“å…¥æ•°æ®åˆ—è¡¨
     /// </summary>
     public List<InputData> inputs;
 
@@ -30,7 +30,7 @@ public class UIInput : UIObserve
     private Text placeholderComponent;
 
     /// <summary>
-    /// ÌáÊ¾ÎÄ±¾
+    /// æ˜¾ç¤ºæ–‡æœ¬
     /// </summary>
     private Text showText;
     private Text tipText;
@@ -120,8 +120,8 @@ public class UIInput : UIObserve
         //title.text = inputData.title;
         inputField.text = string.Empty;
 
-        ////Ôö¼Ó¿Î³ÌÊäÈëÎÄ×ÖÌáÊ¾Ğ§¹û
-        //if (!GlobalInfo.isExam)
+        //æ·»åŠ éè€ƒè¯•æ¨¡å¼ä¸‹çš„æç¤ºæ•ˆæœ
+        //if (!GlobalInfo.IsExamMode())
         //{
         //    inputField.textComponent.SetAlpha(0);
         //    placeholderComponent.SetAlpha(0);
@@ -146,18 +146,18 @@ public class UIInput : UIObserve
             enterBtn.interactable = !string.IsNullOrEmpty(str.Trim());
         });
 
-        //ºË¶ÔÊäÈëÄÚÈİÊÇ·ñÕıÈ·
+        //è¾“å…¥é™åˆ¶é€»è¾‘ï¼Œåˆ¤æ–­æ˜¯å¦æ­£ç¡®
         inputField.onValidateInput = (string text, int charIndex, char addedChar) =>
         {
-            //EnterÌá½»
+            //Enteræäº¤
             if (addedChar == '\n')
             {
                 enterBtn.onClick?.Invoke();
                 return '\0';
             }
 
-            ////ÊäÈëÄÚÈİÏŞÖÆ
-            //if (!GlobalInfo.isExam && !string.IsNullOrEmpty(inputData.input))
+            //è¾“å…¥éªŒè¯é€»è¾‘
+            //if (!GlobalInfo.IsExamMode() && !string.IsNullOrEmpty(inputData.input))
             //{
             //    if (text.Length != charIndex)
             //        return '\0';
@@ -178,8 +178,8 @@ public class UIInput : UIObserve
         {
             if (!string.IsNullOrEmpty(inputField.text))
             {
-                //²»½øĞĞÊäÈëÄÚÈİµÄÅĞ¶Ï
-                //if (!string.IsNullOrEmpty(inputField.text) && (GlobalInfo.isExam || inputField.text.Equals(inputData.input)))
+                //æ ¹æ®è¾“å…¥å†…å®¹è¿›è¡Œåˆ¤æ–­
+                //if (!string.IsNullOrEmpty(inputField.text) && (GlobalInfo.IsExamMode() || inputField.text.Equals(inputData.input)))
                 {
                     CheckInput(++index, onFinish, onFail);
                 }

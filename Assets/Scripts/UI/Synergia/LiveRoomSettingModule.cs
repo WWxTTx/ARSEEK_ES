@@ -67,7 +67,7 @@ public class LiveRoomSettingModule : UIModuleBase
         RoomTypeTitle = RoomType.transform.parent.GetComponentByChildName<Text>("Title");
         RoomNameTitle = RoomName.transform.parent.GetComponentByChildName<Text>("Title");
         RoomPwdTitle = RoomPassword.transform.parent.GetComponentByChildName<Text>("Title");
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
         {
             Title.text = "考核房间信息";
             RoomTypeTitle.text = "考核类型";
@@ -171,7 +171,7 @@ public class LiveRoomSettingModule : UIModuleBase
     {
         base.Show(uiData);
 
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
         {
             RoomType.text = GlobalInfo.roomInfo.ExamType == (int)ServiceRequestData.ExamRoomType.Person ? "个人考核" : "小组考核";
             RoomName.text = GlobalInfo.roomInfo.RoomName;

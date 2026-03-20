@@ -255,16 +255,16 @@ public partial class IMStateHelper
         ushort id = msg.msgId;
 
         //切换课程或切换百科 清除状态
-        if (!GlobalInfo.isExam && MsgTruncate.IndexOf(id) > -1)
+        if (!GlobalInfo.IsExamMode() && MsgTruncate.IndexOf(id) > -1)
         {
             TruncateStateList(MsgTruncateIndependent);
         }
         //结束考核 清除状态
-        if (GlobalInfo.isExam && MsgTruncateExam.IndexOf(id) > -1)
+        if (GlobalInfo.IsExamMode() && MsgTruncateExam.IndexOf(id) > -1)
         {
             TruncateStateList(MsgTruncateIndependentExam);
         }
-        if (GlobalInfo.isExam && MsgTruncateExamGroup.IndexOf(id) > -1)
+        if (GlobalInfo.IsExamMode() && MsgTruncateExamGroup.IndexOf(id) > -1)
         {
             TruncateStateList(MsgTruncateIndependentExamGroup);
         }
@@ -309,9 +309,9 @@ public partial class IMStateHelper
     /// <returns></returns>
     private MsgStateType GetMsgType(ushort msgId)
     {
-        if (!GlobalInfo.isExam && MsgTypeMap.ContainsKey(msgId))
+        if (!GlobalInfo.IsExamMode() && MsgTypeMap.ContainsKey(msgId))
             return MsgTypeMap[msgId];
-        if (GlobalInfo.isExam && MsgTypeMapExam.ContainsKey(msgId))
+        if (GlobalInfo.IsExamMode() && MsgTypeMapExam.ContainsKey(msgId))
             return MsgTypeMapExam[msgId];
         return MsgStateType.NoneState;
     }

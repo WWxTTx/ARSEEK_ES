@@ -154,7 +154,7 @@ public class DismantlingModule : UIModuleBase
                     GameObject selected = iController.localSelectModel;
                     if (selected == null)
                     {
-                        if (GlobalInfo.isLive && GlobalInfo.IsOperator())
+                        if (GlobalInfo.IsLiveMode() && GlobalInfo.IsOperator())
                             selected = iController.SelectionCtrl.GetUserSelectedGo(GlobalInfo.mainScreenId);
                     }
                     if (selected == null)

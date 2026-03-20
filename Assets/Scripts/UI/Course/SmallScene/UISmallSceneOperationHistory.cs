@@ -663,7 +663,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
         }
 
         // TODO 避免操作表现执行过程中，记录操作导致步骤切换(考核不存在步骤)
-        if (!smallSceneModule.IsOperatableState || (!GlobalInfo.isExam && smallSceneModule.OtherOperating))
+        if (!smallSceneModule.IsOperatableState || (!GlobalInfo.IsExamMode() && smallSceneModule.OtherOperating))
         {
             UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("操作执行中，完成后再试"));
             return;
@@ -703,7 +703,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
             return;
         }
         // TODO
-        if (!smallSceneModule.IsOperatableState || (!GlobalInfo.isExam && smallSceneModule.OtherOperating))
+        if (!smallSceneModule.IsOperatableState || (!GlobalInfo.IsExamMode() && smallSceneModule.OtherOperating))
         {
             UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("操作执行中，完成后再试"));
             return;

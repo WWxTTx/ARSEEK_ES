@@ -53,7 +53,7 @@ public class VideoCtrl : MonoBase
                 NowM.text = ((int)videoPlayer.time / 60).ToString("d2");
                 NowS.text = ((int)videoPlayer.time % 60).ToString("d2");
 
-                if (GlobalInfo.isLive && NetworkManager.Instance.IsFirstActiveUser())
+                if (GlobalInfo.IsLiveMode() && NetworkManager.Instance.IsFirstActiveUser())
                 {
                     now = DateTime.Now;
                     if ((now - lastUpdateTime).TotalSeconds > updateInterval)

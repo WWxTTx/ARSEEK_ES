@@ -579,8 +579,7 @@ public class TrainingPanel : UIPanelBase
         joiningRoom = false;
         JoinRoomPanel.SetActive(false);
 
-        GlobalInfo.isLive = true;
-        GlobalInfo.UpdateCourseMode();
+        GlobalInfo.SetCourseMode(CourseMode.Collaboration);
 
         UIManager.Instance.CloseUI<TrainingPanel>();
         UIManager.Instance.OpenUI<OPLSynCoursePanel>();

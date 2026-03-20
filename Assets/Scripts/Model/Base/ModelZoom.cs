@@ -156,7 +156,7 @@ public class ModelZoom : MonoBase
         if (ModelManager.Instance.modelRoot.childCount == 0)
             return;
         //协同房间无权限用户禁止操作
-        if (GlobalInfo.isLive && !GlobalInfo.IsOperator())
+        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsOperator())
             return;
 
         if (Input.touchCount == 2 && !GUITool.IsOverGUI(Input.GetTouch(0).position)
@@ -233,7 +233,7 @@ public class ModelZoom : MonoBase
         if (ModelManager.Instance.modelRoot.childCount == 0)
             return;
 
-        if (GlobalInfo.isLive && GlobalInfo.IsOperator())
+        if (GlobalInfo.IsLiveMode() && GlobalInfo.IsOperator())
         {
             MsgFloat msgF = new MsgFloat((ushort)ModelOperateEvent.Scale, nowValue);
             MsgBrodcastOperate msg = new MsgBrodcastOperate(msgF.msgId, JsonTool.Serializable(msgF));

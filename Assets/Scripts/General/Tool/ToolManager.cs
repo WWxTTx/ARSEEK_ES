@@ -74,14 +74,14 @@ namespace UnityFramework.Runtime
             }
         }
         /// <summary>
-        /// 发送直播消息
+        /// 发送直播和协同消息
         /// </summary>
         /// <param name="msg"></param>
         /// <param name="synergia">仅用于协同房间 是否允许非主画面权限用户广播</param>
         public static void SendBroadcastMsg(MsgBase msg, bool synergia = false)
         {
             MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(msg.msgId, JsonTool.Serializable(msg));
-            if (GlobalInfo.isLive && !NetworkManager.Instance.IsIMSyncState)
+            if (GlobalInfo.IsLiveMode() && !NetworkManager.Instance.IsIMSyncState)
             {
                 //考核房间
                 if (GlobalInfo.roomInfo.ExamType != 0)

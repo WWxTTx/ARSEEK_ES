@@ -569,7 +569,7 @@ namespace UnityFramework.Runtime
         public void AddSyncComponent(GameObject gameObject)
         {
             //个人考核不要同步组件
-            if(GlobalInfo.isLive && (GlobalInfo.roomInfo.RoomType != 0 || GlobalInfo.roomInfo.ExamType != (int)ExamRoomType.Person))
+            if(GlobalInfo.IsLiveMode() && (GlobalInfo.roomInfo.RoomType != 0 || GlobalInfo.roomInfo.ExamType != (int)ExamRoomType.Person))
                 cameraSync = gameObject.AutoComponent<CameraSync>();
         }
         /// <summary>

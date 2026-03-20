@@ -8,11 +8,11 @@ using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
 
 /// <summary>
-/// Ò»µã¿ÎÏ°Ìâ°Ù¿Æ
+/// ä¸€é“ç»ƒä¹ ç™¾ç§‘
 /// </summary>
 public class OPLExerciseModule : UIModuleBase
 {
-    private Dictionary<int, Toggle> answerToggles = new Dictionary<int, Toggle>();//´ğ°¸×é¼ş
+    private Dictionary<int, Toggle> answerToggles = new Dictionary<int, Toggle>();//é€‰é¡¹
 
     private Exercise exercise;
 
@@ -30,7 +30,7 @@ public class OPLExerciseModule : UIModuleBase
 #endif
 
     /// <summary>
-    /// ´ğ°¸¸Ä±äÊÂ¼ş
+    /// ç­”æ¡ˆæ”¹å˜äº‹ä»¶
     /// </summary>
     public UnityEvent OnAnswerChanged = new UnityEvent();
 
@@ -60,11 +60,11 @@ public class OPLExerciseModule : UIModuleBase
 
         if (exercisePedia == null || exercisePedia.data == null)
         {
-            Log.Error($"´ò¿ªµÄ°Ù¿ÆÎª¿Õ! °Ù¿ÆID:{exercisePedia?.id}");
+            Log.Error($"æ‰“å¼€çš„ç™¾ç§‘ä¸ºç©º! ç™¾ç§‘ID:{exercisePedia?.id}");
 
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-            popupDic.Add("È·¶¨", new PopupButtonData(null, true));
-            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("ÌáÊ¾", "»ñÈ¡Ï°ÌâÊ§°Ü£¬ÇëÖØÊÔ", popupDic));
+            popupDic.Add("ç¡®å®š", new PopupButtonData(null, true));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("æç¤º", "è·å–ç»ƒä¹ å¤±è´¥ï¼Œè¯·é‡è¯•", popupDic));
         }
         else
         {
@@ -81,7 +81,7 @@ public class OPLExerciseModule : UIModuleBase
 
             this.WaitTime(0.1f, () =>
             {
-                //¿¼ºË Í¨ÖªÄ£¿é³õÊ¼»¯Íê³É
+                //å»¶è¿Ÿ é€šçŸ¥æ¨¡å—å¼€å§‹ç­”é¢˜
                 SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
             });
         }
@@ -106,9 +106,9 @@ public class OPLExerciseModule : UIModuleBase
             MsgList<int> msgAnswers = new MsgList<int>((ushort)ExercisesModuleEvent.ConfirmAnswer, selectedAnswers.ToList());
             SendMsg(new MsgBrodcastOperate(msgAnswers.msgId, JsonTool.Serializable(msgAnswers)));
         });
-        ConfirmAnswer.gameObject.SetActive(!GlobalInfo.isExam);
+        ConfirmAnswer.gameObject.SetActive(!GlobalInfo.IsExamMode());
 
-        #region Ö±²¥´ğÌâ
+        #region ç›´è¿ç­”é¢˜
 #if UNITY_ANDROID || UNITY_IOS
         //if (GlobalInfo.IsHomeowner())
         //{
@@ -122,7 +122,7 @@ public class OPLExerciseModule : UIModuleBase
         //        Exercise exercise = (GlobalInfo.currentWiki as EncyclopediaExercise).data.exercise;
         //        switch (exercise.type)
         //        {
-        //            //Ñ¡ÔñÌâ
+        //            //é€‰æ‹©é¢˜
         //            case 1:
         //                ExerciseContent ec = JsonTool.DeSerializable<ExerciseContent>(exercise.content);
         //                choiceCount = ec.answers.Count;
@@ -135,7 +135,7 @@ public class OPLExerciseModule : UIModuleBase
         //                    }
         //                }
         //                break;
-        //            //ÅĞ¶ÏÌâ
+        //            //åˆ¤æ–­é¢˜
         //            case 2:
         //                JudgementExerciseContent jec = JsonTool.DeSerializable<JudgementExerciseContent>(exercise.content);
         //                choiceCount = 2;
@@ -153,7 +153,7 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     /// <summary>
-    /// ¼ÓÔØÑ¡ÔñÏ°Ìâ
+    /// åŠ è½½é€‰æ‹©é¢˜ç»ƒä¹ 
     /// </summary>
     /// <param name="id"></param>
     private void LoadExercise()
@@ -166,24 +166,24 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     /// <summary>
-    /// ¼ÓÔØÅĞ¶ÏÏ°Ìâ
+    /// åŠ è½½åˆ¤æ–­ç»ƒä¹ 
     /// </summary>
     /// <param name="id"></param>
     private void LoadJudgementExercise()
     {
         JudgementExerciseContent exerciseContent = JsonTool.DeSerializable<JudgementExerciseContent>(exercise.content);
-        Type.text = "ÅĞ¶ÏÌâ";
+        Type.text = "åˆ¤æ–­é¢˜";
         LoadQuestion(exerciseContent.question);
         List<ExerciseAnswer> answers = new List<ExerciseAnswer>()
         {
             new ExerciseAnswer()
             {
-                content = new ExerciseQuestion("ÕıÈ·"),
+                content = new ExerciseQuestion("æ­£ç¡®"),
                 right = exerciseContent.answers
             },
             new ExerciseAnswer()
             {
-                content = new ExerciseQuestion("´íÎó"),
+                content = new ExerciseQuestion("é”™è¯¯"),
                 right = !exerciseContent.answers
             },
         };
@@ -193,19 +193,19 @@ public class OPLExerciseModule : UIModuleBase
 
     private int score;
     /// <summary>
-    /// ¼ÓÔØÌâÄ¿
+    /// åŠ è½½é¢˜ç›®
     /// </summary>
     /// <param name="question"></param>
     private void LoadQuestion(ExerciseQuestion question)
     {
-        if (GlobalInfo.isExam)
+        if (GlobalInfo.IsExamMode())
         {
             var target = GlobalInfo.currentWikiList.Find(wiki => wiki.id == GlobalInfo.currentWiki.id);
             if (target != null)
                 score = target.totalScore;
             else
-                Log.Error($"·ÖÖµÅäÖÃ´íÎó");
-            Title.text = $"({score}·Ö) {question.text}";
+                Log.Error($"åˆ†å€¼è·å–å‡ºé”™");
+            Title.text = $"({score}åˆ†) {question.text}";
         }
         else
         {
@@ -228,7 +228,7 @@ public class OPLExerciseModule : UIModuleBase
     private HashSet<int> selectedAnswers = new HashSet<int>();
 
     /// <summary>
-    /// ¼ÓÔØÑ¡Ïî
+    /// åŠ è½½é€‰é¡¹
     /// </summary>
     /// <param name="answers"></param>
     private void LoadAnswers(List<ExerciseAnswer> answers, bool multipleChoice = false)
@@ -319,7 +319,7 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     /// <summary>
-    /// ¼ÓÔØÍ¼Æ¬
+    /// åŠ è½½å›¾ç‰‡
     /// </summary>
     /// <param name="contentUrl"></param>
     /// <param name="target"></param>
@@ -352,7 +352,7 @@ public class OPLExerciseModule : UIModuleBase
                 }
                 else
                 {
-                    //todo ¼ÓÔØÊ§°Ü Ë¢ĞÂ
+                    //todo åŠ è½½å¤±è´¥ åˆ·æ–°
                 }
             });
         }
@@ -361,7 +361,7 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     /// <summary>
-    /// ¼ÓÔØÊÓÆµ
+    /// åŠ è½½è§†é¢‘
     /// </summary>
     /// <param name="contentUrl"></param>
     /// <param name="target"></param>
@@ -407,20 +407,20 @@ public class OPLExerciseModule : UIModuleBase
 
                 if (rightNum >= 2)
                 {
-                    content = "¶àÑ¡Ìâ";
+                    content = "å¤šé€‰é¢˜";
                     multipleChoice = true;
                 }
                 else
-                    content = "µ¥Ñ¡Ìâ";
+                    content = "å•é€‰é¢˜";
                 break;
             case 2:
-                content = "ÅĞ¶ÏÌâ";
+                content = "åˆ¤æ–­é¢˜";
                 break;
             case 3:
-                content = "²Ù×÷Ìâ";
+                content = "å¡«ç©ºé¢˜";
                 break;
             default:
-                content = "Î´Öª";
+                content = "æœªçŸ¥";
                 break;
         }
         return content;
@@ -428,7 +428,7 @@ public class OPLExerciseModule : UIModuleBase
 
     private void OnAnswerConfirm(int userId, List<int> answers)
     {
-        //if (GlobalInfo.isExam)
+        //if (GlobalInfo.IsExamMode())
         //    return;
         bool isTrue = true;
         Toggle tempToggle = null;
@@ -464,8 +464,8 @@ public class OPLExerciseModule : UIModuleBase
         else
             SoundManager.Instance.PlayEffect("FalseProblem", true);
 
-        ////Îª¿¼ºË±¾ÈËÌá½»´ğ°¸¼ÇÂ¼³É¼¨
-        //if (GlobalInfo.isExam && userId == GlobalInfo.account.id)
+        ////ä¸ºäº†ä¿ç•™æäº¤ç­”æ¡ˆè®°å½•å¯è§
+        //if (GlobalInfo.IsExamMode() && userId == GlobalInfo.account.id)
         //    SendMsg(new MsgInt((ushort)ExamPanelEvent.ExerciseScore, isTrue ? score : 0));
     }
 
@@ -519,7 +519,7 @@ public class OPLExerciseModule : UIModuleBase
             case (ushort)ExercisesModuleEvent.ConfirmAnswer:
                 OnAnswerConfirm(((MsgBrodcastOperate)msg).senderId, ((MsgBrodcastOperate)msg).GetData<MsgList<int>>().arg);
                 break;
-            #region Ö±²¥´ğÌâ
+            #region ç›´è¿ç­”é¢˜
             case (ushort)JudgeOnlineEvent.Start:
                 ClearAnswer();
                 break;
@@ -531,7 +531,7 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     /// <summary>
-    /// Çå¿Õ´ğ°¸
+    /// æ¸…ç©ºç­”æ¡ˆ
     /// </summary>
     private void ClearAnswer()
     {
@@ -548,7 +548,7 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     /// <summary>
-    /// Ñ¡ÖĞ´ğ°¸
+    /// é€‰é¡¹æ‰“å‹¾
     /// </summary>
     /// <param name="indexs"></param>
     public void SelectAnswerToggles(List<int> indexs)
@@ -569,9 +569,9 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     /// <summary>
-    /// ½ø³¡¶¯»­
+    /// è¿›å…¥åŠ¨ç”»
     /// </summary>
-    /// <param name="callback">»Øµ÷</param>
+    /// <param name="callback">å›è°ƒ</param>
     public override void JoinAnim(UnityAction callback)
     {
         CanvasGroup canvasGroup = transform.GetComponentInChildren<CanvasGroup>();
@@ -585,9 +585,9 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     /// <summary>
-    /// ÍË³¡¶¯»­
+    /// é€€å‡ºåŠ¨ç”»
     /// </summary>
-    /// <param name="callback">»Øµ÷</param>
+    /// <param name="callback">å›è°ƒ</param>
     public override void ExitAnim(UnityAction callback)
     {
         CanvasGroup canvasGroup = transform.GetComponentInChildren<CanvasGroup>();

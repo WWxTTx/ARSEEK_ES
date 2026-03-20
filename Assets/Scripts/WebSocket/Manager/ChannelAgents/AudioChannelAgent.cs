@@ -5,25 +5,25 @@ using UnityFramework.Runtime;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
-/// rtaÒôÆµÍ¨µÀ´úÀíÀà
+/// rtaéŸ³é¢‘é€šé“ä»£ç†
 /// </summary>
 public class AudioChannelAgent : NetworkChannelAgentBase
 {
-    //[Header("±¾µØ²É¼¯")]
-    //public MicEncoder localMicEncoder;
+    // [Header("æœ¬åœ°é‡‡é›†")]
+    // public MicEncoder localMicEncoder;
 
     /// <summary>
-    /// Ö§³ÖÂ¼ÆÁÊ±Â¼ÖÆ±¾µØÂó¿Ë·çÉùÒôµÄ±àÂëÆ÷
+    /// æ”¯æŒå½•éŸ³æ—¶å½•éŸ³ç¬”å‘é€çš„å˜å£°å¤„ç†
     /// </summary>
-    [Header("±¾µØ²É¼¯")]
+    [Header("æœ¬åœ°é‡‡é›†")]
     public MicEncoderWithAudioFilter localMicEncoder;
 
-    [Header("½âÂëÆ÷Ô¤ÖÆÌå")]
+    [Header("è§£ç å™¨é¢„åˆ¶ä½“")]
     public GameObject audioDecoderPrefab;
 
-    //private Dictionary<string, AudioDecoder> clientMicDecoders = new Dictionary<string, AudioDecoder>();
+    // private Dictionary<string, AudioDecoder> clientMicDecoders = new Dictionary<string, AudioDecoder>();
     /// <summary>
-    /// Ö§³Ö±äËÙ²»±äµ÷µÄÒôÆµ½âÂëÆ÷
+    /// æ”¯æŒå»¶è¿Ÿæ§åˆ¶çš„éŸ³é¢‘è§£ç å™¨
     /// </summary>
     private Dictionary<string, AudioDelayControlDecoder> clientMicDecoders = new Dictionary<string, AudioDelayControlDecoder>();
 
@@ -84,15 +84,15 @@ public class AudioChannelAgent : NetworkChannelAgentBase
         string label = jObject[NetworkManager.PAYLOAD][NetworkManager.LABEL].ToString();
         int userId = int.Parse(label.ToString().Substring(3));
 
-        //¿¼ºË³ÉÔ±²»´¦Àí·Ç·¿Ö÷µÄÓïÒô
-        if (GlobalInfo.isExam && !GlobalInfo.IsHomeowner() && userId != GlobalInfo.roomInfo?.creatorId)
+        // è¿‡æ»¤éæˆ¿ä¸»æˆå‘˜å‘é€çš„éŸ³é¢‘å¸§
+        if (GlobalInfo.IsExamMode() && !GlobalInfo.IsHomeowner() && userId != GlobalInfo.roomInfo?.creatorId)
             return;
 
-        //½ÓÊÕµ½ÒÑÀëÏß»ò±ÕÂóÓÃ»§µÄÒôÆµÖ¡
+        // å¦‚æœæ¥æ”¶åˆ°çš„æˆ¿ä¸»æˆ–è¯¥ç”¨æˆ·æœªå¼€å¯éŸ³é¢‘å¸§
         if (!networkManager.IsUserChat(userId))
             return;
 
-        //È·±£ÎªÓÃ»§Ìí¼ÓÒôÆµ½âÂëÆ÷
+        // ç¡®è®¤ä¸ºç”¨æˆ·åˆ›å»ºäº†éŸ³é¢‘è§£ç å™¨
         if (!clientMicDecoders.ContainsKey(label))
         {
             GameObject newDecoder = Instantiate(audioDecoderPrefab);
@@ -105,7 +105,7 @@ public class AudioChannelAgent : NetworkChannelAgentBase
             clientMicDecoders.Add(label, micDecoder);
         }
 
-        //½âÂë¡¢²¥·ÅÒôÆµÊı¾İ
+        // è¾“å…¥ã€æ’­æ”¾éŸ³é¢‘æ•°æ®
         if (clientMicDecoders[label] != null)
         {
             clientMicDecoders[label].Action_ProcessData(jObject[NetworkManager.PAYLOAD][NetworkManager.DATA].ToObject<byte[]>());
@@ -128,9 +128,9 @@ public class AudioChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// ÒÆ³ıÖ¸¶¨ÓÃ»§µÄÓïÒô
+    /// ç§»é™¤æŒ‡å®šç”¨æˆ·çš„è§£ç å™¨
     /// </summary>
-    /// <param name="userId">ÓÃ»§id</param>
+    /// <param name="userId">ç”¨æˆ·id</param>
     public void RemoveMicDecoder(int userId)
     {
         string micLable = $"300{userId}";
@@ -142,11 +142,11 @@ public class AudioChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// Çå¿ÕÓÃ»§ÓïÒô
+    /// æ¸…é™¤ç”¨æˆ·è§£ç å™¨
     /// </summary>
     public void ClearRemoteMicDecoders()
     {
-        //List<AudioDecoder> audioDecoders = clientMicDecoders.Values.ToList();
+        // List<AudioDecoder> audioDecoders = clientMicDecoders.Values.ToList();
         List<AudioDelayControlDecoder> audioDecoders = clientMicDecoders.Values.ToList();
         for (int i = 0; i < audioDecoders.Count; i++)
         {

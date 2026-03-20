@@ -5,7 +5,7 @@ using DG.Tweening;
 using UnityFramework.Runtime;
 
 /// <summary>
-/// 查看图片模块
+/// 鏌ョ湅鍥剧墖妯″潡
 /// </summary>
 public class ShowImgModule : UIModuleBase
 {
@@ -17,7 +17,7 @@ public class ShowImgModule : UIModuleBase
 
     private int id;
     /// <summary>
-    /// 是否显示关闭按钮
+    /// 鏄惁鏄剧ず鍏抽棴鎸夐挳
     /// </summary>
     private bool showCloseBtn;
 
@@ -42,7 +42,7 @@ public class ShowImgModule : UIModuleBase
         AutoShow = transform.GetComponentByChildName<RawImage>("AutoShow");
 
         CanvasGroup = GetComponent<CanvasGroup>();
-        CanvasGroup.interactable = !GlobalInfo.isLive || GlobalInfo.IsOperator();
+        CanvasGroup.interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
 
         ImgModuleData = (ShowLinkModuleData)uiData;
         id = ImgModuleData.id;
@@ -62,7 +62,7 @@ public class ShowImgModule : UIModuleBase
             Close.gameObject.SetActive(true);
             Background.SetActive(true);
         }
-      
+
         LoadImage(ImgModuleData.id, ResManager.Instance.OSSDownLoadPath + ImgModuleData.url);
     }
 
@@ -87,7 +87,7 @@ public class ShowImgModule : UIModuleBase
             {
                 ShowImg.SetActive(false);
                 UIManager.Instance.OpenModuleUI<LocalTipModule_Button>(ParentPanel, ShowImg.transform.parent,
-                    new LocalTipModule_Button.ModuleData("图片加载失败", "刷新", () => LoadImage(pointId, url), 1));
+                    new LocalTipModule_Button.ModuleData("鍥剧墖鍔犺浇澶辫触", "鍒锋柊", () => LoadImage(pointId, url), 1));
                 return;
             }
 
@@ -133,7 +133,7 @@ public class ShowImgModule : UIModuleBase
     }
 
     /// <summary>
-    /// 是否重复
+    /// 鏄惁閲嶅
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
@@ -157,7 +157,7 @@ public class ShowImgModule : UIModuleBase
         if (canvas)
             canvas.overrideSorting = GlobalInfo.InEditMode;
     }
-    #region 动效
+    #region 鍔ㄦ晥
     protected override float joinAnimePlayTime => 0.3f;
     protected override float exitAnimePlayTime => 0.2f;
 
