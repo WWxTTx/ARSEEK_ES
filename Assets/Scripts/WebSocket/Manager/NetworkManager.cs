@@ -1,4 +1,5 @@
-﻿using System;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -142,7 +143,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         if (GlobalInfo.IsHomeowner())
         {
             if (deleteRoom)
-            {     
+            {
                 DeleteRoom(GlobalInfo.roomInfo.Uuid, () =>
                 {
                     FormMsgManager.Instance.SendMsg(new MsgBase((ushort)RoomChannelEvent.UpdateRoomList));
@@ -153,9 +154,52 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             }
         }
 
+        // 发送退出消息给服务器，确保其他成员能收到离开通知
+        SendLeaveMessage();
+
         //退出房间 主动断开连接
         CloseAllConnection();
         WaitForceQuit("退出房间成功");
+    }
+
+    /// <summary>
+    /// 发送退出消息给服务器，确保服务器能广播 member_out 给其他成员
+    /// </summary>
+    private void SendLeaveMessage()
+    {
+        GlobalInfo.CreatedMode = false;
+        if (mRoomChannelAgent != null && mRoomChannelAgent.IsChannelConnected())
+        {
+            try
+            {
+                // 发送退出消息，服务器收到后会广播 member_out 给其他成员
+                JObject leaveMsg = new JObject
+                {
+                    [TYPE] = "leave",
+                    [PAYLOAD] = new JObject()
+                    {
+                        ["memberId"] = GlobalInfo.account.id
+                    }
+                };
+                mRoomChannelAgent.SendCommand(leaveMsg.ToString());
+                Log.Debug("已发送退出房间消息到服务器");
+            }
+            catch (System.Exception ex)
+            {
+                Log.Warning($"发送退出消息失败: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 延迟发送退出消息后关闭连接
+    /// </summary>
+    /// <param name="delay">延迟时间（秒）</param>
+    /// <returns></returns>
+    private IEnumerator DelayThenCloseConnection(float delay = 0.5f)
+    {
+        yield return new WaitForSeconds(delay);
+        CloseAllConnection();
     }
 
     /// <summary>

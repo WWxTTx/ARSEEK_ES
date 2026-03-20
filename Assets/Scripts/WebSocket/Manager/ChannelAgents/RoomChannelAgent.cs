@@ -159,6 +159,19 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             {
                 UpdateMember(member.Key, prevMemberState);
             }
+            else
+            {
+                // 新加入的成员：协同房间房主需要给新成员分配操作权限
+                if (GlobalInfo.IsHomeowner() && GlobalInfo.roomInfo.RoomType == (int)RoomType.Synergia)
+                {
+                    Member newMember = member.Value;
+                    if (newMember.Id != GlobalInfo.roomInfo.creatorId && !newMember.IsControl)
+                    {
+                        Log.Debug($"[协同调试] 房主给新成员分配操作权限 | newMemberId:{newMember.Id}");
+                        networkManager.SetUserControl(newMember.Id, true);
+                    }
+                }
+            }
         }
 
         UpdateGlobalValue(roomMembers);

@@ -94,6 +94,7 @@ public class GlobalInfo
     /// </summary>
     public static CourseMode courseMode = CourseMode.Training;
 
+    public static bool CreatedMode = false;
     /// <summary>
     /// 更新课程模式（根据 isExam 和 isLive 自动计算）
     /// </summary>

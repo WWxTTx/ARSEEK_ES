@@ -548,7 +548,6 @@ public class UISmallSceneModule : UIModuleBase
     public bool uismallInited = false;
     void Init()
     {
-        Debug.Log("状态 操作消息注册完成");
         uismallInited = true;
         TapRecognizer.Instance.RegistOnRightMouseClick(() =>
         {
@@ -1520,7 +1519,7 @@ public class UISmallSceneModule : UIModuleBase
                 smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1);
                 smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2);
 
-                Debug.Log("状态 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
+                Debug.Log("状态调试 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
                 break;
             case (ushort)SmallFlowModuleEvent.Guide:
@@ -1571,7 +1570,7 @@ public class UISmallSceneModule : UIModuleBase
                 {
                     ModelState = ModelState.Unselect;
                 }
-                AcquireOperatePermission(userIdFocus, modelOperationFocused, string.Empty);
+                //AcquireOperatePermission(userIdFocus, modelOperationFocused, string.Empty);
                 break;
             case (ushort)SmallFlowModuleEvent.Look:
                 ModelOperation modelOperation = smallFlowCtrl.GetModelOperation((msg as MsgBrodcastOperate).GetData<MsgOperation>().modelOperation);
@@ -1582,32 +1581,34 @@ public class UISmallSceneModule : UIModuleBase
                     ModelState = ModelState.Unselect;
                 }
                 // 获得对modelOperation的操作权，执行本地操作
-                AcquireOperatePermission(userIdLook, modelOperation, string.Empty);
+                //AcquireOperatePermission(userIdLook, modelOperation, string.Empty);
                 if (userIdLook == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
                 {
                     TryExecuteOp(modelOperation);
                 }
                 break;
-            case (ushort)SmallFlowModuleEvent.Look2D:
-                MsgOperation2D msgOperation2D = (msg as MsgBrodcastOperate).GetData<MsgOperation2D>();
-                ModelOperation modelOperation2d = smallFlowCtrl.GetModelOperation(msgOperation2D.modelOperation);
-                int userIdLook2d = ((MsgBrodcastOperate)msg).senderId;
-                // 选中对象冲突
-                if (modelOperation2d != null && modelOperation2d == modelOperation_Select && userIdLook2d != GlobalInfo.account.id)
-                {
-                    ModelState = ModelState.Unselect;
-                }
-                //获得对modelOperation的操作权，执行本地操作
-                AcquireOperatePermission(userIdLook2d, modelOperation2d, msgOperation2D.operationName);
-                if (userIdLook2d == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
-                {
-                    TryExecute2DOp(modelOperation2d, msgOperation2D.operationName);
-                }
-                break;
+            //case (ushort)SmallFlowModuleEvent.Look2D:
+            //    MsgOperation2D msgOperation2D = (msg as MsgBrodcastOperate).GetData<MsgOperation2D>();
+            //    ModelOperation modelOperation2d = smallFlowCtrl.GetModelOperation(msgOperation2D.modelOperation);
+            //    int userIdLook2d = ((MsgBrodcastOperate)msg).senderId;
+            //    // 选中对象冲突
+            //    if (modelOperation2d != null && modelOperation2d == modelOperation_Select && userIdLook2d != GlobalInfo.account.id)
+            //    {
+            //        ModelState = ModelState.Unselect;
+            //    }
+            //    //获得对modelOperation的操作权，执行本地操作
+            //    AcquireOperatePermission(userIdLook2d, modelOperation2d, msgOperation2D.operationName);
+            //    if (userIdLook2d == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
+            //    {
+            //        TryExecute2DOp(modelOperation2d, msgOperation2D.operationName);
+            //    }
+            //    break;
             case (ushort)SmallFlowModuleEvent.Operate:
                 int userIdOp = ((MsgBrodcastOperate)msg).senderId;
                 MsgOperation msgOp = ((MsgBrodcastOperate)msg).GetData<MsgOperation>();
                 {
+                    Debug.Log($"状态调试 Operate收到消息 - senderId:{userIdOp}, modelOperation:{msgOp.modelOperation}, operationName:{msgOp.operationName}, 当前用户:{GlobalInfo.account.id}");
+
                     SmallOp1 data = new SmallOp1();
                     data.operation = smallFlowCtrl.GetModelOperation(msgOp.modelOperation);
                     data.prop = smallFlowCtrl.GetModelInfo(msgOp.propId);
@@ -1659,13 +1660,10 @@ public class UISmallSceneModule : UIModuleBase
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.StepEnd:
-                MsgStepEnd msgStepEnd = (msg as MsgBrodcastOperate).GetData<MsgStepEnd>();
-                // 漫游模式 或 未配置聚焦操作的对象 操作表现执行完成时释放操作权限
-                if (GlobalInfo.hasRole || !msgStepEnd.hasFocusMode)
+                    MsgStepEnd msgStepEnd = (msg as MsgBrodcastOperate).GetData<MsgStepEnd>();
+                    int stepEndSenderId = ((MsgBrodcastOperate)msg).senderId;
+                    Debug.Log($"状态调试 StepEnd收到消息 - senderId:{stepEndSenderId}, modelInfoId:{msgStepEnd.modelInfoId}, operationName:{msgStepEnd.operationName}, 当前用户:{GlobalInfo.account.id}");
                     ReleaseOperatePermission(((MsgBrodcastOperate)msg).senderId, smallFlowCtrl.GetModelOperation(msgStepEnd.modelInfoId), msgStepEnd.operationName);
-                // 非漫游模式 操作表现执行完成时仅释放联动对象的操作权限 (操作对象本身的操作权在FocusChanged事件处理)
-                else
-                    ReleaseLinkageOperatePermission(((MsgBrodcastOperate)msg).senderId, smallFlowCtrl.GetModelOperation(msgStepEnd.modelInfoId), msgStepEnd.operationName);
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteAll:
                 //Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
@@ -1827,6 +1825,8 @@ public class UISmallSceneModule : UIModuleBase
     /// <param name="modelOperation"></param>
     private void AcquireOperatePermission(int userId, ModelOperation modelOperation, string operationName)
     {
+        Debug.Log($"状态调试 AcquireOperatePermission - userId:{userId}, modelOperation:{modelOperation?.name}, operationName:{operationName}, 当前用户:{GlobalInfo.account.id}");
+
         //释放当前占用的操作对象
         var currentOperations = userOpModel.Where(item => item.Value == userId).Select(item => item.Key).ToList();
         if (currentOperations != null)
@@ -1847,6 +1847,7 @@ public class UISmallSceneModule : UIModuleBase
         if (!userOpModel.ContainsKey(modelOperation))
         {
             userOpModel.Add(modelOperation, userId);
+            Debug.Log($"状态调试 AcquireOperatePermission - 已添加权限: modelOperation:{modelOperation.name}, userId:{userId}");
         }
 
         //获取操作表现联动操作对象的操作权
@@ -1870,11 +1871,23 @@ public class UISmallSceneModule : UIModuleBase
     /// <param name="operationName"></param>
     private void ReleaseOperatePermission(int userId, ModelOperation modelOperation, string operationName)
     {
+        Debug.Log($"状态调试 ReleaseOperatePermission - userId:{userId}, modelOperation:{modelOperation?.name}, operationName:{operationName}, 当前用户:{GlobalInfo.account.id}");
+
         if (modelOperation == null)
+        {
+            Debug.Log("状态调试 ReleaseOperatePermission - modelOperation为null，返回");
             return;
+        }
 
         if (userOpModel.ContainsKey(modelOperation) && userOpModel[modelOperation] == userId)
+        {
             userOpModel.Remove(modelOperation);
+            Debug.Log($"状态调试 ReleaseOperatePermission - 已释放权限: modelOperation:{modelOperation.name}, userId:{userId}");
+        }
+        else
+        {
+            Debug.Log($"状态调试 ReleaseOperatePermission - 未找到匹配权限: containsKey:{userOpModel.ContainsKey(modelOperation)}, 当前持有者:{(userOpModel.ContainsKey(modelOperation) ? userOpModel[modelOperation].ToString() : "无")}");
+        }
 
         //释放联动操作对象的操作权
         var operation = modelOperation.operations.FirstOrDefault(o => o.name.Equals(operationName));

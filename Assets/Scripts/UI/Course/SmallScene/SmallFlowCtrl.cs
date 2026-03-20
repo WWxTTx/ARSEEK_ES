@@ -1125,6 +1125,7 @@ public class SmallFlowCtrl : MonoBase
                         if (!hasWaitLinkage)
                         {
                             callback?.Invoke(true);
+                            TryReleaseOperatePermission(modelInfoId, data.optionName, data.operation.HasFocusMode, dummy);
                             StepEnd(modelInfoId);
                         }
 
@@ -1143,6 +1144,7 @@ public class SmallFlowCtrl : MonoBase
                                 if (hasWaitLinkage)
                                 {
                                     callback?.Invoke(true);
+                                    TryReleaseOperatePermission(modelInfoId, data.optionName, data.operation.HasFocusMode, dummy);
                                     StepEnd(modelInfoId);
                                 }
                             });
@@ -1277,14 +1279,24 @@ public class SmallFlowCtrl : MonoBase
     {
         // 操作执行完成，释放操作权限
         MsgStepEnd msgStepEnd = new MsgStepEnd((ushort)SmallFlowModuleEvent.StepEnd, modelInfoId, optionName, hasFocusMode);
+        Debug.Log($"状态调试 TryReleaseOperatePermission - modelInfoId:{modelInfoId}, optionName:{optionName}, dummy:{dummy}, 当前用户:{GlobalInfo.account.id}");
+
         if (GlobalInfo.IsLiveMode() && (GlobalInfo.roomInfo.RoomType != 0 || GlobalInfo.roomInfo.ExamType == (int)ExamRoomType.Group))
         {
             // 本人操作
             if (!dummy)
+            {
+                Debug.Log($"状态调试 TryReleaseOperatePermission - 发送广播消息给所有人");
                 ToolManager.SendBroadcastMsg(msgStepEnd, true);
+            }
+            else
+            {
+                Debug.Log($"状态调试 TryReleaseOperatePermission - dummy模式，不发送消息");
+            }
         }
         else
         {
+            Debug.Log($"状态调试 TryReleaseOperatePermission - 非直播模式，发送本地消息");
             FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate(msgStepEnd.msgId, JsonTool.Serializable(msgStepEnd)));
         }
     }
@@ -1419,13 +1431,31 @@ public class SmallFlowCtrl : MonoBase
                         CheckKeywords(operation, optionName, false);
                         callback?.Invoke(op);
                     }
-                });
+                }, dummy);
                 return;
             }
         }
 
         Debug.LogWarning(operation.name + "-" + optionName + "操作没有配置");
         callback?.Invoke(null);
+    }
+
+    // 需要在 dummy 模式下跳过的行为类型（相机和移动相关）
+    private static readonly HashSet<BehaveType> DummySkipBehaveTypes = new HashSet<BehaveType>
+    {
+        BehaveType.CameraFollow,    // 相机跟随
+        BehaveType.ObserveRotate,   // 围绕观察  
+        BehaveType.Focus,           // 聚焦  
+        BehaveType. Observe,        // 观察
+
+        BehaveType.PlayerNavigation,// 角色寻路
+        BehaveType.CustomScript,    // 自定义脚本  
+        BehaveType.Thermometring,   // 测量温度  
+    };
+
+    private bool IsDummySkipBehavior(BehaveType behaveType)
+    {
+        return DummySkipBehaveTypes.Contains(behaveType);
     }
 
     /// <summary>
@@ -1435,23 +1465,30 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="index"></param>
     /// <param name="max"></param>
     /// <param name="onComplete"></param>
-    /// <param name="dummy">为true时不执行操作表现，用于协同/考核时跳过相机表现的同步</param>
-    public void Execute(List<BehaveBase> behaveBases, int index, int max, UnityAction onComplete)
+    /// <param name="dummy">为true时跳过相机和移动相关行为，用于协同/考核时避免B端同步执行A端的相机和移动操作</param>
+    public void Execute(List<BehaveBase> behaveBases, int index, int max, UnityAction onComplete, bool dummy = false)
     {
         if (index < max)
         {
+            // dummy 模式下跳过相机和移动相关行为
+            if (dummy && IsDummySkipBehavior(behaveBases[index].behaveType))
+            {
+                Execute(behaveBases, ++index, max, onComplete, dummy);
+                return;
+            }
+
             //勾选等待执行完成时等待上一表现执行完成再执行下一表现，或执行最后一个表现时等待表现执行完成后再执行操作完成回调 新增：对自定义脚本的接口的UseCallback获取该行为是否要等待
             if (behaveBases[index].useCallBack || index == max - 1 || (behaveBases[index] is BehaveCustomScript customScript && behaveBases[index].ctrlGO.GetComponent<IBaseBehaviour>().UseCallback(customScript.Step)))
             {
                 behaveBases[index].Execute(() =>
                 {
-                    Execute(behaveBases, ++index, max, onComplete);
+                    Execute(behaveBases, ++index, max, onComplete, dummy);
                 });
             }
             else
             {
                 behaveBases[index].Execute(null);
-                Execute(behaveBases, ++index, max, onComplete);
+                Execute(behaveBases, ++index, max, onComplete, dummy);
             }
         }
         else

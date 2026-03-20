@@ -242,9 +242,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
     }
 
-    private static string cachedStateLog = "<color=#DCA800>执行缓存状态消息:</color>";
-    private static string stateLog = "<color=#C02C24>执行状态消息:</color>";
-    private static string opLog = "<color=#14A857>执行消息:</color>";
+    private static string cachedStateLog = "<color=#DCA800>状态调试 执行缓存状态消息:</color>";
+    private static string stateLog = "<color=#C02C24>状态调试 执行状态消息:</color>";
+    private static string opLog = "<color=#14A857>状态调试 执行消息:</color>";
 
     /// <summary>
     /// 执行操作
@@ -272,28 +272,26 @@ public class IMChannelAgent : NetworkChannelAgentBase
         else
         {
             //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
-            if (currentOp.msgId == 36 && msg36Sened)
+            if (currentOp.msgId == 36 && GlobalInfo.CreatedMode)
                 return;
 
             FormMsgManager.Instance.SendMsg(currentOp);
-            Debug.Log("状态 发送消息" + content);
+            Debug.Log("状态调试 发送消息" + content);
         }
 
         //需要等待36消息先执行 创建场景
         if (currentOp.msgId == 36)
         {
-            msg36Sened = true;
+            GlobalInfo.CreatedMode = true;
         }
     }
 
-    bool msg36Sened = false;
     /// <summary>
     /// 重连时消息是并发的，这里相当于重新排序
     /// </summary>
     private async UniTaskVoid DelayedSend(MsgBrodcastOperate currentOp, string content)
     {
-        Debug.Log("状态 等待UISmallSceneModule注册消息");
-        await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null && FindObjectOfType<UISmallSceneModule>().uismallInited && msg36Sened);
+        await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null && FindObjectOfType<UISmallSceneModule>().uismallInited && GlobalInfo.CreatedMode);
 
         //操作完成消息要再延后一点发，避免导致操作执行信息无法执行
         if (currentOp.msgId == 118)
@@ -303,7 +301,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         else
             await UniTask.DelayFrame(1);
         FormMsgManager.Instance.SendMsg(currentOp);
-        Debug.Log("状态 发送消息" + content);
+        Debug.Log("状态调试 发送消息" + content);
     }
 
     public override void ProcessMessage(string message)
@@ -483,7 +481,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         CurrentStateToSync = cachedPacket.state;
         stateHelper.UpdateCachedStateVersion(cachedPacket);
-        Debug.Log($"<color=#14A857>重连者添加缓存状态:</color>)" + JsonTool.Serializable(cachedPacket));
+        Debug.Log($"<color=#14A857>状态调试 重连者添加缓存:</color>)" + JsonTool.Serializable(cachedPacket));
 
         deltaTime = 0;
 
