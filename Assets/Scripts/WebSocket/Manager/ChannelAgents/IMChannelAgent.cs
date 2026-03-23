@@ -178,12 +178,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// </summary>
     private void LateUpdate()
     {
-        if (stateHelper == null || GlobalInfo.roomInfo == null || GlobalInfo.Loading)
+        if (stateHelper == null || GlobalInfo.roomInfo == null)
             return;
 
         deltaTime += Time.deltaTime;
         //先执行缓存状态消息
-        while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedCachedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl)
+        while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedCachedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
 
@@ -209,7 +209,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         //执行状态消息
         //等待百科状态同步完成再执行后续操作 //&& !GlobalInfo.isARTracking 
-        while (IsStartSync && !IsSyncCachedState && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl)
+        while (IsStartSync && !IsSyncCachedState && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
 
@@ -234,7 +234,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
 
         //执行操作消息 //&& !GlobalInfo.isARTracking
-        while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl)
+        while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
             currentOp = opsReceive.Dequeue();
@@ -318,7 +318,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         string type = jObject[NetworkManager.TYPE].ToString();
 
         // 添加入口日志
-        Debug.Log($"[RTI调试] ProcessMessage入口 | IsOperator:{GlobalInfo.IsUserOperator()} | controllerIds:[{string.Join(",", GlobalInfo.controllerIds)}] | 当前用户ID:{GlobalInfo.account?.id}");
+        Debug.Log($"[RTI调试] ProcessMessage入口 | IsOperator:{GlobalInfo.IsOperator()} | controllerIds:[{string.Join(",", GlobalInfo.controllerIds)}] | 当前用户ID:{GlobalInfo.account?.id}");
 
         switch (type)
         {
@@ -344,7 +344,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
                     {
                         cachedPacket = packet;
 
-                        if (GlobalInfo.IsUserOperator())
+                        if (GlobalInfo.IsOperator())
                         {
                             // 进入操作者分支
                             Debug.Log($"[RTI调试] 进入IsOperator分支 | IsStartSync:{IsStartSync}");

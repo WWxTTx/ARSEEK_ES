@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -408,7 +408,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                                 if (IsIMSyncCachedState && um.Value == GlobalInfo.account.id)
                                     continue;
                                 GameObject selectGo = model.transform.FindChildByName(um.Key)?.gameObject;
-                                if (GlobalInfo.IsOtherOperator(um.Value))
+                                if (GlobalInfo.IsUserOperator(um.Value))
                                 {
                                     selectionModel.SelectModel(selectGo, um.Value);
                                 }

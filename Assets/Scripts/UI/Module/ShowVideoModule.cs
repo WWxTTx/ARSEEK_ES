@@ -128,7 +128,7 @@ public class ShowVideoModule : UIModuleBase
         MaxText = this.GetComponentByChildName<Text>("Max");
 
         CanvasGroup = GetComponent<CanvasGroup>();
-        interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator();
+        interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
         CanvasGroup.blocksRaycasts = interactable;
         if (GlobalInfo.IsLiveMode())
         {

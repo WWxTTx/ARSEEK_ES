@@ -149,7 +149,7 @@ public class CameraRotate : MonoBehaviour
             return;
         }
 
-        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsUserOperator())
+        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsOperator())
             return;
 
         if (Input.touchCount == 0 || Input.touchCount == 1)

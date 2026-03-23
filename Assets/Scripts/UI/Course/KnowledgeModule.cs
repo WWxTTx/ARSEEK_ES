@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
@@ -226,7 +226,7 @@ public class KnowledgeModule : UIModuleBase
                         SelectionModel?.onClearSelection.AddListener(ClearSelectionEvent);
                         if (GlobalInfo.IsLiveMode())
                         {
-                            if (GlobalInfo.IsUserOperator())
+                            if (GlobalInfo.IsOperator())
                                 currentObject = dismantlingController.SelectionCtrl.GetUserSelectedGo(GlobalInfo.account.id)?.transform;
                             else
                                 currentObject = dismantlingController.SelectionCtrl.GetUserSelectedGo(GlobalInfo.mainScreenId)?.transform;

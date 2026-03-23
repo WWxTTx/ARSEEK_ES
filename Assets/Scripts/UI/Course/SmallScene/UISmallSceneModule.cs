@@ -1561,18 +1561,17 @@ public class UISmallSceneModule : UIModuleBase
                 MsgOperatingRecord opMsg = msg as MsgOperatingRecord;
                 ShowHint(opMsg.opHint, -1);
                 break;
-            //现在操作占用和聚焦无关了，只有点击了才算占用
-            //case (ushort)SmallFlowModuleEvent.FocusChanged:
-            //int userIdFocus = ((MsgBrodcastOperate)msg).senderId;
-            //var focusData = (msg as MsgBrodcastOperate).GetData<MsgStringString>();
-            //ModelOperation modelOperationFocused = smallFlowCtrl.GetModelOperation(focusData.arg2);
-            //// 选中对象冲突
-            //if (modelOperationFocused != null && modelOperationFocused == modelOperation_Focused && userIdFocus != GlobalInfo.account.id)
-            //{
-            //    ModelState = ModelState.Unselect;
-            //}
-            //AcquireOperatePermission(userIdFocus, modelOperationFocused, string.Empty);
-            //break;
+            case (ushort)SmallFlowModuleEvent.FocusChanged:
+                int userIdFocus = ((MsgBrodcastOperate)msg).senderId;
+                var focusData = (msg as MsgBrodcastOperate).GetData<MsgStringString>();
+                ModelOperation modelOperationFocused = smallFlowCtrl.GetModelOperation(focusData.arg2);
+                // 选中对象冲突
+                if (modelOperationFocused != null && modelOperationFocused == modelOperation_Focused && userIdFocus != GlobalInfo.account.id)
+                {
+                    ModelState = ModelState.Unselect;
+                }
+                //AcquireOperatePermission(userIdFocus, modelOperationFocused, string.Empty);
+                break;
             case (ushort)SmallFlowModuleEvent.Look:
                 ModelOperation modelOperation = smallFlowCtrl.GetModelOperation((msg as MsgBrodcastOperate).GetData<MsgOperation>().modelOperation);
                 int userIdLook = ((MsgBrodcastOperate)msg).senderId;
@@ -1583,12 +1582,11 @@ public class UISmallSceneModule : UIModuleBase
                 }
                 // 获得对modelOperation的操作权，执行本地操作
                 //AcquireOperatePermission(userIdLook, modelOperation, string.Empty);
-                if (userIdLook == GlobalInfo.account.id && !GlobalInfo.Loading)
+                if (userIdLook == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
                 {
                     TryExecuteOp(modelOperation);
                 }
                 break;
-            //当前配置中不存在Look2D
             //case (ushort)SmallFlowModuleEvent.Look2D:
             //    MsgOperation2D msgOperation2D = (msg as MsgBrodcastOperate).GetData<MsgOperation2D>();
             //    ModelOperation modelOperation2d = smallFlowCtrl.GetModelOperation(msgOperation2D.modelOperation);
@@ -1671,7 +1669,7 @@ public class UISmallSceneModule : UIModuleBase
                 //Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 //popupDic.Add("确定", new PopupButtonData(null, true));
                 //UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "完成当前百科所有操作", popupDic, showCloseBtn: false));
-                //allOver = true;
+                allOver = true;
                 break;
             case (ushort)ShortcutEvent.PressAnyKey:
                 ShortcutManager.Instance.CheckShortcutKey(msg, new Dictionary<string, Action>()
@@ -1726,6 +1724,7 @@ public class UISmallSceneModule : UIModuleBase
                 break;
         }
     }
+    bool allOver = false;
 
     private void OnStepChanged()
     {

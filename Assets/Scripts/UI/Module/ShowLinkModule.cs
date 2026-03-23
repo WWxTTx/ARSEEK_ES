@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections;
 using UnityEngine;
@@ -105,21 +105,21 @@ public class ShowLinkModule : UIModuleBase
         });
 
         CanvasGroup = GetComponent<CanvasGroup>();
-        CanvasGroup.interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator();
+        CanvasGroup.interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
         Background = this.GetComponentByChildName<RectTransform>("BackGround");
         CloseBtn = this.GetComponentByChildName<Button>("Close");
         CanvasWebViewPrefab = this.GetComponentByChildName<CanvasWebViewPrefab>("CanvasWebViewPrefab");
 #if UNITY_ANDROID || UNITY_IOS
         //CanvasWebViewPrefab.Resolution = Screen.width / 2340f;
 #endif
-        CanvasWebViewPrefab.ClickingEnabled = !GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator();
-        CanvasWebViewPrefab.ScrollingEnabled = !GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator();
+        CanvasWebViewPrefab.ClickingEnabled = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
+        CanvasWebViewPrefab.ScrollingEnabled = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
 
         LinkModuleData = uiData as ShowLinkModuleData;
 
         ShowFileHandler(LinkModuleData);
 
-        GetComponent<CanvasGroup>().interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator();
+        GetComponent<CanvasGroup>().interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
     }
 
     public override void Show(UIData uiData = null)

@@ -293,7 +293,7 @@ public class GlobalInfo
     /// 是否课编辑用户信息
     /// </summary>
     public static bool canEditUserInfo = true;
-    public static bool Loading;
+    public static bool waitExam;
 
     /// <summary>
     /// 操作完成提示默认显示时长
@@ -550,7 +550,7 @@ public class GlobalInfo
     /// 用户是否是操作者
     /// </summary>
     /// <returns></returns>
-    public static bool IsUserOperator()
+    public static bool IsOperator()
     {
         if (roomInfo == null || account == null)
             return false;
@@ -561,10 +561,10 @@ public class GlobalInfo
 
 
     /// <summary>
-    /// 他人是否是操作者
+    /// 是否是操作者
     /// </summary>
     /// <returns></returns>
-    public static bool IsOtherOperator(int userId)
+    public static bool IsUserOperator(int userId)
     {
         if (roomInfo == null || account == null)
             return false;
@@ -584,10 +584,10 @@ public class GlobalInfo
         if (!IsLiveMode())
             return true;
 
-        if (IsUserOperator() && sendUserId == account.id)
+        if (IsOperator() && sendUserId == account.id)
             return true;
 
-        return !IsUserOperator() && sendUserId == mainScreenId && force;
+        return !IsOperator() && sendUserId == mainScreenId && force;
     }
 
     /// <summary>

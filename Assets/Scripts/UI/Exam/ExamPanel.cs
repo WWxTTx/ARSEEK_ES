@@ -60,7 +60,7 @@ public class ExamPanel : HoverHintPanel
         base.Open(uiData);
 
         GlobalInfo.canEditUserInfo = false;
-        GlobalInfo.Loading = true;
+        GlobalInfo.waitExam = true;
         NetworkManager.Instance.IsIMSync = false;
 
         AddMsg(
@@ -190,7 +190,7 @@ public class ExamPanel : HoverHintPanel
                 {
                     OnExamStart();
                     RootCanvasGroup.blocksRaycasts = true;
-                    GlobalInfo.Loading = false;
+                    GlobalInfo.waitExam = false;
                     NetworkManager.Instance.IsIMSync = true;
                 }
                 else
@@ -206,7 +206,7 @@ public class ExamPanel : HoverHintPanel
                         activeExamId = -1;
 
                         RootCanvasGroup.blocksRaycasts = true;
-                        GlobalInfo.Loading = false;
+                        GlobalInfo.waitExam = false;
                         NetworkManager.Instance.IsIMSync = true;
                     });                
                 }
@@ -221,7 +221,7 @@ public class ExamPanel : HoverHintPanel
         else
         {
             RootCanvasGroup.blocksRaycasts = true;
-            GlobalInfo.Loading = false;
+            GlobalInfo.waitExam = false;
             NetworkManager.Instance.IsIMSync = true;
         }
     }

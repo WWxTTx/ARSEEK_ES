@@ -91,7 +91,7 @@ public class ShowAudioModule : UIModuleBase
         AudioTime = this.GetComponentByChildName<Text>("AudioTime");
 
         CanvasGroup = GetComponent<CanvasGroup>();
-        interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator();
+        interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
         CanvasGroup.blocksRaycasts = interactable;
         if (GlobalInfo.IsLiveMode())
         {

@@ -145,7 +145,7 @@ public class LiveRoomMemberModule : UIModuleBase
                 UpdateMemberList(NetworkManager.Instance.GetRoomMemberList());
 
                 //主画面离线时,提示无操作权成员
-                if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && !GlobalInfo.IsUserOperator())
+                if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && !GlobalInfo.IsOperator())
                 {
                     if (!NetworkManager.Instance.IsUserOnline(GlobalInfo.mainScreenId))
                     {
@@ -233,9 +233,9 @@ public class LiveRoomMemberModule : UIModuleBase
         {
             if (GlobalInfo.account.id == newJoinedId)
             {
-                Debug.Log($"[协同调试] 成员断线重连 | IsOperator:{GlobalInfo.IsUserOperator()}");
+                Debug.Log($"[协同调试] 成员断线重连 | IsOperator:{GlobalInfo.IsOperator()}");
                 //成员断线重连后确保操作权限状态
-                if (!GlobalInfo.IsUserOperator())
+                if (!GlobalInfo.IsOperator())
                 {
                     SendMsg(new MsgBase((ushort)CoursePanelEvent.OpenMask));
                     NetworkManager.Instance.EnableLocalVideo(false);
@@ -315,7 +315,7 @@ public class LiveRoomMemberModule : UIModuleBase
                 //停止分享主屏
                 NetworkManager.Instance.EnableLocalVideo(false);
 
-                if (!GlobalInfo.IsHomeowner() && GlobalInfo.IsUserOperator())
+                if (!GlobalInfo.IsHomeowner() && GlobalInfo.IsOperator())
                 {
                     Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                     popupDic.Add("知道了", new PopupButtonData(null, true));
@@ -328,7 +328,7 @@ public class LiveRoomMemberModule : UIModuleBase
             if (isMainScreen)
             {
                 SendMsg(new MsgBase((ushort)CoursePanelEvent.OpenMask));
-                if (!GlobalInfo.IsHomeowner() && !GlobalInfo.IsUserOperator())
+                if (!GlobalInfo.IsHomeowner() && !GlobalInfo.IsOperator())
                 {
                     UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp,
                         new ToastPanelInfo($"{NetworkManager.Instance.GetUserName(id)}被设置为主画面"));
@@ -528,7 +528,7 @@ public class LiveRoomMemberModule : UIModuleBase
                 {
                     if (string.IsNullOrEmpty(info.ColorNumber))
                     {
-                        if (info.Id == GlobalInfo.roomInfo.creatorId && GlobalInfo.IsOtherOperator(info.Id))
+                        if (info.Id == GlobalInfo.roomInfo.creatorId && GlobalInfo.IsUserOperator(info.Id))
                             icon.GetComponent<Image>().color = NetworkManager.Instance.GetPlayerColor(info.Id);
                         else
                             icon.GetComponent<Image>().color = defaultIconColor;
