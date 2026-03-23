@@ -144,37 +144,6 @@ public class GlobalInfo
         courseMode = mode;
         isExam = (mode == CourseMode.Exam || mode == CourseMode.OnlineExam);
         isLive = (mode == CourseMode.Livebroadcast || mode == CourseMode.Collaboration || mode == CourseMode.OnlineExam);
-
-        // 根据模式设置语音模式
-        UpdateSpeechMode();
-    }
-
-    /// <summary>
-    /// 根据当前课程模式更新语音模式
-    /// 考核模式无语音提示，其他模式根据用户设置
-    /// </summary>
-    public static void UpdateSpeechMode()
-    {
-        if (SpeechManager.Instance == null)
-            return;
-
-        if (IsExamMode())
-        {
-            // 考核模式无语音提示
-            SpeechManager.Instance.SpeechMode = false;
-        }
-        else
-        {
-            // 其他模式根据用户设置
-            if (PlayerPrefs.GetInt(courseVoice) == 0)
-            {
-                SpeechManager.Instance.SpeechMode = false;
-            }
-            else if (PlayerPrefs.GetInt(courseVoice) == 1)
-            {
-                SpeechManager.Instance.SpeechMode = true;
-            }
-        }
     }
     #endregion
 

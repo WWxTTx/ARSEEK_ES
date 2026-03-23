@@ -6,7 +6,7 @@ using UnityFramework.Runtime;
 public class Option_GeneralModule : UIModuleBase
 {
     /// <summary>
-    /// ä½“ç§¯é›¾å¼€å…³
+    /// ºó´¦Àí¿ª¹Ø¿ØÖÆ
     /// </summary>
     public static bool volume = false;
 
@@ -89,22 +89,28 @@ public class Option_GeneralModule : UIModuleBase
         {
             PlayerPrefs.SetInt(GlobalInfo.courseVoice, index);
 
-            // ä½¿ç”¨ GlobalInfo ç»Ÿä¸€ç®¡ç†è¯­éŸ³æ¨¡å¼è®¾ç½®ï¼ˆè€ƒæ ¸æ¨¡å¼ä¸‹ä¼šè‡ªåŠ¨è®¾ä¸º falseï¼‰
-            GlobalInfo.UpdateSpeechMode();
-
-            // å¦‚æœè¯­éŸ³æ¨¡å¼å¼€å¯ä¸”ä¸åœ¨è€ƒæ ¸æ¨¡å¼ï¼ŒåŠ è½½è¯­éŸ³æ•°æ®
-            if (SpeechManager.Instance.SpeechMode && GlobalInfo.currentWiki != null)
+            switch (index)
             {
-                if (SpeechManager.EncyclopediaId != GlobalInfo.currentWiki.id)
-                {
-                    RequestManager.Instance.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
+                case 0:
+                    SpeechManager.Instance.SpeechMode = false;
+                    break;
+                case 1:
+                    SpeechManager.Instance.SpeechMode = true;
+
+                    if (GlobalInfo.currentWiki != null)
                     {
-                        SpeechManager.Instance.SaveData(data);
-                    }, errorMsg =>
-                    {
-                        Debug.LogError("è·å–ç™¾ç§‘è¯­éŸ³å¤±è´¥");
-                    });
-                }
+                        if (SpeechManager.EncyclopediaId != GlobalInfo.currentWiki.id)
+                        {
+                            RequestManager.Instance.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
+                            {
+                                SpeechManager.Instance.SaveData(data);
+                            }, errorMsg =>
+                            {
+                                Debug.LogError("»ñÈ¡°Ù¿ÆÓïÒôÊ§°Ü");
+                            });
+                        }
+                    }
+                    break;
             }
         });
 
@@ -113,7 +119,7 @@ public class Option_GeneralModule : UIModuleBase
         //#if UNITY_STANDALONE
         //            ChangeFileSavePath.onClick.AddListener(() =>
         //            {
-        //                FormTool.OpenFolderDialog("é€‰æ‹©å½•å±å­˜å‚¨è·¯å¾„", PlayerPrefs.GetString(GlobalInfo.fileSavePathCacheKey), path =>
+        //                FormTool.OpenFolderDialog("Ñ¡ÔñÂ¼ÆÁ»º´æÂ·¾¶", PlayerPrefs.GetString(GlobalInfo.fileSavePathCacheKey), path =>
         //                {
         //                    PlayerPrefs.SetString(GlobalInfo.fileSavePathCacheKey, path);
         //                    this.GetComponentByChildName<Text>("FileSavePath").EllipsisText(PlayerPrefs.GetString(GlobalInfo.fileSavePathCacheKey), "...");
@@ -142,14 +148,14 @@ public class Option_GeneralModule : UIModuleBase
         {
             var popupDic = new System.Collections.Generic.Dictionary<string, PopupButtonData>();
             {
-                popupDic.Add("ç¡®å®š", new PopupButtonData(() =>
+                popupDic.Add("Çå³ı", new PopupButtonData(() =>
                 {
                     FileTool.CleanCache();
-                    ((OptionPanel)ParentPanel).ShowToast(true, "æ¸…é™¤æˆåŠŸ");
+                    ((OptionPanel)ParentPanel).ShowToast(true, "Çå³ı³É¹¦");
                     RefreshCache();
                 }, true));
-                popupDic.Add("å–æ¶ˆ", new PopupButtonData(null));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("æç¤º", "ç¡®å®šæ¸…é™¤ç¼“å­˜ï¼Ÿ", popupDic));
+                popupDic.Add("È¡Ïû", new PopupButtonData(null));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("ÌáÊ¾", "È·¶¨Çå³ı»º´æ£¿", popupDic));
             }
         });
     }
@@ -172,8 +178,8 @@ public class Option_GeneralModule : UIModuleBase
 
         //    if (Microphone.devices.Length == 0)
         //    {
-        //        UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("æœªæ‰¾åˆ°ä»»ä½•è¾“å…¥è®¾å¤‡!"));
-        //        InputDevice.text = "æ— è®¾å¤‡";
+        //        UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("Î´ÕÒµ½ÈÎºÎÊäÈëÉè±¸!"));
+        //        InputDevice.text = "ÎŞÉè±¸";
 
         //        var ChangeInput = this.GetComponentByChildName<Button>("ChangeInput");
         //        {
@@ -244,10 +250,10 @@ public class Option_GeneralModule : UIModuleBase
     }
 
     /// <summary>
-    /// ä½
-    /// ä½ ä½
-    /// ä½ ç¯å…‰+é˜´å½±
-    /// ä½ ç¯å…‰å’Œå½±+é˜´å½±
+    /// »­ÖÊ
+    /// µÍ ÎŞ
+    /// ÖĞ µÆ¹â+ºó´¦Àí
+    /// ¸ß µÆ¹âÒõÓ°+ºó´¦Àí
     /// </summary>
     private static void Low()
     {
