@@ -1131,7 +1131,7 @@ public class SmallFlowCtrl : MonoBase
 
                         if (opLinkages.Count != 0)
                         {
-                            //此处修改使用的全局参数 Dummy 考核的赋值没有检查
+                            //此处��改使用的全局参数 Dummy 考核的赋值没有检查
                             FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
                             FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CloseCameraOperation));
 
@@ -1147,7 +1147,7 @@ public class SmallFlowCtrl : MonoBase
                                     TryReleaseOperatePermission(modelInfoId, data.optionName, data.operation.HasFocusMode, dummy);
                                     StepEnd(modelInfoId);
                                 }
-                            });
+                            }, 0, dummy);
                         }
                     });
                 }, 0, dummy);
@@ -1203,11 +1203,18 @@ public class SmallFlowCtrl : MonoBase
         return false;
     }
 
-    private void ExecuteFlowLinkOperation(List<OpLinkage> opLinkages, Action callback, int index = 0)
+    private void ExecuteFlowLinkOperation(List<OpLinkage> opLinkages, Action callback, int index = 0, bool dummy = false)
     {
         if (opLinkages.Count == index)
         {
             callback?.Invoke();
+            return;
+        }
+
+        // dummy 模式下跳过相机和移动相关操作
+        if (dummy && IsDummySkipOperation(opLinkages[index].operation, opLinkages[index].optionName))
+        {
+            ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
             return;
         }
 
@@ -1237,8 +1244,8 @@ public class SmallFlowCtrl : MonoBase
 
                 ExecuteFlowLinkOperation(opLinkages1, () =>
                 {
-                    ExecuteFlowLinkOperation(opLinkages, callback, ++index);
-                });
+                    ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+                }, 0, dummy);
 
             }));
         }
@@ -1267,8 +1274,8 @@ public class SmallFlowCtrl : MonoBase
 
             ExecuteFlowLinkOperation(opLinkages1, () =>
             {
-                ExecuteFlowLinkOperation(opLinkages, callback, ++index);
-            });
+                ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+            }, 0, dummy);
         }
     }
 
@@ -1459,6 +1466,35 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 检查操作是否应该在 dummy 模式下被跳过
+    /// </summary>
+    /// <param name="operation">操作对象</param>
+    /// <param name="optionName">操作名称</param>
+    /// <returns>如果操作的所有行为都是需要跳过的类型则返回 true</returns>
+    private bool IsDummySkipOperation(ModelOperation operation, string optionName)
+    {
+        if (operation == null || operation.operations == null)
+            return false;
+
+        foreach (var op in operation.operations)
+        {
+            if (op.name.Equals(optionName) && op.behaveBases != null && op.behaveBases.Count > 0)
+            {
+                // 检查是否所有行为都是需要跳过的类型
+                foreach (var behave in op.behaveBases)
+                {
+                    if (!IsDummySkipBehavior(behave.behaveType))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
     /// 执行行为组
     /// </summary>
     /// <param name="behaveBases"></param>
@@ -1514,13 +1550,20 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public void RunAction(List<OpLinkage> actions, Action callBack = null, int index = 0, bool dummy = false)
     {
-        if (index == actions.Count)
+        if (index >= actions.Count)
         {
             callBack?.Invoke();
             return;
         }
 
         //Debug.Log($"运行 {actions[index].operation.name} 的联动操作 {actions[index].optionName}", actions[index].operation);
+
+        // dummy 模式下跳过相机和移动相关操作
+        if (dummy && IsDummySkipOperation(actions[index].operation, actions[index].optionName))
+        {
+            RunAction(actions, callBack, ++index, dummy);
+            return;
+        }
 
         if (actions[index].useCallback)
         {
