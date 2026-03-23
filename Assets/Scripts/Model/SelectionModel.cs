@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityFramework.Runtime;
@@ -230,7 +230,7 @@ public class SelectionModel : MonoBase
             case (ushort)ModelOperateEvent.Click:
                 MsgIntString userSelectedName = ((MsgBrodcastOperate)msg).GetData<MsgIntString>();
                 int userId = userSelectedName.arg1;
-                if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsUserOperator(userId))
+                if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsOtherOperator(userId))
                     return;
                 if (NetworkManager.Instance.IsIMSyncCachedState && userId == GlobalInfo.account.id)
                     return;

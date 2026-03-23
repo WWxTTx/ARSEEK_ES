@@ -121,7 +121,7 @@ public class VideoChannelAgent : NetworkChannelAgentBase
                 return;
             }
             //非考试模式并且有操作权限不接受主屏数据
-            if (!GlobalInfo.IsExamMode() && GlobalInfo.IsOperator())
+            if (!GlobalInfo.IsExamMode() && GlobalInfo.IsUserOperator())
             {
                 return;
             }

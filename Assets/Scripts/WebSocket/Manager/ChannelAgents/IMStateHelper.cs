@@ -79,7 +79,7 @@ public partial class IMStateHelper
 
         foreach (MsgBrodcastOperate op in userFilterState.Values)
         {
-            if (GlobalInfo.IsUserOperator(op.senderId))
+            if (GlobalInfo.IsOtherOperator(op.senderId))
                 stateSend.Add(op);
         }
 
@@ -87,7 +87,7 @@ public partial class IMStateHelper
 
         foreach (KeyValuePair<int, List<MsgBrodcastOperate>> opsLineSend in userOpsLineSend)
         {
-            if (GlobalInfo.IsUserOperator(opsLineSend.Key))
+            if (GlobalInfo.IsOtherOperator(opsLineSend.Key))
                 stateSend.AddRange(opsLineSend.Value);
         }
         return stateSend;
