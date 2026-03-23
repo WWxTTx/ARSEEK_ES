@@ -42,7 +42,7 @@ public class ShowImgModule : UIModuleBase
         AutoShow = transform.GetComponentByChildName<RawImage>("AutoShow");
 
         CanvasGroup = GetComponent<CanvasGroup>();
-        CanvasGroup.interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsOperator();
+        CanvasGroup.interactable = !GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator();
 
         ImgModuleData = (ShowLinkModuleData)uiData;
         id = ImgModuleData.id;

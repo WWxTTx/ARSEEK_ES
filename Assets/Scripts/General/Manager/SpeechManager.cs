@@ -63,8 +63,14 @@ public class SpeechManager : Singleton<SpeechManager>
 
     private void Start()
     {
-        // 使用 GlobalInfo 统一管理��音模式设置
-        GlobalInfo.UpdateSpeechMode();
+        if (PlayerPrefs.GetInt(GlobalInfo.courseVoice) == 0)
+        {
+            SpeechMode = false;
+        }
+        else if (PlayerPrefs.GetInt(GlobalInfo.courseVoice) == 1)
+        {
+            SpeechMode = true;
+        }
     }
 
     public void SaveData(List<SpeechData> pediaSpeechData)

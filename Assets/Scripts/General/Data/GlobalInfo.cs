@@ -144,37 +144,6 @@ public class GlobalInfo
         courseMode = mode;
         isExam = (mode == CourseMode.Exam || mode == CourseMode.OnlineExam);
         isLive = (mode == CourseMode.Livebroadcast || mode == CourseMode.Collaboration || mode == CourseMode.OnlineExam);
-
-        // 根据模式设置语音模式
-        UpdateSpeechMode();
-    }
-
-    /// <summary>
-    /// 根据当前课程模式更新语音模式
-    /// 考核模式无语音提示，其他模式根据用户设置
-    /// </summary>
-    public static void UpdateSpeechMode()
-    {
-        if (SpeechManager.Instance == null)
-            return;
-
-        if (IsExamMode())
-        {
-            // 考核模式无语音提示
-            SpeechManager.Instance.SpeechMode = false;
-        }
-        else
-        {
-            // 其他模式根据用户设置
-            if (PlayerPrefs.GetInt(courseVoice) == 0)
-            {
-                SpeechManager.Instance.SpeechMode = false;
-            }
-            else if (PlayerPrefs.GetInt(courseVoice) == 1)
-            {
-                SpeechManager.Instance.SpeechMode = true;
-            }
-        }
     }
     #endregion
 
@@ -293,7 +262,7 @@ public class GlobalInfo
     /// 是否课编辑用户信息
     /// </summary>
     public static bool canEditUserInfo = true;
-    public static bool waitExam;
+    public static bool Loading;
 
     /// <summary>
     /// 操作完成提示默认显示时长
@@ -550,7 +519,7 @@ public class GlobalInfo
     /// 用户是否是操作者
     /// </summary>
     /// <returns></returns>
-    public static bool IsOperator()
+    public static bool IsUserOperator()
     {
         if (roomInfo == null || account == null)
             return false;
@@ -561,10 +530,10 @@ public class GlobalInfo
 
 
     /// <summary>
-    /// 是否是操作者
+    /// 他人是否是操作者
     /// </summary>
     /// <returns></returns>
-    public static bool IsUserOperator(int userId)
+    public static bool IsOtherOperator(int userId)
     {
         if (roomInfo == null || account == null)
             return false;
@@ -584,10 +553,10 @@ public class GlobalInfo
         if (!IsLiveMode())
             return true;
 
-        if (IsOperator() && sendUserId == account.id)
+        if (IsUserOperator() && sendUserId == account.id)
             return true;
 
-        return !IsOperator() && sendUserId == mainScreenId && force;
+        return !IsUserOperator() && sendUserId == mainScreenId && force;
     }
 
     /// <summary>

@@ -46,7 +46,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
     public override void Open(UIData uiData = null)
     {
-        GlobalInfo.waitExam = true;
+        GlobalInfo.Loading = true;
         GlobalInfo.canEditUserInfo = false;
         base.Open(uiData);
         InitExam();
@@ -64,7 +64,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             NetworkManager.Instance.EnableLocalVideo(true);
 
             UIManager.Instance.CloseUI<LoadingPanel>();
-            GlobalInfo.waitExam = false;
+            GlobalInfo.Loading = false;
             NetworkManager.Instance.IsIMSync = true;
         });
     }

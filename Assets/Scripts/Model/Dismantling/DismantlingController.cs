@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
@@ -556,7 +556,7 @@ public class DismantlingController : MonoBehaviour
             {
                 //SetAlpha(-1);
 
-                if(!GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator(controlUser))
+                if(!GlobalInfo.IsLiveMode() || GlobalInfo.IsOtherOperator(controlUser))
                     mSelectionCtrl.Highlight(selectModel, controlUser);
                 mSelectionCtrl.CanDeselect = true;
 
@@ -623,7 +623,7 @@ public class DismantlingController : MonoBehaviour
         {
             if(!NetworkManager.Instance.IsIMSyncCachedState || userId != GlobalInfo.account.id)
             {
-                if(!GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator(userId))
+                if(!GlobalInfo.IsLiveMode() || GlobalInfo.IsOtherOperator(userId))
                     SelectionCtrl.SelectModel(go, userId);
             }
 

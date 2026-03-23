@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityFramework.Runtime;
 
 /// <summary>
@@ -182,7 +182,7 @@ public class ModelRotate : MonoBase
                 isMouseDown = false;
                 if (Vector3.Distance(lastEuler, transform.localEulerAngles) > 0.001f)
                 {
-                    if (GlobalInfo.IsLiveMode() && GlobalInfo.IsOperator())
+                    if (GlobalInfo.IsLiveMode() && GlobalInfo.IsUserOperator())
                     {
                         ToolManager.SendBroadcastMsg(new MsgStringVector3((ushort)ModelOperateEvent.Rotate, transform.name, transform.localEulerAngles));
                     }
@@ -203,7 +203,7 @@ public class ModelRotate : MonoBase
     public void BeginRotate()
     {
         //TODO
-        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsOperator())
+        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsUserOperator())
             return;
 
         RefreshAxis();

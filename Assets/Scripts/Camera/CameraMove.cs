@@ -89,7 +89,7 @@ public class CameraMove : MonoBehaviour
         if (GlobalInfo.InPaintMode)
             return;
 
-        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsOperator())
+        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsUserOperator())
             return;
 
         if (moveType == CameraMoveType.None || !ModelManager.Instance.CameraControl || ModelManager.Instance.CameraDotween)

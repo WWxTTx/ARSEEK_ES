@@ -96,7 +96,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
             (ushort)JudgeOnlineEvent.End
         });
 
-        GlobalInfo.waitExam = true;
+        GlobalInfo.Loading = true;
         GlobalInfo.canEditUserInfo = false;
     }
 
@@ -341,12 +341,12 @@ public class OPLSynCoursePanel : OPLCoursePanel
             }
             else
             {
-                Paint.interactable = GlobalInfo.IsOperator();
+                Paint.interactable = GlobalInfo.IsUserOperator();
                 switch (GlobalInfo.roomInfo.RoomType)
                 {
                     case (int)RoomType.Synergia:
                         Mask(true, true);
-                        Debug.Log($"[协同调试] 非房主初始化 | IsOperator:{GlobalInfo.IsOperator()} | Wiki:{GlobalInfo.currentWikiList[0].id}]");
+                        Debug.Log($"[协同调试] 非房主初始化 | IsOperator:{GlobalInfo.IsUserOperator()} | Wiki:{GlobalInfo.currentWikiList[0].id}]");
                         ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
                         break;
                     default:
@@ -354,7 +354,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 }
             }
             UIManager.Instance.CloseUI<LoadingPanel>();
-            GlobalInfo.waitExam = false;
+            GlobalInfo.Loading = false;
             NetworkManager.Instance.IsIMSync = true;
         });
     }
@@ -403,7 +403,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
         {
 
             case (ushort)CoursePanelEvent.OpenMask:
-                Mask(GlobalInfo.IsMainScreen(), GlobalInfo.IsOperator());
+                Mask(GlobalInfo.IsMainScreen(), GlobalInfo.IsUserOperator());
                 break;
             case (ushort)CoursePanelEvent.CloseMask:
                 Mask(GlobalInfo.IsMainScreen(), true);
@@ -690,7 +690,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
     private void StartJudge(MsgJudgeOnline msgJudgeOnline)
     {
         GlobalInfo.isJudgeOnline = true;
-        if (GlobalInfo.IsOperator())
+        if (GlobalInfo.IsUserOperator())
         {
             if (msgJudgeOnline.pediaId != GlobalInfo.currentWiki.id)
             {
@@ -734,7 +734,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
 
     private void EndJudge()
     {
-        if (!GlobalInfo.IsOperator())
+        if (!GlobalInfo.IsUserOperator())
         {
             UIManager.Instance.CloseModuleUI<OPLExerciseModule>(this);
             MainScreenView.gameObject.SetActive(true);

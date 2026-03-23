@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -154,7 +154,7 @@ public class DismantlingModule : UIModuleBase
                     GameObject selected = iController.localSelectModel;
                     if (selected == null)
                     {
-                        if (GlobalInfo.IsLiveMode() && GlobalInfo.IsOperator())
+                        if (GlobalInfo.IsLiveMode() && GlobalInfo.IsUserOperator())
                             selected = iController.SelectionCtrl.GetUserSelectedGo(GlobalInfo.mainScreenId);
                     }
                     if (selected == null)

@@ -786,14 +786,7 @@ public class GameViewEncoder : MonoBehaviour
                 int chunks = Mathf.RoundToInt(dataByte.Length / chunkSize);
                 for (int i = 0; i <= chunks; i++)
                 {
-                    // 计算当前块的实际数据长度
-                    int remainingData = _length - _offset;
-                    int currentChunkSize = Mathf.Min(chunkSize, remainingData);
-                    int SendByteLength = currentChunkSize + 15;
-
-                    // 如果没有剩余数据，退出循环
-                    if (remainingData <= 0) break;
-
+                    int SendByteLength = dataByte.Length + 15;//19
                     byte[] _meta_offset = BitConverter.GetBytes(_offset);
                     byte[] SendByte = new byte[SendByteLength];
 
@@ -806,7 +799,7 @@ public class GameViewEncoder : MonoBehaviour
                     SendByte[13] = (byte)ColorReductionLevel;//17
                     SendByte[14] = (byte)(0);//18
 
-                    Buffer.BlockCopy(dataByte, _offset, SendByte, 15, currentChunkSize);//19
+                    Buffer.BlockCopy(dataByte, _offset, SendByte, 15, SendByte.Length - 15);//19
 
                     OnDataByteReadyEvent.Invoke(SendByte);
                     _offset += chunkSize;
