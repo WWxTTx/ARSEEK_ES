@@ -79,9 +79,17 @@ public class GlobalInfo
     /// </summary>
     public const string rotateSpeedCacheKey = "rotateSpeed";
     /// <summary>
-    /// 角色速度
+    /// 基础移动速度
     /// </summary>
-    public const float defaultSpeedCacheKey = 0.5f;
+    public const float baseMoveSpeed = 5f;
+    /// <summary>
+    /// 基础旋转速度
+    /// </summary>
+    public const float baseRotateSpeed = 40f;
+    /// <summary>
+    /// 速度系数默认值（滑动条中间值对应的系数）
+    /// </summary>
+    public const float defaultSpeedCoefficient = 1f;
     /// <summary>
     /// 课程语音模式
     /// </summary>
@@ -158,9 +166,9 @@ public class GlobalInfo
         if (SpeechManager.Instance == null)
             return;
 
-        if (IsExamMode())
+        //非培训模式无语音提示
+        if (IsOnlineMode())
         {
-            // 考核模式无语音提示
             SpeechManager.Instance.SpeechMode = false;
         }
         else

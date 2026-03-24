@@ -151,10 +151,10 @@ public class PlayerController : MonoBase
     {
 #if UNITY_ANDROID || UNITY_IOS
         //横向轴
-        transform.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * rotateSensitivity * rotateRatio * (0.1f + PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey));
+        transform.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
 
         // 计算新的旋转角度
-        tempFloat = verticalPoint.localEulerAngles.x - rotateJoystick.Vertical * rotateSensitivity * rotateRatio * (0.1f + PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey));
+        tempFloat = verticalPoint.localEulerAngles.x - rotateJoystick.Vertical * GlobalInfo.baseRotateSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
 
         // 将角度转换到[-180, 180]范围
         if (tempFloat > 180)
@@ -169,11 +169,11 @@ public class PlayerController : MonoBase
         verticalPoint.localEulerAngles = new Vector3(clampedAngle, 0f, 0f);
 #else
         //横向轴
-        transform.localEulerAngles += Vector3.up * Input.GetAxis("Mouse X") * rotateSensitivity * (0.5f + PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey));
+        transform.localEulerAngles += Vector3.up * Input.GetAxis("Mouse X") * GlobalInfo.baseRotateSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
 
         //纵向轴
         {
-            tempFloat = verticalPoint.localEulerAngles.x - Input.GetAxis("Mouse Y") * rotateSensitivity * (0.5f + PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey));
+            tempFloat = verticalPoint.localEulerAngles.x - Input.GetAxis("Mouse Y") * GlobalInfo.baseRotateSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
 
             if (tempFloat > 180)
             {
@@ -197,11 +197,11 @@ public class PlayerController : MonoBase
             return;
         if (agent.isOnNavMesh)
         {
-            agent.Move(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * moveSensitivity * moveRatio * (2f + PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey)));
+            agent.Move(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * GlobalInfo.baseMoveSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient));
         }
-        else 
+        else
         {
-            controller.SimpleMove(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * moveSensitivity * moveRatio * (2f + PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey)));
+            controller.SimpleMove(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * GlobalInfo.baseMoveSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient));
         }
 #else
         mVertical = Input.GetAxis("Vertical");
@@ -210,11 +210,11 @@ public class PlayerController : MonoBase
             return;
         if (agent.isOnNavMesh)
         {
-            agent.Move((mVertical * transform.forward + mHorizontal * transform.right) * moveSensitivity * (0.5f + PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey)));
+            agent.Move((mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient));
         }
         else
         {
-            controller.Move/*SimpleMove*/((mVertical * transform.forward + mHorizontal * transform.right) * moveSensitivity * (0.5f + PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey)));
+            controller.Move((mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient));
         }
 #endif
     }

@@ -10,6 +10,24 @@ public class Option_GeneralModule : UIModuleBase
     /// </summary>
     public static bool volume = false;
 
+    /// <summary>
+    /// 将滑动条值映射到速度系数
+    /// 滑动条 0-0.5 → 系数 0.5-1
+    /// 滑动条 0.5-1 → 系数 1-2
+    /// </summary>
+    private static float SliderToCoefficient(float sliderValue)
+    {
+        return sliderValue <= 0.5f ? 0.5f + sliderValue : sliderValue * 2f;
+    }
+
+    /// <summary>
+    /// 将速度系数映射回滑动条值
+    /// </summary>
+    private static float CoefficientToSlider(float coefficient)
+    {
+        return coefficient <= 1f ? coefficient - 0.5f : coefficient / 2f;
+    }
+
     public override void Open(UIData uiData = null)
     {
         base.Open(uiData);
@@ -59,25 +77,29 @@ public class Option_GeneralModule : UIModuleBase
 
         var MoveSpeed = this.GetComponentByChildName<Slider>("MoveSpeedSlider");
         {
-            MoveSpeed.value = PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey);
+            float moveCoefficient = PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+            MoveSpeed.value = CoefficientToSlider(moveCoefficient);
             var SliderValue = MoveSpeed.transform.parent.GetComponentByChildName<Text>("value");
-            SliderValue.text = Mathf.Floor(MoveSpeed.value * 100) + "%";
+            SliderValue.text = Mathf.Floor(moveCoefficient * 100) + "%";
             MoveSpeed.onValueChanged.AddListener(value =>
             {
-                PlayerPrefs.SetFloat(GlobalInfo.moveSpeedCacheKey, value);
-                SliderValue.text = Mathf.Floor(value * 100) + "%";
+                float coefficient = SliderToCoefficient(value);
+                PlayerPrefs.SetFloat(GlobalInfo.moveSpeedCacheKey, coefficient);
+                SliderValue.text = Mathf.Floor(coefficient * 100) + "%";
             });
         }
 
         var RotateSpeed = this.GetComponentByChildName<Slider>("RotateSpeedSlider");
         {
-            RotateSpeed.value = PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCacheKey);
+            float rotateCoefficient = PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+            RotateSpeed.value = CoefficientToSlider(rotateCoefficient);
             var SliderValue = RotateSpeed.transform.parent.GetComponentByChildName<Text>("value");
-            SliderValue.text = Mathf.Floor(RotateSpeed.value * 100) + "%";
+            SliderValue.text = Mathf.Floor(rotateCoefficient * 100) + "%";
             RotateSpeed.onValueChanged.AddListener(value =>
             {
-                PlayerPrefs.SetFloat(GlobalInfo.rotateSpeedCacheKey, value);
-                SliderValue.text = Mathf.Floor(value * 100) + "%";
+                float coefficient = SliderToCoefficient(value);
+                PlayerPrefs.SetFloat(GlobalInfo.rotateSpeedCacheKey, coefficient);
+                SliderValue.text = Mathf.Floor(coefficient * 100) + "%";
             });
         }
 

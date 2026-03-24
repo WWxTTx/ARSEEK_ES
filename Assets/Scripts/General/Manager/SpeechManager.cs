@@ -43,11 +43,11 @@ public class SpeechManager : Singleton<SpeechManager>
     /// <summary>
     /// 语速：单个字符秒数
     /// </summary>
-    private float SecPerChar = 0.25f;//对应网页-1 其他值未测量
+    private float SecPerChar = 0.28f;//对应网页-1 其他值未测量
     /// <summary>
     /// pausePunctuations停顿时长
     /// </summary>
-    private float PauseTime = 0f;
+    private float PauseTime = 0.25f;
     /// <summary>
     /// 用于断句的标点符号
     /// </summary>

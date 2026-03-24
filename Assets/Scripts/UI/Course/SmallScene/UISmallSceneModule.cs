@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Interop;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -397,18 +398,15 @@ public class UISmallSceneModule : UIModuleBase
     {
         base.Open(uiData);
 
-        if (SpeechManager.Instance.SpeechMode)
+        RequestManager.Instance?.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
         {
-            RequestManager.Instance?.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
-            {
-                SpeechManager.Instance.SaveData(data);
-                if(CourseMode.Training == GlobalInfo.courseMode)
-                    OpenInfo();
-            }, errorMsg =>
-            {
-                Debug.LogError("获取百科语音失败");
-            });
-        }
+            SpeechManager.Instance.SaveData(data);
+            if (CourseMode.Training == GlobalInfo.courseMode)
+                OpenInfo();
+        }, errorMsg =>
+        {
+            Debug.LogError("获取百科语音失败");
+        });
 
         AddMsg(new ushort[]{
              ushort.MaxValue,
@@ -531,10 +529,8 @@ public class UISmallSceneModule : UIModuleBase
         });
     }
 
-    public bool uismallInited = false;
     void Init()
     {
-        uismallInited = true;
         TapRecognizer.Instance.RegistOnRightMouseClick(() =>
         {
             if (ModelState == ModelState.Focused)
@@ -1085,7 +1081,6 @@ public class UISmallSceneModule : UIModuleBase
             if (GlobalInfo.IsExamMode())
             {
                 // 考核模式：检查操作是否在当前步骤的ops中
-                string examOptionName = GetOperationName(modelOperation);
                 ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
             }
             else
@@ -1093,8 +1088,12 @@ public class UISmallSceneModule : UIModuleBase
                 if (isOnOperation)
                     ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
                 else
+                {
                     //提示对错
                     OnErrorShow();
+                    //点击错误对象需要释放操作权限
+                    ReleaseOperatePermission(GlobalInfo.account.id, modelOperation, data?.optionName);
+                }
             }
         }
     }
@@ -1643,8 +1642,6 @@ public class UISmallSceneModule : UIModuleBase
                         smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, (isOn) =>
                         {
                             ModelState = ModelState.Operated;
-                            if (self)
-                                OnExecuteCompleted(isOn, true, data.operation, oldState);
                         }, !self);
                     }
                     else
@@ -1653,7 +1650,12 @@ public class UISmallSceneModule : UIModuleBase
                         {
                             ModelState = ModelState.Operated;
                             if (self)
-                                OnExecuteCompleted(isOn, false, data.operation, oldState);
+                            {
+                                RetakeBackpackModel(true);
+                                if(!isOn)
+                                    smallFlowCtrl.RestoreState(data.operation, oldState);
+                            }
+
                         }, !self);
                     }
                 }
@@ -2322,12 +2324,6 @@ public class UISmallSceneModule : UIModuleBase
         }
     }
     #endregion
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-        uismallInited = false;
-    }
 
     #region 安全工器具
     /// <summary>

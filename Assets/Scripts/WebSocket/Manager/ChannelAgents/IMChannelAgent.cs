@@ -199,12 +199,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
             TryExecuteCurrentOp();
         }
         //完成缓存状态同步
-        if (IsStartSync && IsSyncCachedState && stateHelper.ReceivedCachedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f)
-        {
-            UIManager.Instance.CloseUI<LoadingPanel>();
-            GlobalInfo.uiAnimRatio = 1f;
-            GlobalInfo.playTimeRatio = 1f;
-        }
         if(IsSyncCachedState)
             IsSyncCachedState = false;
 
@@ -225,15 +219,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
             currentOp = stateHelper.DequeueStateOp();
             TryExecuteCurrentOp();
         }
-        //完成状态同步
-        if (IsStartSync && IsSyncState && stateHelper.ReceivedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f)
-        {
-            UIManager.Instance.CloseUI<LoadingPanel>();
-            GlobalInfo.uiAnimRatio = 1f;
-            GlobalInfo.playTimeRatio = 1f;
-        }
         if (IsSyncState)
             IsSyncState = false;
+
+        UIManager.Instance.CloseUI<LoadingPanel>();
+        GlobalInfo.uiAnimRatio = 1f;
+        GlobalInfo.playTimeRatio = 1f;
 
         //执行操作消息 //&& !GlobalInfo.isARTracking
         while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
@@ -257,7 +248,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
             return;
 
         string content = JsonTool.Serializable(currentOp);
-        Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
 
         if (currentOp.msgId == (ushort)CoursePanelEvent.SwitchResource
             || currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect
@@ -266,44 +256,43 @@ public class IMChannelAgent : NetworkChannelAgentBase
             IsStartSync = false;
         }
 
+        //考核模式的房主不需要新建场景 直接返回
+        if (currentOp.msgId == 36 && GlobalInfo.isExam && GlobalInfo.IsHomeowner())
+        {
+            UIManager.Instance.CloseUI<LoadingPanel>();
+            return;
+        }
+
         // 保证消息可执行
-        if (!FormMsgManager.Instance.IsDicEventMsgCont(currentOp.msgId))
-        {
-            DelayedSend(currentOp, content).Forget();
-        }
-        else
-        {
-            //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
-            if (currentOp.msgId == 36 && GlobalInfo.CreatedMode)
-                return;
-
-            FormMsgManager.Instance.SendMsg(currentOp);
-            Debug.Log("状态调试 发送消息" + content);
-        }
-
-        //需要等待36消息先执行 创建场景
-        if (currentOp.msgId == 36)
-        {
-            GlobalInfo.CreatedMode = true;
-        }
+        DelayedSend(currentOp, content).Forget();
     }
 
     /// <summary>
     /// 重连时消息是并发的，这里相当于重新排序
     /// </summary>
     private async UniTaskVoid DelayedSend(MsgBrodcastOperate currentOp, string content)
-    {
-        await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null && FindObjectOfType<UISmallSceneModule>().uismallInited && GlobalInfo.CreatedMode);
+    {   
+        //需要等待36消息先执行 创建场景
+        if (currentOp.msgId == 36 && !GlobalInfo.CreatedMode)
+        {
+            FormMsgManager.Instance.SendMsg(currentOp);
+            GlobalInfo.CreatedMode = true;
+        }
 
-        //操作完成消息要再延后一点发，避免导致操作执行信息无法执行
+        await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null);
+
+        //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
+        if (currentOp.msgId == 36 && GlobalInfo.CreatedMode)
+            return;
+
+        //并发消息重排序 先跳步骤 再执行操作
         if (currentOp.msgId == 118)
-            await UniTask.DelayFrame(1000);
+            await UniTask.DelayFrame(10);
         else if (currentOp.msgId == 105)
-            await UniTask.DelayFrame(500);
-        else
-            await UniTask.DelayFrame(1);
+            await UniTask.DelayFrame(0);
+
         FormMsgManager.Instance.SendMsg(currentOp);
-        Debug.Log("状态调试 发送消息" + content);
+        Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
     }
 
     public override void ProcessMessage(string message)
@@ -526,6 +515,16 @@ public class IMChannelAgent : NetworkChannelAgentBase
             state = stateHelper.GetState(),
             version = version,
         };
+
+        // 添加调试日志
+        Debug.Log($"[状态调试] Send | msgId:{msg.msgId} | state.stateOps.Count:{packet.state.stateOps?.Count ?? 0}");
+        if (packet.state.stateOps != null)
+        {
+            foreach (var op in packet.state.stateOps)
+            {
+                Debug.Log($"[状态调试] Send | stateOps包含 msgId:{op.msgId}");
+            }
+        }
 
         string data = JsonTool.Serializable(packet);
 

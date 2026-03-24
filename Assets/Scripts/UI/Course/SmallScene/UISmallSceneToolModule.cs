@@ -935,7 +935,7 @@ public class UISmallSceneToolModule : UIModuleBase
     /// </summary>
     private void RefreshTip()
     {
-        if (!GlobalInfo.EnableFlow || smallFlowCtrl.nowFlowStep == null)
+        if (!GlobalInfo.EnableFlow || smallFlowCtrl.nowFlowStep == null || GlobalInfo.isExam)
         {
             StopHighlight();
             return;
