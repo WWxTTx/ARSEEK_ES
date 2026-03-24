@@ -202,10 +202,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (IsStartSync && IsSyncCachedState && stateHelper.ReceivedCachedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f)
         {
             UIManager.Instance.CloseUI<LoadingPanel>();
-            IsSyncCachedState = false;
             GlobalInfo.uiAnimRatio = 1f;
             GlobalInfo.playTimeRatio = 1f;
         }
+        if(IsSyncCachedState)
+            IsSyncCachedState = false;
 
         //执行状态消息
         //等待百科状态同步完成再执行后续操作 //&& !GlobalInfo.isARTracking 
@@ -228,10 +229,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (IsStartSync && IsSyncState && stateHelper.ReceivedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f)
         {
             UIManager.Instance.CloseUI<LoadingPanel>();
-            IsSyncState = false;
             GlobalInfo.uiAnimRatio = 1f;
             GlobalInfo.playTimeRatio = 1f;
         }
+        if (IsSyncState)
+            IsSyncState = false;
 
         //执行操作消息 //&& !GlobalInfo.isARTracking
         while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)

@@ -483,6 +483,7 @@ MonoBehaviour:
     type: 3}
   BottomHoverPrefab: {fileID: 7635708336900585944, guid: e10e7616338c79049a733ee7fded756a,
     type: 3}
+  EmptyClick: {fileID: 0}
   BaikeModulePoint: {fileID: 0}
   ListModulePoint: {fileID: 0}
   HierarchyModulePoint: {fileID: 0}
@@ -3476,6 +3477,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   msgIds: 
+  EnableVerticalLayout: 0
 --- !u!1 &4548484959672764872
 GameObject:
   m_ObjectHideFlags: 0

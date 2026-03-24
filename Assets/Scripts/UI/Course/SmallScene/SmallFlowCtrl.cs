@@ -296,7 +296,6 @@ public class SmallFlowCtrl : MonoBase
     public Color selectHighlight = new Color(0.55f, 0.92f, 1f);
     public Color hintHighlight = Color.red;
 
-    public bool isFree;
 
     //是否开启强制引导视角（todo 后台配置）
     private bool useGuide;
@@ -340,7 +339,6 @@ public class SmallFlowCtrl : MonoBase
             (ushort)ModelOperateEvent.Rotate
         );
 
-        this.isFree = isFree;
         this.useGuide = useGuide;
 
         flows = GetComponentsInChildren<SmallFlow1>();
@@ -995,12 +993,14 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="userName">操作人姓名</param>
     /// <param name="callback"></param>
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
-    public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
+    public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, Action<bool> callback = null, bool dummy = true)
     {
         //TODO 操作执行过程中暂停操作同步==>切换百科等操作无法执行
         NetworkManager.Instance.IsIMSync = false;
 
+
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
+        bool isOnOperation = IsOperationInCurrentStepOps(data.operation, data.optionName, data.prop);
 
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
@@ -1016,10 +1016,16 @@ public class SmallFlowCtrl : MonoBase
                     {
                         FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord,
                             string.Empty, op.hint_success, index_NowFlow, index_NowStep, ModelOperationIndex(data.operation), userNo, userName,
-                            GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation, false));
+                            GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
                     }
 
                     callback?.Invoke(true);
+                    //考核模式下 如果执行的步骤正确，就调用步骤结束
+                    if(isOnOperation)
+                    {
+                        RecordSucessOp(data);
+                        StepEnd(modelInfoId);
+                    }
                     FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfoId));
                     MasterComputerInteractable = true;
                     NetworkManager.Instance.IsIMSync = true;
@@ -1029,6 +1035,11 @@ public class SmallFlowCtrl : MonoBase
             else
             {
                 callback?.Invoke(true);
+                if (isOnOperation)
+                {
+                    RecordSucessOp(data);
+                    StepEnd(modelInfoId);
+                }
                 FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfoId));
                 NetworkManager.Instance.IsIMSync = true;
                 TryReleaseOperatePermission(modelInfoId, data.optionName, data.operation.HasFocusMode, dummy);
@@ -1131,7 +1142,6 @@ public class SmallFlowCtrl : MonoBase
 
                         if (opLinkages.Count != 0)
                         {
-                            //此处��改使用的全局参数 Dummy 考核的赋值没有检查
                             FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
                             FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CloseCameraOperation));
 
@@ -1407,17 +1417,7 @@ public class SmallFlowCtrl : MonoBase
                     MasterComputerInteractable = false;
                 }
 
-                List<BehaveBase> behaveBases = new List<BehaveBase>(op.behaveBases);
-                // 排除弹窗表现（弹窗已在DoSelectStep中处理）
-                List<BehaveBase> nonPopupBehaves = new List<BehaveBase>();
-                if (behaveBases != null)
-                {
-                    foreach (var behave in behaveBases)
-                    {
-                        nonPopupBehaves.Add(behave);
-                    }
-                }
-                Execute(nonPopupBehaves, 0, nonPopupBehaves.Count, () =>
+                Execute(op.behaveBases, 0, op.behaveBases.Count, () =>
                 {
                     if(operation != null)
                     {
@@ -1473,6 +1473,7 @@ public class SmallFlowCtrl : MonoBase
     /// <returns>如果操作的所有行为都是需要跳过的类型则返回 true</returns>
     private bool IsDummySkipOperation(ModelOperation operation, string optionName)
     {
+        //非联机，联机但是数据没用准备好默认不跳
         if (operation == null || operation.operations == null)
             return false;
 
@@ -1558,6 +1559,8 @@ public class SmallFlowCtrl : MonoBase
 
         //Debug.Log($"运行 {actions[index].operation.name} 的联动操作 {actions[index].optionName}", actions[index].operation);
 
+
+        //考核无论是单人还是多人 无论是自己还是同步队友操作，都不执行联动
         // dummy 模式下跳过相机和移动相关操作
         if (dummy && IsDummySkipOperation(actions[index].operation, actions[index].optionName))
         {
@@ -1611,17 +1614,14 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="op"></param>
     private void RecordSucessOp(SmallOp1 op)
     {
-        if (!isFree)
+        Debug.Log("操作和联动执行完！");
+        lock (successOPs)
         {
-            Debug.Log("操作和联动执行完！");
-            lock (successOPs)
+            var executed = successOPs.Find(o => o.operation == op.operation && o.optionName.Equals(op.optionName) && o.prop == op.prop);
+            if (executed == null)
             {
-                var executed = successOPs.Find(o => o.operation == op.operation && o.optionName.Equals(op.optionName) && o.prop == op.prop);
-                if (executed == null)
-                {
-                    successOPs.Add(op);
-                    //Debug.LogWarning($"操作和联动执行完！{successOPs.Count}");
-                }
+                successOPs.Add(op);
+                //Debug.LogWarning($"操作和联动执行完！{successOPs.Count}");
             }
         }
     }
@@ -1643,6 +1643,28 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 检查操作是否属于当前步骤的并列操作（用于考核模式）
+    /// </summary>
+    /// <param name="operation">操作对象</param>
+    /// <param name="optionName">操作名称</param>
+    /// <param name="prop">使用的道具</param>
+    /// <param name="data">如果匹配，返回对应的操作数据</param>
+    /// <returns>是否属于当前步骤的并列操作</returns>
+    public bool IsOperationInCurrentStepOps(ModelOperation operation, string optionName, ModelInfo prop)
+    {
+        if (operation == null || nowFlowStep == null)
+            return false;
+
+        // 查找匹配的操作
+        SmallOp1 data = nowFlowStep.ops.Find(op =>
+            op.operation == operation &&
+            op.optionName == optionName &&
+            op.prop == prop);
+
+        return data != null;
+    }
+
+    /// <summary>
     /// 操作和联动执行完调用
     /// </summary>
     /// <param name="msgStepEnd"></param>
@@ -1650,7 +1672,7 @@ public class SmallFlowCtrl : MonoBase
     {
         bool stepChanged = false;
 
-        if (!isFree && IsStepCompleted())
+        if (IsStepCompleted())
         {
             //第二个参数判断当前是第几个小步骤，用于计算得分
             FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
@@ -1671,7 +1693,7 @@ public class SmallFlowCtrl : MonoBase
                     {
                         Debug.Log("已完成所有任务");
                         //index_NowStep += 1;
-                        FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteAll));
+                        //FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteAll));
                     }
                     else
                     {
@@ -2075,9 +2097,9 @@ public class SmallFlowCtrl : MonoBase
                 if (index_NowFlow + 1 > flows.Length - 1)
                 {
                     Debug.Log("已完成所有任务");
-                    index_NowFlow += 1;
-                    index_NowStep += 1;
-                    FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteAll));
+                    index_NowFlow = 0;
+                    index_NowStep = 0;
+                    //FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteAll));
                 }
                 else
                 {

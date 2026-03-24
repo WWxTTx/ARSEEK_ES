@@ -456,17 +456,20 @@ public class OPLCoursePanel : HoverHintPanel
     /// <param name="newBaikeId"></param>
     protected virtual void OnBaikeChanged(int newBaikeId)
     {
-        BaikeSelectModule.selectID = newBaikeId;
-        BaikeSelectModule.CurrentBaikeIndex = GlobalInfo.currentWikiList.FindIndex(wiki => wiki.id == newBaikeId);
- 
-        GlobalInfo.InSingleMode = false;
-        //漫游模式会把相机放到模型中 需要先关闭漫游场景让相机回到原来的位置
-        ClearBaikeModules();
-        ModelManager.Instance.DestroyModels(true);
-        ModelManager.Instance.DestroyScripts(true);
-        ModelManager.Instance.DestroySyncComponent();
+        DOVirtual.DelayedCall(0, () =>
+        {
+            BaikeSelectModule.selectID = newBaikeId;
+            BaikeSelectModule.CurrentBaikeIndex = GlobalInfo.currentWikiList.FindIndex(wiki => wiki.id == newBaikeId);
 
-        CourseSideBar.OnBaikeChanged();
+            GlobalInfo.InSingleMode = false;
+            //漫游模式会把相机放到模型中 需要先关闭漫游场景让相机回到原来的位置
+            ClearBaikeModules();
+            ModelManager.Instance.DestroyModels(true);
+            ModelManager.Instance.DestroyScripts(true);
+            ModelManager.Instance.DestroySyncComponent();
+
+            CourseSideBar.OnBaikeChanged();
+        });
     }
 
     public override void Previous()

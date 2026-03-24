@@ -568,7 +568,9 @@ public class GlobalInfo
     {
         if (roomInfo == null || account == null)
             return false;
-        if (IsExamMode())
+        
+        //多人协同 以及单人多人考核必然获得操作权限
+        if (IsExamMode() || courseMode == CourseMode.Collaboration)
             return true;
         return controllerIds.Contains(userId);
     }

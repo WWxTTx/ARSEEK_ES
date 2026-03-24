@@ -399,7 +399,7 @@ public class PlayerController : MonoBase
 
     private void LateUpdate()
     {
-        if (GlobalInfo.ShowPopup)
+        if (GlobalInfo.ShowPopup || rotateJoystick == null)
             return;
 
         if (isNavigating)

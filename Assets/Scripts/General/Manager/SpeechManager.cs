@@ -61,12 +61,6 @@ public class SpeechManager : Singleton<SpeechManager>
     /// </summary>
     private Dictionary<string, float> specialSymbols = new Dictionary<string, float>();
 
-    private void Start()
-    {
-        // 使用 GlobalInfo 统一管理��音模式设置
-        GlobalInfo.UpdateSpeechMode();
-    }
-
     public void SaveData(List<SpeechData> pediaSpeechData)
     {
         StepSpeechData = new Dictionary<string, Dictionary<TipType, List<SpeechData>>>();
@@ -384,6 +378,10 @@ public class SpeechManager : Singleton<SpeechManager>
     /// </summary>
     public void PlayImmediate(string stepId, int index, TipType tipType)
     {
+        GlobalInfo.UpdateSpeechMode();
+        if (!SpeechMode)
+            return;
+
         // 取消等待中的延迟播放
         nextCts?.Cancel();
         nextCts?.Dispose();

@@ -399,7 +399,7 @@ public class UISmallSceneModule : UIModuleBase
 
         if (SpeechManager.Instance.SpeechMode)
         {
-            RequestManager.Instance.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
+            RequestManager.Instance?.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
             {
                 SpeechManager.Instance.SaveData(data);
                 if(CourseMode.Training == GlobalInfo.courseMode)
@@ -463,22 +463,8 @@ public class UISmallSceneModule : UIModuleBase
 
         GlobalInfo.EnableFlow = simuSystem == null;
 
-        if (uiData != null)
-        {
-            SmallSceneData data = uiData as SmallSceneData;
-            if (data.flows != null)
-                smallFlowCtrl.Init(GlobalInfo.IsExamMode() || !GlobalInfo.EnableFlow, true, data.flows);//todo强制引导视角
-            else
-            {
-                smallFlowCtrl.Init(GlobalInfo.IsExamMode() || !GlobalInfo.EnableFlow, true);
-                SaveFlowStepName();
-            }
-        }
-        else
-        {
-            smallFlowCtrl.Init(GlobalInfo.IsExamMode() || !GlobalInfo.EnableFlow, true);
-            SaveFlowStepName();
-        }
+        smallFlowCtrl.Init(!GlobalInfo.EnableFlow, true);
+        SaveFlowStepName();
 
         // 仿真系统初始化
         if (simuSystem != null)
@@ -1037,6 +1023,47 @@ public class UISmallSceneModule : UIModuleBase
     }
 
     /// <summary>
+    /// 获取操作名称（用于考核模式操作检查）
+    /// </summary>
+    /// <param name="modelOperation">操作对象</param>
+    /// <returns>操作名称</returns>
+    private string GetOperationName(ModelOperation modelOperation)
+    {
+        ModelInfo modelInfo = modelOperation.GetComponent<ModelInfo>();
+        if (modelInfo.InfoData == null)
+            return SmallFlowCtrl.clickFlag;
+
+        switch (modelInfo.InfoData.InteractMode)
+        {
+            case InteractMode.Click:
+                if (prop != null)
+                {
+                    string opWithProp = $"{SmallFlowCtrl.backpackFlag}_{prop.Name}";
+                    if (modelOperation.operations.Any(o => o.name.Equals(opWithProp)))
+                        return opWithProp;
+                }
+                // 检查点击操作是否存在
+                if (modelOperation.operations.Any(o => o.name.Equals(SmallFlowCtrl.clickFlag)))
+                    return SmallFlowCtrl.clickFlag;
+                return SmallFlowCtrl.observeFlag;
+
+            case InteractMode.Switch:
+                if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOpenFlag))
+                    return SmallFlowCtrl.switchCloseFlag;
+                if (modelOperation.currentState.Equals(SmallFlowCtrl.switchCloseFlag))
+                    return SmallFlowCtrl.switchOpenFlag;
+                if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOnFlag))
+                    return SmallFlowCtrl.switchOffFlag;
+                if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOffFlag))
+                    return SmallFlowCtrl.switchOnFlag;
+                return string.Empty;
+
+            default:
+                return SmallFlowCtrl.clickFlag;
+        }
+    }
+
+    /// <summary>
     /// 执行操作
     /// </summary>
     private void TryExecuteOp(ModelOperation modelOperation, bool errorShow = true)
@@ -1054,13 +1081,15 @@ public class UISmallSceneModule : UIModuleBase
         }
         else
         {
+            bool isOnOperation = IsCorrectOperation(modelOperation, out SmallOp1 data);
             if (GlobalInfo.IsExamMode())
             {
-                ExecuteOperation(modelOperation, true);
+                // 考核模式：检查操作是否在当前步骤的ops中
+                string examOptionName = GetOperationName(modelOperation);
+                ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
             }
             else
             {
-                bool isOnOperation = IsCorrectOperation(modelOperation, out SmallOp1 data);
                 if (isOnOperation)
                     ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
                 else
@@ -1079,15 +1108,7 @@ public class UISmallSceneModule : UIModuleBase
             return;
 
         var modelOperation = modelInfo.GetComponent<ModelOperation>();
-        bool isOnOperation = true;
-        if (GlobalInfo.IsExamMode())
-        {
-
-        }
-        else
-        {
-            isOnOperation = smallFlowCtrl.IsOnOperation(modelInfo.GetComponent<ModelOperation>(), modelInfo, out SmallOp1 data) && data.optionName.Equals(optionName);
-        }
+        bool isOnOperation = smallFlowCtrl.IsOnOperation(modelInfo.GetComponent<ModelOperation>(), modelInfo, out SmallOp1 data) && data.optionName.Equals(optionName);
         ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, modelInfo.ID, optionName, modelInfo.ID, isOnOperation), true);
     }
 
@@ -1194,14 +1215,7 @@ public class UISmallSceneModule : UIModuleBase
         string currentState = modelOperation.currentState;
 
         ModelState = ModelState.Operating;
-        bool isOnOperation = true;
-        if (GlobalInfo.IsExamMode())
-        {
-
-        }
-        else
-        {
-            isOnOperation = smallFlowCtrl.IsOnOperation(modelOperation, prop, out SmallOp1 data) && prop != null && data.optionName.Equals(optionName);
+        bool isOnOperation = smallFlowCtrl.IsOnOperation(modelOperation, prop, out SmallOp1 data) && prop != null && data.optionName.Equals(optionName);
             //todo 隐藏错误提示
             if (isOnOperation)
             {
@@ -1212,7 +1226,7 @@ public class UISmallSceneModule : UIModuleBase
                 smallFlowCtrl.RestoreState(modelOperation, currentState);
                 //OnErrorShow();
             }
-        }
+        
         Execute2DOperation(modelOperation, optionName, isOnOperation);
     }
 
@@ -1581,7 +1595,7 @@ public class UISmallSceneModule : UIModuleBase
                     ModelState = ModelState.Unselect;
                 }
                 // 获得对modelOperation的操作权，执行本地操作
-                //AcquireOperatePermission(userIdLook, modelOperation, string.Empty);
+                AcquireOperatePermission(userIdLook, modelOperation, string.Empty);
                 if (userIdLook == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
                 {
                     TryExecuteOp(modelOperation);
@@ -1618,30 +1632,29 @@ public class UISmallSceneModule : UIModuleBase
                     AcquireOperatePermission(userIdOp, data.operation, data.optionName);
 
                     //协同、考核是否为用户本人操作
-                    bool self = ((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id/* && data.operation == modelOperation_Select*/;
+                    bool self = ((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id;
                     ModelState = self ? ModelState.Operating : ModelState.OtherOperating;
 
                     //记录执行操作前的道具状态
                     string oldState = data.operation.currentState;
 
-                    switch (data.operation.GetComponent<ModelInfo>().PropType)
+                    if(GlobalInfo.isExam)
                     {
-                        case PropType.Free:
-                            smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, (isOn) =>
-                            {
-                                ModelState = ModelState.Operated;
-                                if (self)
-                                    OnExecuteCompleted(isOn, true, data.operation, oldState);
-                            }, !self);
-                            break;
-                        default:
-                            smallFlowCtrl.TryExecuteOperation(data, msgOp.correctOp, msgOp.userNo, msgOp.userName, (isOn) =>
-                            {
-                                ModelState = ModelState.Operated;
-                                if (self)
-                                    OnExecuteCompleted(isOn, false, data.operation, oldState);
-                            }, !self);
-                            break;
+                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, (isOn) =>
+                        {
+                            ModelState = ModelState.Operated;
+                            if (self)
+                                OnExecuteCompleted(isOn, true, data.operation, oldState);
+                        }, !self);
+                    }
+                    else
+                    {
+                        smallFlowCtrl.TryExecuteOperation(data, msgOp.correctOp, msgOp.userNo, msgOp.userName, (isOn) =>
+                        {
+                            ModelState = ModelState.Operated;
+                            if (self)
+                                OnExecuteCompleted(isOn, false, data.operation, oldState);
+                        }, !self);
                     }
                 }
                 break;
@@ -1665,12 +1678,12 @@ public class UISmallSceneModule : UIModuleBase
                     Debug.Log($"状态调试 StepEnd收到消息 - senderId:{stepEndSenderId}, modelInfoId:{msgStepEnd.modelInfoId}, operationName:{msgStepEnd.operationName}, 当前用户:{GlobalInfo.account.id}");
                     ReleaseOperatePermission(((MsgBrodcastOperate)msg).senderId, smallFlowCtrl.GetModelOperation(msgStepEnd.modelInfoId), msgStepEnd.operationName);
                 break;
-            case (ushort)SmallFlowModuleEvent.CompleteAll:
+            //case (ushort)SmallFlowModuleEvent.CompleteAll:
                 //Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 //popupDic.Add("确定", new PopupButtonData(null, true));
                 //UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "完成当前百科所有操作", popupDic, showCloseBtn: false));
-                allOver = true;
-                break;
+                //allOver = true;
+                //break;
             case (ushort)ShortcutEvent.PressAnyKey:
                 ShortcutManager.Instance.CheckShortcutKey(msg, new Dictionary<string, Action>()
                 {
@@ -1724,7 +1737,7 @@ public class UISmallSceneModule : UIModuleBase
                 break;
         }
     }
-    bool allOver = false;
+    //bool allOver = false;
 
     private void OnStepChanged()
     {
