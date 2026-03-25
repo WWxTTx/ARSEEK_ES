@@ -333,7 +333,7 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 初始化绑定步骤和任务完成事件
     /// </summary>
-    public void Init(bool isFree, bool useGuide, List<Flow> flowsTex = null)
+    public void Init(bool useGuide, List<Flow> flowsTex = null)
     {
         AddMsg(
             (ushort)ModelOperateEvent.Rotate

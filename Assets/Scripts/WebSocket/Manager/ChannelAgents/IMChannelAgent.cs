@@ -222,14 +222,15 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (IsSyncState)
             IsSyncState = false;
 
-        UIManager.Instance.CloseUI<LoadingPanel>();
-        GlobalInfo.uiAnimRatio = 1f;
-        GlobalInfo.playTimeRatio = 1f;
-
         //执行操作消息 //&& !GlobalInfo.isARTracking
         while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
+
+            UIManager.Instance.CloseUI<LoadingPanel>();
+            GlobalInfo.uiAnimRatio = 1f;
+            GlobalInfo.playTimeRatio = 1f;
+
             currentOp = opsReceive.Dequeue();
             TryExecuteCurrentOp();
         }

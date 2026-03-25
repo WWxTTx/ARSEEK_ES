@@ -18,7 +18,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
         巡检 = 0,
         查看故障信息,
         传感器定位试验,
-        导叶开度消失,
+        xx,
 
         旋钮开度给定13,
         开机时间,
@@ -126,12 +126,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                     });
                 };
                 break;
-            case AvailableStatus.导叶开度消失:
-                TextDic["导叶开度"].enabled = false;
-                TextDic["导叶目标值"].text = "99.99";
-                break;
             case AvailableStatus.查看故障信息:
-                AddErroEvent(LCU_mlfsjs.GetTime() + "    导叶开度传感器故障");
                 string[] flow1 = { "事件报告" };
                 steps = flow1.ToList();
                 StartFlow();
@@ -1177,7 +1172,13 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
                 });
                 break;
             case "开度给定确认":
+                float dkd = float.Parse(TextDic["导叶开度"].text);
+                RotationControl((int)dkd, 0);
                 RotationControl((int)kd, 1);
+                DOTween.To(() => dkd, x =>
+                {
+                    TextDic["导叶开度"].text = x.ToString("F2");
+                }, kd, 1);
                 break;
             case "参数设定":
                 TextDic["主标题"].text = "参数索引";
@@ -1474,6 +1475,7 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
     /// <param name="i"></param>
     public void SetScreenParameters(int i)
     {
+        TextDic["导叶开度"].enabled = true;
         //发电
         if (i == 2)
         {
@@ -1572,26 +1574,21 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
     public GameObject tempText;
     public void AddConmandEvent(string t)
     {
-        ClearMsgObj();
+        foreach (Transform item in zlTextParent) 
+        {
+            Destroy(item.gameObject);
+        }
         Text temp = Instantiate(tempText, zlTextParent).GetComponent<Text>();
         temp.text = t;
     }
     public void AddErroEvent(string t)
     {
-        ClearMsgObj();
-        Text temp = Instantiate(tempText, bjTextParent).GetComponent<Text>();
-        temp.text = t;
-    }
-    void ClearMsgObj()
-    {
         foreach (Transform item in bjTextParent)
         {
             Destroy(item.gameObject);
         }
-        foreach (Transform item in zlTextParent)
-        {
-            Destroy(item.gameObject);
-        }
+        Text temp = Instantiate(tempText, bjTextParent).GetComponent<Text>();
+        temp.text = t;
     }
 
     /// <summary>
@@ -1606,4 +1603,10 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
         }
     }
 
+    //导叶开度消失
+    public void Daoyexs()
+    {
+        TextDic["导叶开度"].enabled = false;
+        TextDic["导叶目标值"].text = "91.67";
+    }
 }

@@ -6,9 +6,9 @@ using System.Linq;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.UI;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
+using Text = UnityEngine.UI.Text;
 
 public class SpeechManager : Singleton<SpeechManager>
 {
@@ -30,7 +30,7 @@ public class SpeechManager : Singleton<SpeechManager>
     public static int EncyclopediaId;
     public Sprite InfoBackground;
     public float InfoFadeOutTime = 0;
-    public float InfoFadeInTime = 0.5f;
+    public float InfoFadeInTime = 0;
     public Font InfoFont;
     public Color InfoFontColor;
     public int InfoFontSize = 28;
@@ -43,7 +43,7 @@ public class SpeechManager : Singleton<SpeechManager>
     /// <summary>
     /// 语速：单个字符秒数
     /// </summary>
-    private float SecPerChar = 0.28f;//对应网页-1 其他值未测量
+    private float SecPerChar = 0.22f;//对应网页-1 其他值未测量
     /// <summary>
     /// pausePunctuations停顿时长
     /// </summary>
@@ -55,18 +55,41 @@ public class SpeechManager : Singleton<SpeechManager>
     /// <summary>
     /// 语音生成时会带有停顿的符号
     /// </summary>
-    private readonly List<char> pausePunctuations = new List<char>() { '，', '。'};
+    private readonly List<char> pausePunctuations = new List<char>() { '，', '、', '。' };
     /// <summary>
     /// 特殊延时标记 当前网页端生成语音时未使用该功能
     /// </summary>
     private Dictionary<string, float> specialSymbols = new Dictionary<string, float>();
+
+    bool dataInited = false;
+    public void LoadData()
+    {
+        dataInited = false;
+        // 使用 GlobalInfo 统一管理语音模式设置（联机模式下会自动设为 false）
+        GlobalInfo.UpdateSpeechMode();
+
+        // 如果语音模式开启且不在考核模式，加载语音数据
+        if (SpeechMode && GlobalInfo.currentWiki != null)
+        {
+            if (EncyclopediaId != GlobalInfo.currentWiki.id)
+            {
+                RequestManager.Instance.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
+                {
+                    SaveData(data);
+                }, errorMsg =>
+                {
+                    dataInited = false;
+                    Debug.LogError("获取百科语音失败");
+                });
+            }
+        }
+    }
 
     public void SaveData(List<SpeechData> pediaSpeechData)
     {
         StepSpeechData = new Dictionary<string, Dictionary<TipType, List<SpeechData>>>();
 
         var stepData = pediaSpeechData.GroupBy(data => data.stepId);
-        //int stepId;
 
         EncyclopediaId = GlobalInfo.currentWiki.id;
 
@@ -83,6 +106,7 @@ public class SpeechManager : Singleton<SpeechManager>
                     StepSpeechData[step.Key].Add(tipType, new List<SpeechData>() { data });
             }
         }
+        dataInited = true;
     }
 
     UnityAction<SpeechData> onDataFetched;
@@ -369,6 +393,7 @@ public class SpeechManager : Singleton<SpeechManager>
         nextCts = null;
         Cancell();
         audioSource.Stop();
+        subTitleText.text = "";
         subTitleBackground.SetActive(false);
     }
 
@@ -382,16 +407,11 @@ public class SpeechManager : Singleton<SpeechManager>
         if (!SpeechMode)
             return;
 
-        // 取消等待中的延迟播放
-        nextCts?.Cancel();
-        nextCts?.Dispose();
-        nextCts = null;
-
         // 停止当前播放（无论什么类型）
         StopSpeech();
 
         // 等待 StepSpeechData 初始化
-        if (StepSpeechData == null)
+        if (!dataInited)
         {
             StartCoroutine(WaitAndPlayImmediate(stepId, index, tipType));
             return;
@@ -410,15 +430,11 @@ public class SpeechManager : Singleton<SpeechManager>
     /// </summary>
     private IEnumerator WaitAndPlayImmediate(string stepId, int index, TipType tipType)
     {
-        yield return new WaitUntil(() => StepSpeechData != null);
-        // 再次检查是否已被取消
-        if (nextCts == null)
+        yield return new WaitUntil(() => dataInited);
+        SpeechData speechData = GetSpeechData(stepId, index, tipType);
+        if (speechData != null && speechData.audioUrl != null)
         {
-            SpeechData speechData = GetSpeechData(stepId, index, tipType);
-            if (speechData != null && speechData.audioUrl != null)
-            {
-                DoSpeech(speechData, tipType);
-            }
+            DoSpeech(speechData, tipType);
         }
     }
 }

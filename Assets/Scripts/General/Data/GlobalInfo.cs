@@ -101,23 +101,10 @@ public class GlobalInfo
     /// 当前课程模式
     /// </summary>
     public static CourseMode courseMode = CourseMode.Training;
-
-    public static bool CreatedMode = false;
     /// <summary>
-    /// 更新课程模式（根据 isExam 和 isLive 自动计算）
+    /// 是否正在新建场景
     /// </summary>
-    public static void UpdateCourseMode()
-    {
-        if (isExam)
-        {
-            courseMode = isLive ? CourseMode.OnlineExam : CourseMode.Exam;
-        }
-        else
-        {
-            courseMode = isLive ? CourseMode.Livebroadcast : CourseMode.Collaboration;
-        }
-    }
-
+    public static bool CreatedMode = false;
     /// <summary>
     /// 判断是否是考核模式（Exam 或 OnlineExam）
     /// </summary>
@@ -134,14 +121,6 @@ public class GlobalInfo
         return courseMode == CourseMode.Livebroadcast ||
                courseMode == CourseMode.Collaboration ||
                courseMode == CourseMode.OnlineExam;
-    }
-
-    /// <summary>
-    /// 判断是否是在线模式（非 Training）
-    /// </summary>
-    public static bool IsOnlineMode()
-    {
-        return courseMode != CourseMode.Training;
     }
 
     /// <summary>
@@ -167,7 +146,7 @@ public class GlobalInfo
             return;
 
         //非培训模式无语音提示
-        if (IsOnlineMode())
+        if (courseMode != CourseMode.Training)
         {
             SpeechManager.Instance.SpeechMode = false;
         }

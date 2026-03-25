@@ -398,15 +398,12 @@ public class UISmallSceneModule : UIModuleBase
     {
         base.Open(uiData);
 
-        RequestManager.Instance?.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
-        {
-            SpeechManager.Instance.SaveData(data);
-            if (CourseMode.Training == GlobalInfo.courseMode)
-                OpenInfo();
-        }, errorMsg =>
-        {
-            Debug.LogError("获取百科语音失败");
-        });
+        //初始化语音数据
+        SpeechManager.Instance.LoadData();
+
+        //只有培训模式打开完整提示词
+        if (CourseMode.Training == GlobalInfo.courseMode)
+            UIManager.Instance.OpenModuleUI<UISmallSceneInfoModule>(ParentPanel, transform, null);
 
         AddMsg(new ushort[]{
              ushort.MaxValue,
@@ -461,8 +458,23 @@ public class UISmallSceneModule : UIModuleBase
 
         GlobalInfo.EnableFlow = simuSystem == null;
 
-        smallFlowCtrl.Init(!GlobalInfo.EnableFlow, true);
-        SaveFlowStepName();
+
+        if (uiData != null)
+        {
+            SmallSceneData data = uiData as SmallSceneData;
+            if (data.flows != null)
+                smallFlowCtrl.Init(!GlobalInfo.IsExamMode(), data.flows);//todo强制引导视角
+            else
+            {
+                smallFlowCtrl.Init(!GlobalInfo.IsExamMode());
+                SaveFlowStepName();
+            }
+        }
+        else
+        {
+            smallFlowCtrl.Init(!GlobalInfo.IsExamMode());
+            SaveFlowStepName();
+        }
 
         // 仿真系统初始化
         if (simuSystem != null)
@@ -1062,7 +1074,7 @@ public class UISmallSceneModule : UIModuleBase
     /// <summary>
     /// 执行操作
     /// </summary>
-    private void TryExecuteOp(ModelOperation modelOperation, bool errorShow = true)
+    private void TryExecuteOp(ModelOperation modelOperation, int sender)
     {
         if (modelOperation == null)
             return;
@@ -1071,29 +1083,27 @@ public class UISmallSceneModule : UIModuleBase
         if (prop != null && prop.PropType != PropType.MasterComputer)
             prop.gameObject.SetActive(false);
 
-        if (modelOperation.GetComponent<ModelInfo>().PropType == PropType.Free)
+        bool isOnOperation = IsCorrectOperation(modelOperation, out SmallOp1 data);
+        if (GlobalInfo.IsExamMode())
         {
-            ExecuteOperation(modelOperation, true, string.Empty, true);
+            // 考核模式 操作就获得操作权限 没有正确判断
+            AcquireOperatePermission(sender, modelOperation, string.Empty);
+            ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
         }
         else
         {
-            bool isOnOperation = IsCorrectOperation(modelOperation, out SmallOp1 data);
-            if (GlobalInfo.IsExamMode())
+            if (isOnOperation)
             {
-                // 考核模式：检查操作是否在当前步骤的ops中
+                // 获得对modelOperation的操作权，执行本地操作 且再步骤结束时释放权限
+                AcquireOperatePermission(sender, modelOperation, string.Empty);
                 ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
             }
             else
             {
-                if (isOnOperation)
-                    ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
-                else
-                {
-                    //提示对错
-                    OnErrorShow();
-                    //点击错误对象需要释放操作权限
-                    ReleaseOperatePermission(GlobalInfo.account.id, modelOperation, data?.optionName);
-                }
+                //提示对错
+                OnErrorShow();
+                //点击错误对象需要释放操作权限
+                ReleaseOperatePermission(GlobalInfo.account.id, modelOperation, data?.optionName);
             }
         }
     }
@@ -1587,17 +1597,15 @@ public class UISmallSceneModule : UIModuleBase
                 break;
             case (ushort)SmallFlowModuleEvent.Look:
                 ModelOperation modelOperation = smallFlowCtrl.GetModelOperation((msg as MsgBrodcastOperate).GetData<MsgOperation>().modelOperation);
-                int userIdLook = ((MsgBrodcastOperate)msg).senderId;
+                int sender = ((MsgBrodcastOperate)msg).senderId;
                 // 选中对象冲突
-                if (modelOperation != null && modelOperation == modelOperation_Select && userIdLook != GlobalInfo.account.id)
+                if (modelOperation != null && modelOperation == modelOperation_Select && sender != GlobalInfo.account.id)
                 {
                     ModelState = ModelState.Unselect;
                 }
-                // 获得对modelOperation的操作权，执行本地操作
-                AcquireOperatePermission(userIdLook, modelOperation, string.Empty);
-                if (userIdLook == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
+                if (sender == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
                 {
-                    TryExecuteOp(modelOperation);
+                    TryExecuteOp(modelOperation, sender);
                 }
                 break;
             //case (ushort)SmallFlowModuleEvent.Look2D:
@@ -1626,9 +1634,6 @@ public class UISmallSceneModule : UIModuleBase
                     data.operation = smallFlowCtrl.GetModelOperation(msgOp.modelOperation);
                     data.prop = smallFlowCtrl.GetModelInfo(msgOp.propId);
                     data.optionName = msgOp.operationName;
-
-                    //获得对modelOperation的操作权
-                    AcquireOperatePermission(userIdOp, data.operation, data.optionName);
 
                     //协同、考核是否为用户本人操作
                     bool self = ((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id;
@@ -1668,10 +1673,6 @@ public class UISmallSceneModule : UIModuleBase
                     ModelState = ModelState.Unselect;
                     MsgElement msgElement = (msg as MsgBrodcastOperate).GetData<MsgElement>();
                     focusMasterComputerDescrption = msgElement.name;
-                }
-                else
-                {
-                    AcquireOperatePermission(senderId, null, string.Empty);
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.StepEnd:
@@ -1915,6 +1916,7 @@ public class UISmallSceneModule : UIModuleBase
                     userOpModel.Remove(linkageModel);
             }
         }
+        ModelState = ModelState.Unselect;
     }
 
     private void ReleaseOperatePermission(int userId)
@@ -2233,18 +2235,6 @@ public class UISmallSceneModule : UIModuleBase
             ModelManager.Instance.CameraDotween = false;
         });
     }
-
-    #region 语音模式
-
-    private void OpenInfo()
-    {
-        if (!SpeechManager.Instance.SpeechMode)
-        {
-            return;
-        }
-        UIManager.Instance.OpenModuleUI<UISmallSceneInfoModule>(ParentPanel, transform, null);
-    }
-    #endregion
 
     #region 告警
     public Toggle WarnTog { get; private set; }

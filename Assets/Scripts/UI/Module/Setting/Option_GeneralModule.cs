@@ -110,24 +110,7 @@ public class Option_GeneralModule : UIModuleBase
         CourseVoice.onValueChanged.AddListener(index =>
         {
             PlayerPrefs.SetInt(GlobalInfo.courseVoice, index);
-
-            // 使用 GlobalInfo 统一管理语音模式设置（考核模式下会自动设为 false）
-            GlobalInfo.UpdateSpeechMode();
-
-            // 如果语音模式开启且不在考核模式，加载语音数据
-            if (SpeechManager.Instance.SpeechMode && GlobalInfo.currentWiki != null)
-            {
-                if (SpeechManager.EncyclopediaId != GlobalInfo.currentWiki.id)
-                {
-                    RequestManager.Instance.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
-                    {
-                        SpeechManager.Instance.SaveData(data);
-                    }, errorMsg =>
-                    {
-                        Debug.LogError("获取百科语音失败");
-                    });
-                }
-            }
+            SpeechManager.Instance.LoadData();
         });
 
         //        var ChangeFileSavePath = this.GetComponentByChildName<Button>("ChangeFileSavePath");
