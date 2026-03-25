@@ -667,7 +667,7 @@ public class OPLCoursePanel : HoverHintPanel
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("好的", new PopupButtonData(() =>
             {
-                if (GlobalInfo.isLive)
+                if (GlobalInfo.IsLiveMode())
                     ExitRoom();
                 else
                     ToolManager.GoToLogin();

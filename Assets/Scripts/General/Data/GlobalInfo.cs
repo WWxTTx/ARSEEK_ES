@@ -114,13 +114,11 @@ public class GlobalInfo
     }
 
     /// <summary>
-    /// 判断是否是直播/在线模式（Livebroadcast, Collaboration 或 OnlineExam）
+    /// 判断是否是直播
     /// </summary>
     public static bool IsLiveMode()
     {
-        return courseMode == CourseMode.Livebroadcast ||
-               courseMode == CourseMode.Collaboration ||
-               courseMode == CourseMode.OnlineExam;
+        return courseMode == CourseMode.Livebroadcast;
     }
 
     /// <summary>
@@ -130,7 +128,6 @@ public class GlobalInfo
     {
         courseMode = mode;
         isExam = (mode == CourseMode.Exam || mode == CourseMode.OnlineExam);
-        isLive = (mode == CourseMode.Livebroadcast || mode == CourseMode.Collaboration || mode == CourseMode.OnlineExam);
 
         // 根据模式设置语音模式
         UpdateSpeechMode();
@@ -563,16 +560,13 @@ public class GlobalInfo
     }
 
     /// <summary>
-    /// 是否需要处理操作消息(协同房间)
+    /// 是否需要处理操作消息
     /// </summary>
     /// <param name="sendUserId"></param>
     /// <param name="force">无权限成员是否执行来自主画面的操作(eg.音视频操作)，默认接收主屏分享数据，不需要接收同步操作数据</param>
     /// <returns></returns>
     public static bool ShouldProcess(int sendUserId, bool force = false)
     {
-        if (!IsLiveMode())
-            return true;
-
         if (IsOperator() && sendUserId == account.id)
             return true;
 
