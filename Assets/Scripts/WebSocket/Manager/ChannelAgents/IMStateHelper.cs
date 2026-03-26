@@ -90,13 +90,6 @@ public partial class IMStateHelper
             if (GlobalInfo.IsUserOperator(opsLineSend.Key))
                 stateSend.AddRange(opsLineSend.Value);
         }
-
-        // 添加调试日志
-        Debug.Log($"[状态调试] GetStateList | filterState.Count:{filterState.Count} | filterState keys:[{string.Join(",", filterState.Keys)}]");
-        Debug.Log($"[状态调试] GetStateList | userFilterState.Count:{userFilterState.Count}");
-        Debug.Log($"[状态调试] GetStateList | opsSend.Count:{opsSend.Count}");
-        Debug.Log($"[状态调试] GetStateList | 最终stateSend.Count:{stateSend.Count}");
-
         return stateSend;
     }
 

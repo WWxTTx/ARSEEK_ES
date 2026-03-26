@@ -126,7 +126,33 @@ public class GlobalInfo
     /// </summary>
     public static void SetCourseMode(CourseMode mode)
     {
-        courseMode = mode;
+        //重连时从房间类型中获得
+        if(roomInfo != null)
+        {
+            if (roomInfo.RoomType == 1)
+            {
+                mode = CourseMode.Livebroadcast;
+            }
+            else if (roomInfo.RoomType == 2)
+            {
+                mode = CourseMode.Collaboration;
+            }
+            else if (roomInfo.ExamType == 1)
+            {
+                mode = CourseMode.Exam;
+            }
+            else if (roomInfo.ExamType == 2)
+            {
+                mode = CourseMode.OnlineExam;
+            }
+        }
+       
+        if (courseMode != mode)
+        {
+            CreatedMode = false;
+            courseMode = mode;
+        }
+        
         isExam = (mode == CourseMode.Exam || mode == CourseMode.OnlineExam);
 
         // 根据模式设置语音模式
@@ -139,9 +165,6 @@ public class GlobalInfo
     /// </summary>
     public static void UpdateSpeechMode()
     {
-        if (SpeechManager.Instance == null)
-            return;
-
         //非培训模式无语音提示
         if (courseMode != CourseMode.Training)
         {

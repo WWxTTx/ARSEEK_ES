@@ -274,13 +274,16 @@ public class IMChannelAgent : NetworkChannelAgentBase
     private async UniTaskVoid DelayedSend(MsgBrodcastOperate currentOp, string content)
     {   
         //需要等待36消息先执行 创建场景
-        if (currentOp.msgId == 36 && !GlobalInfo.CreatedMode)
+        if(!GlobalInfo.isExam)
         {
-            FormMsgManager.Instance.SendMsg(currentOp);
-            GlobalInfo.CreatedMode = true;
-        }
+            if (currentOp.msgId == 36 && !GlobalInfo.CreatedMode)
+            {
+                FormMsgManager.Instance.SendMsg(currentOp);
+                GlobalInfo.CreatedMode = true;
+            }
 
-        await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null);
+            await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null);
+        }
 
         //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
         if (currentOp.msgId == 36 && GlobalInfo.CreatedMode)
@@ -433,11 +436,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
-        // 根据当前模式设置在线模式：考核模式设为 OnlineExam，其他设为 Collaboration
-        if (GlobalInfo.IsExamMode())
-            GlobalInfo.SetCourseMode(CourseMode.OnlineExam);
-        else
-            GlobalInfo.SetCourseMode(CourseMode.Collaboration);
+        //更新当前房间信息
+        GlobalInfo.SetCourseMode(default);
+
         //确保进入课程模块后再进行消息同步
         IsStartSync = UIManager.Instance.IsOpen<ExamPanel>() || UIManager.Instance.IsOpen<ExamCoursePanel>() || UIManager.Instance.IsOpen<OPLSynCoursePanel>();/*true;*/
         IsSyncBaikeState = false;
@@ -462,11 +463,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
-        // 根据当前模式设置在线模式：考核模式设为 OnlineExam，其他设为 Collaboration
-        if (GlobalInfo.IsExamMode())
-            GlobalInfo.SetCourseMode(CourseMode.OnlineExam);
-        else
-            GlobalInfo.SetCourseMode(CourseMode.Collaboration);
         IsStartSync = true;
         IsSyncBaikeState = false;
         opsReceive.Clear();

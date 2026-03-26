@@ -64,10 +64,7 @@ public class SpeechManager : Singleton<SpeechManager>
     bool dataInited = false;
     public void LoadData()
     {
-        dataInited = false;
-        // 使用 GlobalInfo 统一管理语音模式设置（联机模式下会自动设为 false）
         GlobalInfo.UpdateSpeechMode();
-
         // 如果语音模式开启且不在考核模式，加载语音数据
         if (SpeechMode && GlobalInfo.currentWiki != null)
         {
@@ -403,19 +400,16 @@ public class SpeechManager : Singleton<SpeechManager>
     /// </summary>
     public void PlayImmediate(string stepId, int index, TipType tipType)
     {
-        GlobalInfo.UpdateSpeechMode();
-        if (!SpeechMode)
-            return;
-
-        // 停止当前播放（无论什么类型）
-        StopSpeech();
-
         // 等待 StepSpeechData 初始化
         if (!dataInited)
         {
+            LoadData();
             StartCoroutine(WaitAndPlayImmediate(stepId, index, tipType));
             return;
         }
+
+        // 停止当前播放（无论什么类型）
+        StopSpeech();
 
         // 直接播放，跳过所有 TipType 检查
         SpeechData speechData = GetSpeechData(stepId, index, tipType);

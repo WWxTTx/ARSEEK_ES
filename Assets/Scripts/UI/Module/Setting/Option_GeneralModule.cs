@@ -105,12 +105,13 @@ public class Option_GeneralModule : UIModuleBase
 
         var CourseVoice = this.GetComponentByChildName<Dropdown>("CourseVoiceInputDevice");
 
-        CourseVoice.SetValueWithoutNotify(SpeechManager.Instance.SpeechMode ? 1 : 0);
+        CourseVoice.SetValueWithoutNotify(PlayerPrefs.GetInt(GlobalInfo.courseVoice, 1));
 
         CourseVoice.onValueChanged.AddListener(index =>
-        {
+        { 
             PlayerPrefs.SetInt(GlobalInfo.courseVoice, index);
-            SpeechManager.Instance.LoadData();
+            if(index == 1)
+                SpeechManager.Instance.LoadData();
         });
 
         //        var ChangeFileSavePath = this.GetComponentByChildName<Button>("ChangeFileSavePath");

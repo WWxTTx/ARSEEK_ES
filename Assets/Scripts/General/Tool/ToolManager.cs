@@ -81,48 +81,44 @@ namespace UnityFramework.Runtime
         public static void SendBroadcastMsg(MsgBase msg, bool synergia = false)
         {
             MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(msg.msgId, JsonTool.Serializable(msg));
-            if (GlobalInfo.IsLiveMode() && !NetworkManager.Instance.IsIMSyncState)
+            //单人考核
+            if (GlobalInfo.courseMode == CourseMode.Exam)
             {
-                //考核房间
-                if (GlobalInfo.roomInfo.ExamType != 0)
+                if (GlobalInfo.IsHomeowner())
                 {
-                    switch (GlobalInfo.roomInfo.ExamType)
-                    {
-                        case (int)ExamRoomType.Person:
-                            if (GlobalInfo.IsHomeowner())
-                            {
-                                NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
-                            }
-                            //else if (synergia)
-                            //{
-                            //    NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
-                            //}
-                            else
-                            {
-                                SendLocalMsg(msgBrodcastOperate);
-                            }
-                            break;
-                        case (int)ExamRoomType.Group:
-                            NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
-                            break;
-                    }
+                    NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
                 }
-                //协同房间
                 else
                 {
-                    if (GlobalInfo.IsMainScreen() || GlobalInfo.IsHomeowner())
-                    {
-                        NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
-                    }
-                    else
-                    {
-                        if (synergia)
-                            NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
-                        else
-                            SendLocalMsg(msgBrodcastOperate);
-                    }
+                    SendLocalMsg(msgBrodcastOperate);
                 }
             }
+            //多人考核
+            else if (GlobalInfo.courseMode == CourseMode.OnlineExam)
+            {
+                NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
+            }
+            //协同
+            else if (GlobalInfo.courseMode == CourseMode.Collaboration)
+            {
+                if (GlobalInfo.IsMainScreen() || GlobalInfo.IsHomeowner())
+                {
+                    NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
+                }
+                else
+                {
+                    if (synergia)
+                        NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
+                    else
+                        SendLocalMsg(msgBrodcastOperate);
+                }
+            }
+            //直播
+            else if (GlobalInfo.courseMode == CourseMode.Livebroadcast)
+            {
+                
+            }
+            //本地
             else
             {
                 SendLocalMsg(msgBrodcastOperate);
