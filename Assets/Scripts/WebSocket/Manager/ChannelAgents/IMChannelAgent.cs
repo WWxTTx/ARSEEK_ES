@@ -218,7 +218,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (IsSyncState)
         {
             IsSyncState = false;
-            UIManager.Instance.CloseUI<LoadingPanel>();
         }
 
         //执行操作消息 //&& !GlobalInfo.isARTracking
@@ -227,6 +226,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
             deltaTime = 0;
             currentOp = opsReceive.Dequeue();
             TryExecuteCurrentOp();
+        }
+
+        if(!IsSyncCachedState && !IsSyncState && LoadingPanel.Loading)
+        {
+            UIManager.Instance.CloseUI<LoadingPanel>();
         }
     }
 
@@ -508,15 +512,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
             version = version,
         };
 
-        // 添加调试日志
-        Debug.Log($"[状态调试] Send | msgId:{msg.msgId} | state.stateOps.Count:{packet.state.stateOps?.Count ?? 0}");
-        if (packet.state.stateOps != null)
-        {
-            foreach (var op in packet.state.stateOps)
-            {
-                Debug.Log($"[状态调试] Send | stateOps包含 msgId:{op.msgId}");
-            }
-        }
 
         string data = JsonTool.Serializable(packet);
 

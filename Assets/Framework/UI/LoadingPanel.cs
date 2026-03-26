@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityFramework.Runtime;
 using DG.Tweening;
 using UnityEngine.UI;
@@ -20,7 +20,7 @@ public class LoadingPanel : UIPanelBase
     /// 加载时长高于这个时间才会显示
     /// </summary>
     private const float waitTime = 0.2f;
-
+    public static bool Loading = false;
     void Awake()
     {
          AddMsg((ushort)LoadingPanelEvent.ProgressValue);
@@ -32,6 +32,7 @@ public class LoadingPanel : UIPanelBase
     public override void Open(UIData uiData = null)
     {
         base.Open(); 
+        Loading = true;
         Action = this.FindChildByName("Action");
         progressValue = GetComponentInChildren<Text>();
 
@@ -100,6 +101,7 @@ public class LoadingPanel : UIPanelBase
         base.Close(uiData, callback);
         SendMsg(new MsgBase((ushort)UIAnimEvent.HideAnimMask));
         Timer.DelTimer(name);
+        Loading = false;
     }
     public override void ProcessEvent(MsgBase msg)
     {
