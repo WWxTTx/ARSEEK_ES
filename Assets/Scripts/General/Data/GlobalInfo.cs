@@ -122,6 +122,14 @@ public class GlobalInfo
     }
 
     /// <summary>
+    /// 直播模式和培训模式不需要转发同步消息
+    /// </summary>
+    /// <returns></returns>
+    public static bool DontSendIMmsg()
+    {
+        return courseMode == CourseMode.Training || courseMode == CourseMode.Livebroadcast;
+    }
+    /// <summary>
     /// 设置课程模式（统一入口，同时更新 isExam 和 isLive）
     /// </summary>
     public static void SetCourseMode(CourseMode mode)

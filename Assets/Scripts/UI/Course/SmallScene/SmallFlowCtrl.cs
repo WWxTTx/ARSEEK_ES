@@ -181,7 +181,7 @@ public class SmallFlowCtrl : MonoBase
             _index_NowStep = value;
 
             // 自动播放：使用 DelayStart
-            if (useGuide && nowFlowStep != null && nowFlowStep.initState != null && nowFlowStep.initState.Count > 0)
+            if (nowFlowStep != null && nowFlowStep.initState != null && nowFlowStep.initState.Count > 0)
             {
                 ExecuteInitStateSequentially(nowFlowStep.initState, nowFlowStep, 0, 0, () =>
                 {
@@ -232,33 +232,35 @@ public class SmallFlowCtrl : MonoBase
             return;
         }
 
-        // 检查操作中是否有弹窗 只有引导模式需要自动生成弹窗
+        // 检查操作中是否有弹窗 考核模式不需要自动生成弹窗
         bool hasPopup = false;
         BehavePopup popupBehave = null;
 
-        if (GlobalInfo.courseMode == CourseMode.Training)
+        if (!GlobalInfo.isExam)
         {
-            foreach (var op in state.operation.operations)
+            if (GlobalInfo.courseMode == CourseMode.Training)
             {
-                if (op.name.Equals(state.optionName))
+                foreach (var op in state.operation.operations)
                 {
-                    if (op.behaveBases != null)
+                    if (op.name.Equals(state.optionName))
                     {
-                        foreach (var behave in op.behaveBases)
+                        if (op.behaveBases != null)
                         {
-                            if (behave is BehavePopup popup)
+                            foreach (var behave in op.behaveBases)
                             {
-                                hasPopup = true;
-                                popupBehave = popup;
-                                break;
+                                if (behave is BehavePopup popup)
+                                {
+                                    hasPopup = true;
+                                    popupBehave = popup;
+                                    break;
+                                }
                             }
                         }
+                        break;
                     }
-                    break;
                 }
             }
         }
-
 
         if (hasPopup && popupBehave != null && useGuide)
         {
@@ -644,23 +646,48 @@ public class SmallFlowCtrl : MonoBase
             }
         }
 
-        SmallOp1 data = nowFlowStep.ops.Find(value => value.optionName.Equals(optionName));
+        SmallOp1 data = nowFlowStep.ops.Find(value => value.operation.ID.Equals(optionName));
         if (data == null)
         {
             Debug.Log($"当前正确操作不是{optionName}");
             return false;
         }
-        return true;
 
-        ////不进行输入内容的判断
-        //for (int i = 0; i < data.operation.operations.Count; i++)
-        //{
-        //    OperationBase op = data.operation.operations[i];
-        //    if (op.name.Equals(inputFlag) && op.hint_success.Equals(input))
-        //        return true;
-        //}
-        //Debug.Log("当前输入文本错误");
-        //return false;
+        return true;
+    }
+
+    /// <summary>
+    /// 用于考核模式任意操作判断释放是正确步骤
+    /// </summary>
+    /// <param name="optionName"></param>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    public bool IsOnOperation(string optionName, string id)
+    {
+        if (index_NowStep < 0 || nowFlowSteps == null || index_NowStep >= nowFlowSteps.Count)
+        {
+            Debug.LogWarning("当前步骤数越界，无正确操作");
+            return false;
+        }
+
+        //判断是否已执行操作
+        for (int i = 0; i < successOPs.Count; i++)
+        {
+            if (successOPs[i].optionName.Equals(inputFlag) && successOPs[i].prop == null)
+            {
+                Debug.LogWarning("操作已执行！");
+                return false;
+            }
+        }
+
+        SmallOp1 data = nowFlowStep.ops.Find(value => value.operation.ID.Equals(id) && value.optionName.Equals(optionName));
+        if (data == null)
+        {
+            Debug.Log($"当前正确操作不是{optionName}");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1000,8 +1027,9 @@ public class SmallFlowCtrl : MonoBase
 
 
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
-        bool isOnOperation = IsOperationInCurrentStepOps(data.operation, data.optionName, data.prop);
+        bool isOnOperation = IsOnOperation(data.optionName, data.operation.ID);
 
+        Debug.Log("调试 当前需要执行:" + nowFlowStep.ID + " 执行结果： " + isOnOperation);
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
         ExecuteOperation(data.operation, data.optionName, data.prop, (op) =>
@@ -1296,24 +1324,16 @@ public class SmallFlowCtrl : MonoBase
     {
         // 操作执行完成，释放操作权限
         MsgStepEnd msgStepEnd = new MsgStepEnd((ushort)SmallFlowModuleEvent.StepEnd, modelInfoId, optionName, hasFocusMode);
-        Debug.Log($"状态调试 TryReleaseOperatePermission - modelInfoId:{modelInfoId}, optionName:{optionName}, dummy:{dummy}, 当前用户:{GlobalInfo.account.id}");
-
-        if (GlobalInfo.IsLiveMode() && (GlobalInfo.roomInfo.RoomType != 0 || GlobalInfo.roomInfo.ExamType == (int)ExamRoomType.Group))
+        
+        if (!GlobalInfo. DontSendIMmsg())
         {
-            // 本人操作
-            if (!dummy)
-            {
-                Debug.Log($"状态调试 TryReleaseOperatePermission - 发送广播消息给所有人");
-                ToolManager.SendBroadcastMsg(msgStepEnd, true);
-            }
-            else
-            {
-                Debug.Log($"状态调试 TryReleaseOperatePermission - dummy模式，不发送消息");
-            }
+            ToolManager.SendBroadcastMsg(msgStepEnd); 
+            Debug.Log($"状态调试 广播释放操作权限 - modelInfoId:{modelInfoId}, optionName:{optionName}, dummy:{dummy}, 当前用户:{GlobalInfo.account.id}");
+
         }
         else
         {
-            Debug.Log($"状态调试 TryReleaseOperatePermission - 非直播模式，发送本地消息");
+            Debug.Log($"状态调试 本地消息释放操作权限");
             FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate(msgStepEnd.msgId, JsonTool.Serializable(msgStepEnd)));
         }
     }
@@ -1473,7 +1493,6 @@ public class SmallFlowCtrl : MonoBase
     /// <returns>如果操作的所有行为都是需要跳过的类型则返回 true</returns>
     private bool IsDummySkipOperation(ModelOperation operation, string optionName)
     {
-        //非联机，联机但是数据没用准备好默认不跳
         if (operation == null || operation.operations == null)
             return false;
 
@@ -1557,10 +1576,6 @@ public class SmallFlowCtrl : MonoBase
             return;
         }
 
-        //Debug.Log($"运行 {actions[index].operation.name} 的联动操作 {actions[index].optionName}", actions[index].operation);
-
-
-        //考核无论是单人还是多人 无论是自己还是同步队友操作，都不执行联动
         // dummy 模式下跳过相机和移动相关操作
         if (dummy && IsDummySkipOperation(actions[index].operation, actions[index].optionName))
         {
@@ -1640,28 +1655,6 @@ public class SmallFlowCtrl : MonoBase
             return true;
         }
         return false;
-    }
-
-    /// <summary>
-    /// 检查操作是否属于当前步骤的并列操作（用于考核模式）
-    /// </summary>
-    /// <param name="operation">操作对象</param>
-    /// <param name="optionName">操作名称</param>
-    /// <param name="prop">使用的道具</param>
-    /// <param name="data">如果匹配，返回对应的操作数据</param>
-    /// <returns>是否属于当前步骤的并列操作</returns>
-    public bool IsOperationInCurrentStepOps(ModelOperation operation, string optionName, ModelInfo prop)
-    {
-        if (operation == null || nowFlowStep == null)
-            return false;
-
-        // 查找匹配的操作
-        SmallOp1 data = nowFlowStep.ops.Find(op =>
-            op.operation == operation &&
-            op.optionName == optionName &&
-            op.prop == prop);
-
-        return data != null;
     }
 
     /// <summary>

@@ -189,8 +189,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
             if (GlobalInfo.playTimeRatio > 0)
             {
-                GlobalInfo.uiAnimRatio = 0f;
-                GlobalInfo.playTimeRatio = 0f;
                 IsSyncCachedState = true;
                 UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
             }
@@ -210,8 +208,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
             if (GlobalInfo.playTimeRatio > 0)
             {
-                GlobalInfo.uiAnimRatio = 0f;
-                GlobalInfo.playTimeRatio = 0f;
                 IsSyncState = true;
                 UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
             }
@@ -220,17 +216,15 @@ public class IMChannelAgent : NetworkChannelAgentBase
             TryExecuteCurrentOp();
         }
         if (IsSyncState)
+        {
             IsSyncState = false;
+            UIManager.Instance.CloseUI<LoadingPanel>();
+        }
 
         //执行操作消息 //&& !GlobalInfo.isARTracking
         while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
-
-            UIManager.Instance.CloseUI<LoadingPanel>();
-            GlobalInfo.uiAnimRatio = 1f;
-            GlobalInfo.playTimeRatio = 1f;
-
             currentOp = opsReceive.Dequeue();
             TryExecuteCurrentOp();
         }
@@ -283,11 +277,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
             }
 
             await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null);
+
+            //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
+            if (currentOp.msgId == 36 && GlobalInfo.CreatedMode)
+                return;
         }
 
-        //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
-        if (currentOp.msgId == 36 && GlobalInfo.CreatedMode)
-            return;
 
         //并发消息重排序 先跳步骤 再执行操作
         if (currentOp.msgId == 118)

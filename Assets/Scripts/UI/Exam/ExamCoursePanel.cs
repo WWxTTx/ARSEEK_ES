@@ -487,8 +487,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             }
             callBack?.Invoke();
             inSubmit = false;
-            //todo:Quit方法中考生结束答题时作为判断条件
-            //inExam = false;
+            inExam = false;
         });
     }
 
@@ -682,17 +681,20 @@ public partial class ExamCoursePanel : OPLCoursePanel
             switch (GlobalInfo.currentWiki.typeId)
             {
                 case (int)PediaType.Operation:
-                    AnswerOp answerOp = answersDic[GlobalInfo.currentWiki.id] as AnswerOp;
-                    UISmallSceneOperationHistory his = GetComponentInChildren<UISmallSceneOperationHistory>();
-                    if (his != null)
+                    if(answersDic.ContainsKey(GlobalInfo.currentWiki.id))
                     {
-                        answerOp.operations = his.OpRecordList.Select(data => data.ToExamineResult()).ToList();
-                    }
-                    if (smallSceneModule != null)
-                    {
-                        if (smallSceneModule.smallFlowCtrl != null)
+                        AnswerOp answerOp = answersDic[GlobalInfo.currentWiki.id] as AnswerOp;
+                        UISmallSceneOperationHistory his = GetComponentInChildren<UISmallSceneOperationHistory>();
+                        if (his != null)
                         {
-                            answerOp.modelStates = GetExamineModelStates().ToList();
+                            answerOp.operations = his.OpRecordList.Select(data => data.ToExamineResult()).ToList();
+                        }
+                        if (smallSceneModule != null)
+                        {
+                            if (smallSceneModule.smallFlowCtrl != null)
+                            {
+                                answerOp.modelStates = GetExamineModelStates().ToList();
+                            }
                         }
                     }
                     break;
@@ -970,6 +972,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             return;
         }
         Log.Debug("开始倒计时");
+        inExam = false;
         startTimingTrans.gameObject.SetActive(true);
         float index = 0;
         text.text = "3";
