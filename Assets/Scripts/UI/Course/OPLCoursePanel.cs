@@ -753,7 +753,7 @@ public class OPLCoursePanel : HoverHintPanel
 
             if (go == null)
             {
-                Log.Error(string.Format("百科{0}实例化失败", encyclopedia.id));
+                Log.Debug(string.Format("百科{0}实例化失败", encyclopedia.id));
                 UIManager.Instance.CloseUI<LoadingPanel>();
                 NetworkManager.Instance.IsIMSync = true;
                 return;

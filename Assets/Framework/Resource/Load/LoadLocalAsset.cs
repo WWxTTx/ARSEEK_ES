@@ -16,6 +16,10 @@ namespace UnityFramework.Runtime
         /// </summary>
         private Dictionary<string, AssetBundle> abs = new Dictionary<string, AssetBundle>();
         /// <summary>
+        /// 记录正在加载中的ab包路径，防止同一时间重复加载
+        /// </summary>
+        private HashSet<string> loadingPaths = new HashSet<string>();
+        /// <summary>
         /// 记录正在使用的图片资源，防止再次加载
         /// </summary>
         private Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>();
@@ -123,12 +127,24 @@ namespace UnityFramework.Runtime
                 yield break;
             }
 
+            // 检查是否正在加载中，防止重复加载
+            if (loadingPaths.Contains(path))
+            {
+                Log.Warning("ab包正在加载中，跳过重复请求:" + path);
+                callback?.Invoke(-1f, null);
+                yield break;
+            }
+
+            loadingPaths.Add(path);
+
             AssetBundleCreateRequest request = AssetBundle.LoadFromFileAsync(path);
             while (!request.isDone)
             {
                 yield return new WaitForSeconds(0.5f);
                 callback?.Invoke(request.progress, null);
             }
+
+            loadingPaths.Remove(path);
 
             if (request.isDone)
             {
@@ -253,7 +269,16 @@ namespace UnityFramework.Runtime
                 }
             }));
 
-            AssetBundleRequest request = bundle.LoadAllAssetsAsync<T>();
+            AssetBundleRequest request = null;
+            try
+            {
+                request = bundle.LoadAllAssetsAsync<T>();
+            }
+            catch
+            {
+                Debug.Log("加载失败，可能是重复调用");
+            }
+            
             while (!request.isDone)
             {
                 yield return null;

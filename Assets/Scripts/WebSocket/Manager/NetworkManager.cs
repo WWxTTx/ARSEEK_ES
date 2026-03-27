@@ -167,7 +167,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// </summary>
     private void SendLeaveMessage()
     {
-        GlobalInfo.CreatedMode = false;
         if (mRoomChannelAgent != null && mRoomChannelAgent.IsChannelConnected())
         {
             try

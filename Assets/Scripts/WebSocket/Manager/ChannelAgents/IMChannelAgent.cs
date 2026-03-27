@@ -261,34 +261,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         FormMsgManager.Instance.SendMsg(currentOp);
         Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
-        //// 保证消息可执行
-        //DelayedSend(currentOp, content).Forget();
     }
 
-    /// <summary>
-    /// 重连时消息是并发的，这里相当于重新排序
-    /// </summary>
-    private async UniTaskVoid DelayedSend(MsgBrodcastOperate currentOp, string content)
-    {   
-        //需要等待36消息先执行 创建场景
-        if(!GlobalInfo.isExam)
-        {
-            if (currentOp.msgId == 36 && !GlobalInfo.CreatedMode)
-            {
-                FormMsgManager.Instance.SendMsg(currentOp);
-                GlobalInfo.CreatedMode = true;
-            }
-
-            await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null);
-
-            //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
-            if (currentOp.msgId == 36 && GlobalInfo.CreatedMode)
-                return;
-        }
-
-        FormMsgManager.Instance.SendMsg(currentOp);
-        Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
-    }
+  
 
     public override void ProcessMessage(string message)
     {

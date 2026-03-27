@@ -101,10 +101,7 @@ public class GlobalInfo
     /// 当前课程模式
     /// </summary>
     public static CourseMode courseMode = CourseMode.Training;
-    /// <summary>
-    /// 是否正在新建场景
-    /// </summary>
-    public static bool CreatedMode = false;
+
     /// <summary>
     /// 判断是否是考核模式（Exam 或 OnlineExam）
     /// </summary>
@@ -157,7 +154,6 @@ public class GlobalInfo
        
         if (courseMode != mode)
         {
-            CreatedMode = false;
             courseMode = mode;
         }
         

@@ -317,39 +317,26 @@ public class OPLSynCoursePanel : OPLCoursePanel
             //协同房间不需要分享主画面
             if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && GlobalInfo.IsMainScreen())
                 NetworkManager.Instance.EnableLocalVideo(true);
+            if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
+            {
+                CourseSideBar.SetBaikePage();
+                Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
+                Debug.Log($"[调试 房间初始化 :{GlobalInfo.currentCourseInfo}");
+                ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
+            }
 
-            Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
             if (GlobalInfo.IsHomeowner())
             {
-                Debug.Log($"[协同调试] 房主初始化 | wikiListCount:{GlobalInfo.currentWikiList?.Count}");
 
                 RoomInfoTog.gameObject.SetActive(true);
                 Mask(true, true);
-
-                //2026.01.27修改通过消息执行当前脚本方法的冗余方式
-                if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
-                {
-                    CourseSideBar.SetBaikePage();
-                    if (!NetworkManager.Instance.IsIMSyncCachedState && !NetworkManager.Instance.IsIMSyncState)
-                    {
-                        ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
-                    }
-                }
-
                 SendMsg(new MsgBase((ushort)RoomChannelEvent.StartMainScreen)); //2026.01.27修改初始化房主为主画面时机
             }
             else
             {
                 Paint.interactable = GlobalInfo.IsOperator();
-                switch (GlobalInfo.roomInfo.RoomType)
-                {
-                    case (int)RoomType.Synergia:
-                        Mask(true, true);
-                        ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
-                        break;
-                    default:
-                        break;
-                }
+                if(GlobalInfo.courseMode == CourseMode.Collaboration)
+                    Mask(true, true);
             }
             UIManager.Instance.CloseUI<LoadingPanel>();
             GlobalInfo.waitExam = false;
