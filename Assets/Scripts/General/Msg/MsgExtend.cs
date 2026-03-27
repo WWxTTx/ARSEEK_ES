@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using static UnityFramework.Runtime.RequestData;
@@ -138,6 +138,20 @@ namespace UnityFramework.Runtime
             this.title = linkModuleData.title;
             this.url = linkModuleData.url;
             this.type = linkModuleData.docType;
+        }
+    }
+
+    public class MsgNextStep : MsgBase
+    {
+        public int flow;
+        public int step;
+        public int sender;
+
+        public MsgNextStep(ushort msgId, int flow, int step, int sender) : base(msgId)
+        {
+            this.flow = flow;
+            this.step = step;
+            this.sender = sender;
         }
     }
 

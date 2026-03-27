@@ -255,15 +255,14 @@ public class IMChannelAgent : NetworkChannelAgentBase
             IsStartSync = false;
         }
 
-        //考核模式的房主不需要新建场景 直接返回
-        if (currentOp.msgId == 36 && GlobalInfo.isExam && GlobalInfo.IsHomeowner())
-        {
-            UIManager.Instance.CloseUI<LoadingPanel>();
+        //操作直接同步结果 不再同步操作过程
+        if (currentOp.msgId == (ushort)SmallFlowModuleEvent.Operate)
             return;
-        }
 
-        // 保证消息可执行
-        DelayedSend(currentOp, content).Forget();
+        FormMsgManager.Instance.SendMsg(currentOp);
+        Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
+        //// 保证消息可执行
+        //DelayedSend(currentOp, content).Forget();
     }
 
     /// <summary>
@@ -286,13 +285,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
             if (currentOp.msgId == 36 && GlobalInfo.CreatedMode)
                 return;
         }
-
-
-        //并发消息重排序 先跳步骤 再执行操作
-        if (currentOp.msgId == 118)
-            await UniTask.DelayFrame(10);
-        else if (currentOp.msgId == 105)
-            await UniTask.DelayFrame(0);
 
         FormMsgManager.Instance.SendMsg(currentOp);
         Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
@@ -340,9 +332,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
                         if (GlobalInfo.IsOperator())
                         {
-                            // 进入操作者分支
-                            Debug.Log($"[RTI调试] 进入IsOperator分支 | IsStartSync:{IsStartSync}");
-
                             //中途加入或本地为旧版本
                             if (GlobalInfo.version < version - 1)
                             {
@@ -350,11 +339,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
                             }
                             else
                             {
-                                // 修复：新消息到来时重新启用同步，确保消息能被执行
-                                if (!IsStartSync)
-                                {
-                                    IsStartSync = true;
-                                }
+                                IsStartSync = true;
                                 opsReceive.Enqueue(packet.data);
                                 stateHelper.UpdateState(packet.data);
                             }
@@ -363,8 +348,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
                         }
                         else
                         {
-                            // 修复时序问题：非操作者也缓存消息，等待获得权限后处理
-                            Debug.LogWarning($"[RTI调试] 非操作者缓存消息 | controllerIds:[{string.Join(",", GlobalInfo.controllerIds)}] | 消息内容:{datamsg?.Substring(0, Math.Min(100, datamsg?.Length ?? 0))}");
                             pendingOps.Enqueue(packet.data);
                             pendingVersion = version;
                         }
@@ -406,12 +389,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
         else
         {
-            // 启用同步
-            if (!IsStartSync)
-            {
-                IsStartSync = true;
-            }
-
+            IsStartSync = true;
             // 处理所有缓存的消息
             while (pendingOps.Count > 0)
             {

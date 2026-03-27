@@ -254,8 +254,6 @@ public partial class IMStateHelper
 
         ushort id = msg.msgId;
 
-        // 添加调试日志 - 处理前
-        Debug.Log($"[状态调试] UpdateState前 | msgId:{id} | filterState keys:[{string.Join(",", filterState.Keys)}]");
 
         //切换课程或切换百科 清除状态
         if (!GlobalInfo.IsExamMode() && MsgTruncate.IndexOf(id) > -1)
@@ -273,7 +271,6 @@ public partial class IMStateHelper
         }
 
         MsgStateType msgType = GetMsgType(id);
-        Debug.Log($"[状态调试] UpdateState | msgId:{id} | msgType:{msgType}");
 
         switch (msgType)
         {
@@ -306,8 +303,6 @@ public partial class IMStateHelper
                 break;
         }
 
-        // 添加调试日志 - 处理后
-        Debug.Log($"[状态调试] UpdateState后 | msgId:{id} | filterState keys:[{string.Join(",", filterState.Keys)}]");
     }
 
     /// <summary>
@@ -509,8 +504,6 @@ public partial class IMStateHelper
     /// <param name="independentMsg"></param>
     private void TruncateStateList(List<ushort> independentMsg)
     {
-        Debug.Log($"[状态调试] TruncateStateList被调用 | 保留消息IDs:[{string.Join(",", independentMsg)}]");
-
         List<MsgBrodcastOperate> saved = new List<MsgBrodcastOperate>();
         foreach (ushort id in filterState.Keys)
         {
@@ -539,8 +532,6 @@ public partial class IMStateHelper
 
         opsSend.Clear();
         userOpsLineSend.Clear();
-
-        Debug.Log($"[状态调试] TruncateStateList后 | filterState keys:[{string.Join(",", filterState.Keys)}]");
     }
 
     /// <summary>

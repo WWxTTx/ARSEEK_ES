@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -224,7 +224,7 @@ namespace UnityFramework.Runtime
                 yield return request.SendWebRequest();
 
                 if (isLoadingOn)
-                    UIManager.Instance.CloseUI<LoadingPanel>();
+                    UIManager.Instance.HideUI<LoadingPanel>();
                 Response(requestName, request, resultCallBack);
             }
         }

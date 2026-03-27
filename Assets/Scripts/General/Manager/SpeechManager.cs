@@ -400,6 +400,7 @@ public class SpeechManager : Singleton<SpeechManager>
     /// </summary>
     public void PlayImmediate(string stepId, int index, TipType tipType)
     {
+        GlobalInfo.UpdateSpeechMode();
         // 等待 StepSpeechData 初始化
         if (!dataInited)
         {

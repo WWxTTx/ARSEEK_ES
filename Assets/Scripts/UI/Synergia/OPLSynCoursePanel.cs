@@ -332,7 +332,6 @@ public class OPLSynCoursePanel : OPLCoursePanel
                     CourseSideBar.SetBaikePage();
                     if (!NetworkManager.Instance.IsIMSyncCachedState && !NetworkManager.Instance.IsIMSyncState)
                     {
-                        Debug.Log($"[协同调试] 房主发送BaikeSelect消息 | Wiki:{GlobalInfo.currentWikiList[0].id}");
                         ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
                     }
                 }
@@ -346,7 +345,6 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 {
                     case (int)RoomType.Synergia:
                         Mask(true, true);
-                        Debug.Log($"[协同调试] 非房主初始化 | IsOperator:{GlobalInfo.IsOperator()} | Wiki:{GlobalInfo.currentWikiList[0].id}]");
                         ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
                         break;
                     default:

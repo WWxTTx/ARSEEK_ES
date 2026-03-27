@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.ServiceRequestData;
 using Newtonsoft.Json.Linq;
+using DG.Tweening;
 
 public class RoomChannelAgent : NetworkChannelAgentBase
 {
@@ -126,13 +127,18 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                 // 加入房间时若房主异常离线，提示退出房间
                 // 避免协同房间无房主为新成员分配权限颜色
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+                ModelManager.Instance.DestroySyncComponent();
+                NetworkManager.Instance.ReleaseMicrophone();
+
                 popupDic.Add("确定", new PopupButtonData(() =>
                 {
-                    ModelManager.Instance.DestroySyncComponent();
-                    NetworkManager.Instance.ReleaseMicrophone();
                     NetworkManager.Instance.LeaveRoom();
                 }, true));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "房主不在房间内，请退出房间重试", popupDic, null, false));
+
+                DOVirtual.DelayedCall(1, () =>
+                {
+                    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "房主不在房间内，请退出房间重试", popupDic, null, false));
+                });
             }
         }
 

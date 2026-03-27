@@ -116,7 +116,7 @@ namespace UnityFramework.Runtime
             //直播
             else if (GlobalInfo.courseMode == CourseMode.Livebroadcast)
             {
-                
+                SendLocalMsg(msgBrodcastOperate);
             }
             //本地
             else

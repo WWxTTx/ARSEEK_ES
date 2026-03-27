@@ -415,7 +415,6 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.SelectFlow,
             (ushort)SmallFlowModuleEvent.SelectStep,
             (ushort)SmallFlowModuleEvent.Guide,
-            (ushort)SmallFlowModuleEvent.NextStep,
             (ushort)SmallFlowModuleEvent.SelectTool,
             (ushort)SmallFlowModuleEvent.SelectInput,
             (ushort)SmallFlowModuleEvent.SelectContact,
@@ -1086,16 +1085,12 @@ public class UISmallSceneModule : UIModuleBase
         bool isOnOperation = IsCorrectOperation(modelOperation, out SmallOp1 data);
         if (GlobalInfo.IsExamMode())
         {
-            // 考核模式 操作就获得操作权限 没有正确判断
-            AcquireOperatePermission(sender, modelOperation, string.Empty);
             ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
         }
         else
         {
             if (isOnOperation)
             {
-                // 获得对modelOperation的操作权，执行本地操作 且再步骤结束时释放权限
-                AcquireOperatePermission(sender, modelOperation, string.Empty);
                 ExecuteOperation(modelOperation, isOnOperation, data?.optionName);
             }
             else
@@ -1551,9 +1546,6 @@ public class UISmallSceneModule : UIModuleBase
                 smallFlowCtrl.StepGuide(msgTuple.arg.Item1, msgTuple.arg.Item2);
                 StepHighlight(msgTuple.arg.Item1, msgTuple.arg.Item2);
                 break;
-            case (ushort)SmallFlowModuleEvent.NextStep:
-                OnStepChanged();
-                break;
             case (ushort)SmallFlowModuleEvent.SelectTool:
                 OnPropChanged((msg as MsgString).arg);
                 break;
@@ -1603,9 +1595,11 @@ public class UISmallSceneModule : UIModuleBase
                 {
                     ModelState = ModelState.Unselect;
                 }
-                if (sender == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
+                if (sender == GlobalInfo.account.id)
                 {
                     TryExecuteOp(modelOperation, sender);
+                    // 考核模式 操作就获得操作权限 没有正确判断
+                    AcquireOperatePermission(sender, modelOperation, string.Empty);
                 }
                 break;
             //case (ushort)SmallFlowModuleEvent.Look2D:
@@ -1676,10 +1670,7 @@ public class UISmallSceneModule : UIModuleBase
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.StepEnd:
-                    MsgStepEnd msgStepEnd = (msg as MsgBrodcastOperate).GetData<MsgStepEnd>();
-                    int stepEndSenderId = ((MsgBrodcastOperate)msg).senderId;
-                    Debug.Log($"状态调试 StepEnd收到消息 - senderId:{stepEndSenderId}, modelInfoId:{msgStepEnd.modelInfoId}, operationName:{msgStepEnd.operationName}, 当前用户:{GlobalInfo.account.id}");
-                    ReleaseOperatePermission(((MsgBrodcastOperate)msg).senderId, smallFlowCtrl.GetModelOperation(msgStepEnd.modelInfoId), msgStepEnd.operationName);
+                OnStepChanged();
                 break;
             //case (ushort)SmallFlowModuleEvent.CompleteAll:
                 //Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
