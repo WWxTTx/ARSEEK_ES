@@ -315,7 +315,6 @@ public class AnimModule : UIModuleBase
                     ModelManager.Instance.ResetCameraPose(true, false, () =>
                     {
                         FormMsgManager.Instance.SendMsg(new MsgBool((ushort)HierarchyEvent.Interactable, true));
-                        NetworkManager.Instance.IsIMSync = true;
                     });
                 });
                 break;

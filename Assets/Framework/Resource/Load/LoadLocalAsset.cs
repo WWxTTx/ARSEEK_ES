@@ -279,27 +279,30 @@ namespace UnityFramework.Runtime
                 Debug.Log("加载失败，可能是重复调用");
             }
             
-            while (!request.isDone)
+            if (request != null)
             {
-                yield return null;
-                callback?.Invoke(Mathf.Min((request.progress + 1) * 0.5f,0.99f), null);
-            }
-
-            var allAssets = request.allAssets;
-            {
-                if (allAssets == null || allAssets.Length == 0)
+                while (!request.isDone)
                 {
-                    Log.Error("路径为{0}的ab包中未找到{1}类型资源", path, typeof(T).ToString());
-                    callback?.Invoke(-1f, null);
+                    yield return null;
+                    callback?.Invoke(Mathf.Min((request.progress + 1) * 0.5f, 0.99f), null);
                 }
-                else
+
+                var allAssets = request.allAssets;
                 {
-                    T[] assets = new T[allAssets.Length];
-                    for (int i = 0; i < allAssets.Length; i++)
+                    if (allAssets == null || allAssets.Length == 0)
                     {
-                        assets[i] = allAssets[i] as T;
+                        Log.Error("路径为{0}的ab包中未找到{1}类型资源", path, typeof(T).ToString());
+                        callback?.Invoke(-1f, null);
                     }
-                    callback?.Invoke(1f, assets);
+                    else
+                    {
+                        T[] assets = new T[allAssets.Length];
+                        for (int i = 0; i < allAssets.Length; i++)
+                        {
+                            assets[i] = allAssets[i] as T;
+                        }
+                        callback?.Invoke(1f, assets);
+                    }
                 }
             }
         }

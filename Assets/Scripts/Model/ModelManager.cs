@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+using DG.Tweening;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -568,8 +568,8 @@ namespace UnityFramework.Runtime
         /// </summary>
         public void AddSyncComponent(GameObject gameObject)
         {
-            //个人考核不要同步组件
-            if(GlobalInfo.IsLiveMode() && (GlobalInfo.roomInfo.RoomType != 0 || GlobalInfo.roomInfo.ExamType != (int)ExamRoomType.Person))
+            //个人考核不要同步组件，直播和协同模式需要
+            if(GlobalInfo.TwoPlayerMode())
                 cameraSync = gameObject.AutoComponent<CameraSync>();
         }
         /// <summary>

@@ -51,7 +51,8 @@ public class UISmallSceneFlowModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.SelectStep,
             (ushort)SmallFlowModuleEvent.Guide,
             (ushort)SmallFlowModuleEvent.CompleteStep,
-            (ushort)SmallFlowModuleEvent.ShowUIOperation
+            (ushort)SmallFlowModuleEvent.ShowUIOperation,
+            (ushort)SmallFlowModuleEvent.ReleasePermission
         });
 
         Background = this.GetComponentByChildName<RectTransform>("Background");
@@ -284,6 +285,9 @@ public class UISmallSceneFlowModule : UIModuleBase
                     }
                 }
                 break;
+            case (ushort)SmallFlowModuleEvent.ReleasePermission:
+                isOnClick = true;
+                break;
             case (ushort)SmallFlowModuleEvent.StartExecute:
                 isOnClick = false;
                 break;
@@ -359,6 +363,8 @@ public class UISmallSceneFlowModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.SelectStep:
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
                 {
+                    if (!viewItemIds.ContainsKey(msgStringTuple.arg1))
+                        return;
                     TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[msgStringTuple.arg1]);
                     if (stepItem == null)
                         return;
@@ -369,6 +375,8 @@ public class UISmallSceneFlowModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.Guide:
                 MsgTuple<int, int, string> msgTuple = msg as MsgTuple<int, int, string>;
                 {
+                    if (msgTuple == null || !viewItemIds.ContainsKey(msgTuple.arg.Item3))
+                        return;
                     TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[msgTuple.arg.Item3]);
                     if (stepItem == null)
                         return;

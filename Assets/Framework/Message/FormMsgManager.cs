@@ -154,9 +154,9 @@ namespace UnityFramework.Runtime
         /// <param name="msg">广播的消息</param>
         public void SendMsg(MsgBase msg)
         {
+            NetworkManager.Instance.IsIMSync = true;
             if (!dicEventMsg.ContainsKey(msg.msgId))
             {
-                //Log.Warning("Not containt id:" + msg.msgId);
                 return;
             }
             else

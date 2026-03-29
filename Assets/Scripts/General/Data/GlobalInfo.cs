@@ -126,6 +126,8 @@ public class GlobalInfo
     {
         return courseMode == CourseMode.Training || courseMode == CourseMode.Livebroadcast;
     }
+
+    public static bool CreatedMode = false;
     /// <summary>
     /// 设置课程模式（统一入口，同时更新 isExam 和 isLive）
     /// </summary>
@@ -154,6 +156,7 @@ public class GlobalInfo
        
         if (courseMode != mode)
         {
+            CreatedMode = false;
             courseMode = mode;
         }
         
@@ -565,11 +568,15 @@ public class GlobalInfo
     {
         if (roomInfo == null || account == null)
             return false;
-        if (IsExamMode() || courseMode == CourseMode.Collaboration)
+        if (TwoPlayerMode())
             return true;
         return controllerIds.Contains(account.id);
     }
 
+    public static bool TwoPlayerMode()
+    {
+        return courseMode == CourseMode.OnlineExam || courseMode == CourseMode.Collaboration;
+    }
 
     /// <summary>
     /// 是否是操作者

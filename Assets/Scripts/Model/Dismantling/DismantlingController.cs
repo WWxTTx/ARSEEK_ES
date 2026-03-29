@@ -388,7 +388,6 @@ public class DismantlingController : MonoBehaviour
                     //拆解完成
                     isDispersing = false;
                     FormMsgManager.Instance.SendMsg(new MsgBool((ushort)HierarchyEvent.Interactable, true));
-                    NetworkManager.Instance.IsIMSync = true;
                 });
             }
         }
@@ -459,7 +458,6 @@ public class DismantlingController : MonoBehaviour
                     //组合完成
                     isFolding = false;
                     FormMsgManager.Instance.SendMsg(new MsgBool((ushort)HierarchyEvent.Interactable, true));
-                    NetworkManager.Instance.IsIMSync = true;
                 });
             }
         }
@@ -648,7 +646,6 @@ public class DismantlingController : MonoBehaviour
             else
             {
                 FormMsgManager.Instance.SendMsg(new MsgBool((ushort)HierarchyEvent.Interactable, true));
-                NetworkManager.Instance.IsIMSync = true;
             }
         });
     }
@@ -834,7 +831,6 @@ public class DismantlingController : MonoBehaviour
                                 GlobalInfo.playTimeRatio = 1f;
                                 isResetting = false;
                                 FormMsgManager.Instance.SendMsg(new MsgBool((ushort)HierarchyEvent.Interactable, true));
-                                NetworkManager.Instance.IsIMSync = true;
                             });
                         });
                     }
@@ -849,7 +845,6 @@ public class DismantlingController : MonoBehaviour
                     GlobalInfo.playTimeRatio = 1f;
                     isResetting = false;
                     FormMsgManager.Instance.SendMsg(new MsgBool((ushort)HierarchyEvent.Interactable, true));
-                    NetworkManager.Instance.IsIMSync = true;
                 });
             }
 

@@ -6,16 +6,46 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using UnityFramework.Runtime;
 
 /// <summary>
 /// Ua, Ub, Uc / Uab, Ubc, Uca
 /// Ia, Ib, Ic
 /// P Q cosφF 转速 这些关键值在不同情况下的值
 /// </summary>
-public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
+public class LCU_mlfsjs : MonoBase, IBaseBehaviour
 {
     bool IBaseBehaviour.UseCallback(int step) => true;
     public Type GetStatusEnumType() => typeof(AvailableStatus);
+
+    // 在 Awake 中提前注册消息，避免 Start 时序晚于消息到达
+    protected virtual void Awake()
+    {
+        AddMsg(new ushort[] {
+            (ushort)SmallFlowModuleEvent.SynchronizationLcu
+        });
+    }
+
+    protected override void InitComponents()
+    {
+        // 消息注册已移至 Awake
+    }
+
+    public override void ProcessEvent(MsgBase msg)
+    {
+        base.ProcessEvent(msg);
+        if (msg.msgId == (ushort)SmallFlowModuleEvent.SynchronizationLcu)
+        {
+            // 只处理其他用户发送的消息
+            if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id)
+            {
+                string eventname = ((MsgBrodcastOperate)msg).GetData<MsgString>().arg;
+                TryToNext(eventname);
+                ExecuteButtonEvent(eventname);
+            }
+        }
+    }
+
     [SerializeField]
     public enum AvailableStatus
     {
@@ -202,9 +232,23 @@ public class LCU_mlfsjs : MonoBehaviour, IBaseBehaviour
     public GameObject bjjm;
     public GameObject kzjm;
 
+    /// <summary>
+    /// 按钮事件入口 - 本地点击时调用
+    /// </summary>
     public void ButenEvent(string eventname)
     {
+        // 本地执行
         TryToNext(eventname);
+        ExecuteButtonEvent(eventname);
+        // 发送广播消息给其他用户
+        ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationLcu, eventname), true);
+    }
+
+    /// <summary>
+    /// 执行按钮事件的实际逻辑
+    /// </summary>
+    private void ExecuteButtonEvent(string eventname)
+    {
         switch (eventname)
         {
             case "停机":

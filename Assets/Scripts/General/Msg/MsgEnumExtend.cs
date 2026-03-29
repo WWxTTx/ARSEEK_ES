@@ -288,7 +288,7 @@ public enum SmallFlowModuleEvent
     /// <summary>
     /// 观察
     /// </summary>
-    Look,
+    ClickObj,
     Look2D,
     /// <summary>
     /// 操作
@@ -393,7 +393,19 @@ public enum SmallFlowModuleEvent
     /// 工具栏显示
     /// </summary>
     ShowTool,                               // ID:135
-    Max,                                    // ID:136
+    /// <summary>
+    /// 释放操作权限
+    /// </summary>
+    ReleasePermission,                      // ID:136
+    /// <summary>
+    /// TSQ_TsqXsp 按钮事件同步
+    /// </summary>
+    SynchronizationTsq,                    // ID:137
+    /// <summary>
+    /// LCU_mlfsjs 按钮事件同步
+    /// </summary>
+    SynchronizationLcu,                    // ID:138
+    Max,                                    // ID:139
 }
 
 /// <summary>

@@ -243,7 +243,6 @@ public class DismantlingModule : UIModuleBase
                         iController.Check(true, () =>
                         {
                             FormMsgManager.Instance.SendMsg(new MsgBool((ushort)HierarchyEvent.Interactable, true));
-                            NetworkManager.Instance.IsIMSync = true;
                         });
                     }
                 }

@@ -255,15 +255,34 @@ public class IMChannelAgent : NetworkChannelAgentBase
             IsStartSync = false;
         }
 
-        //操作直接同步结果 不再同步操作过程
-        if (currentOp.msgId == (ushort)SmallFlowModuleEvent.Operate)
-            return;
+        //// 保证消息可执行
+        DelayedSend(currentOp, content).Forget();
+    }
+
+    /// <summary>
+    /// 重连时消息是并发的，这里相当于重新排序
+    /// </summary>
+    private async UniTaskVoid DelayedSend(MsgBrodcastOperate currentOp, string content)
+    {   
+        //需要等待36消息先执行 创建场景
+        if(!GlobalInfo.isExam)
+        {
+            if (currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect && !GlobalInfo.CreatedMode)
+            {
+                FormMsgManager.Instance.SendMsg(currentOp);
+                GlobalInfo.CreatedMode = true;
+            }
+
+            await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null);
+
+            //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
+            if (currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect && GlobalInfo.CreatedMode)
+                return;
+        }
 
         FormMsgManager.Instance.SendMsg(currentOp);
         Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
     }
-
-  
 
     public override void ProcessMessage(string message)
     {
@@ -420,12 +439,110 @@ public class IMChannelAgent : NetworkChannelAgentBase
         opsReceive.Clear();
 
         CurrentStateToSync = cachedPacket.state;
+
+        // 重连步骤推导：从缓存消息推导最终的流程步骤
+        DeriveFinalStepFromCache();
+
         stateHelper.UpdateCachedStateVersion(cachedPacket);
-        Debug.Log($"<color=#14A857>状态调试 重连者添加缓存:</color>)" + JsonTool.Serializable(cachedPacket));
+        Debug.Log("<color=#14A857>状态调试 重连者添加缓存:</color>" + JsonTool.Serializable(cachedPacket));
 
         deltaTime = 0;
 
         GlobalInfo.version = cachedPacket.version;
+    }
+
+    /// <summary>
+    /// 从缓存消息推导最终的流程步骤，生成合成的SelectStep消息
+    /// 解决105(SelectStep)消息被TruncateStateList过滤后重连步骤不正确的问题
+    /// </summary>
+    private void DeriveFinalStepFromCache()
+    {
+        if (cachedPacket == null || cachedPacket.state == null || cachedPacket.state.stateOps == null)
+            return;
+
+        int finalFlowIndex = -1;
+        int finalStepIndex = -1;
+
+        // 1. 遍历缓存消息，找最新的105(SelectStep)消息
+        foreach (var op in cachedPacket.state.stateOps)
+        {
+            if (op != null && op.msgId == (ushort)SmallFlowModuleEvent.SelectStep)
+            {
+                try
+                {
+                    var stepData = JsonTool.DeSerializable<MsgStringTuple<int, int, string>>(op.data);
+                    if (stepData != null && stepData.arg2 != null)
+                    {
+                        finalFlowIndex = stepData.arg2.Item1;
+                        finalStepIndex = stepData.arg2.Item2;
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Log.Warning("解析缓存SelectStep消息失败: " + e.Message);
+                }
+            }
+        }
+
+        // 2. 统计118(CompleteExecute)消息数量
+        int completeCount = 0;
+        foreach (var op in cachedPacket.state.stateOps)
+        {
+            if (op != null && op.msgId == (ushort)SmallFlowModuleEvent.CompleteExecute)
+            {
+                completeCount++;
+            }
+        }
+
+        // 3. 如果最后一条消息是112(Operate)或118(CompleteExecute)，需要推进步骤
+        if ((cachedPacket.data != null &&
+            (cachedPacket.data.msgId == (ushort)SmallFlowModuleEvent.Operate ||
+             cachedPacket.data.msgId == (ushort)SmallFlowModuleEvent.CompleteExecute)) &&
+            finalFlowIndex >= 0)
+        {
+            // 根据completeCount推进步骤
+            // 获取SmallFlowCtrl来查询每个任务的步骤数量
+            SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelRoot?.GetComponentInChildren<SmallFlowCtrl>(true);
+            if (smallFlowCtrl != null && smallFlowCtrl.flows != null && completeCount > 0)
+            {
+                int fi = finalFlowIndex;
+                int si = finalStepIndex;
+                for (int i = 0; i < completeCount; i++)
+                {
+                    si++;
+                    // 如果步骤超出当前任务，进入下一个任务
+                    if (fi < smallFlowCtrl.flows.Length && si >= smallFlowCtrl.flows[fi].steps.Count)
+                    {
+                        si = 0;
+                        fi++;
+                    }
+                }
+                // 确保不越界
+                if (fi < smallFlowCtrl.flows.Length)
+                {
+                    finalFlowIndex = fi;
+                    finalStepIndex = si;
+                }
+            }
+        }
+
+        // 4. 如果推导出了有效步骤，生成合成的105消息并插入缓存
+        if (finalFlowIndex >= 0 && finalStepIndex >= 0)
+        {
+            var synthMsg = new MsgStringTuple<int, int, string>();
+            synthMsg.msgId = (ushort)SmallFlowModuleEvent.SelectStep;
+            synthMsg.arg2 = new Tuple<int, int, string>(finalFlowIndex, finalStepIndex, string.Empty);
+            synthMsg.arg1 = string.Empty;
+            var brodcastMsg = new MsgBrodcastOperate
+            {
+                senderId = 0,
+                msgId = synthMsg.msgId,
+                data = JsonTool.Serializable(synthMsg)
+            };
+
+            cachedPacket.state.stateOps.Insert(0, brodcastMsg);
+            Debug.Log($"<color=#14A857>状态调试 重连步骤推导: flowIndex={finalFlowIndex}, stepIndex={finalStepIndex}, completeCount={completeCount}</color>");
+        }
     }
 
     /// <summary>

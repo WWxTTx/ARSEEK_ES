@@ -376,9 +376,12 @@ public class UISmallSceneModule : UIModuleBase
 
     public bool OtherOperating
     {
-        get 
+        get
         {
-            return ModelState == ModelState.OtherOperating || userOpModel.Any(item => item.Key != null && item.Value != GlobalInfo.account.id && NetworkManager.Instance.IsUserOnline(item.Value));
+            return userOpModel.Any(item =>
+                item.Key != null &&
+                item.Value != GlobalInfo.account.id &&
+                NetworkManager.Instance.IsUserOnline(item.Value));
         }
     }
 
@@ -420,7 +423,7 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.SelectContact,
             (ushort)SmallFlowModuleEvent.Operate2D,
             (ushort)SmallFlowModuleEvent.FocusChanged,
-            (ushort)SmallFlowModuleEvent.Look,
+            (ushort)SmallFlowModuleEvent.ClickObj,
             (ushort)SmallFlowModuleEvent.Look2D,
             (ushort)SmallFlowModuleEvent.Operate,
             (ushort)SmallFlowModuleEvent.MasterComputerSelect,
@@ -435,7 +438,8 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.CloseCameraOperation,
             (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.OtherLeave,
-            (ushort)SmallFlowModuleEvent.StartExecute
+            (ushort)SmallFlowModuleEvent.StartExecute,
+            (ushort)SmallFlowModuleEvent.ReleasePermission
         });
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", false);
 
@@ -908,20 +912,20 @@ public class UISmallSceneModule : UIModuleBase
         var modelInfo = modelOperation.GetComponent<ModelInfo>();
 
         //操作对象配置了聚焦操作，且当前未聚焦
-        if (focusOperation != null && modelOperation_Focused != modelOperation)
-        {
-            ModelState = ModelState.Focusing;
-            modelOperation_Focused = modelOperation;
+        //if (focusOperation != null && modelOperation_Focused != modelOperation)
+        //{
+        //    ModelState = ModelState.Focusing;
+        //    modelOperation_Focused = modelOperation;
 
-            FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfo.ID, false));
-            smallFlowCtrl.ExecuteOperation(modelOperation_Focused, SmallFlowCtrl.focusFlag, null, (_) =>
-            {
-                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfo.ID));
-                ModelState = ModelState.Focused;
-                OnModelFocused(modelOperation_Focused);
-            });
-        }
-        else
+        //    FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfo.ID, false));
+        //    smallFlowCtrl.ExecuteOperation(modelOperation_Focused, SmallFlowCtrl.focusFlag, null, (_) =>
+        //    {
+        //        FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfo.ID));
+        //        ModelState = ModelState.Focused;
+        //        OnModelFocused(modelOperation_Focused);
+        //    });
+        //}
+        //else
         {
             if (modelOperation == modelOperation_Focused)
             {
@@ -949,46 +953,46 @@ public class UISmallSceneModule : UIModuleBase
                 //}
             }
 
-            ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Look, modelOperation_Select.GetComponent<ModelInfo>().ID, null, null), true);
+            ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.ClickObj, modelOperation_Select.GetComponent<ModelInfo>().ID, null, null), true);
         }
     }
 
-    private void OnModelFocused(ModelOperation modelOperation)
-    {
-        var modelInfo = modelOperation.GetComponent<ModelInfo>();
-        if (modelInfo.InfoData != null)
-        {
-            SmallOp1 data = new SmallOp1 { operation = modelOperation, prop = prop };
+    //private void OnModelFocused(ModelOperation modelOperation)
+    //{
+    //    var modelInfo = modelOperation.GetComponent<ModelInfo>();
+    //    if (modelInfo.InfoData != null)
+    //    {
+    //        SmallOp1 data = new SmallOp1 { operation = modelOperation, prop = prop };
 
-            switch (modelInfo.InfoData.InteractMode)
-            {
-                case InteractMode.OpUI:
-                    modelOperation_Select = modelOperation;
-                    Drag(modelInfo, string.Empty, modelOperation_Select.currentState, (opName) =>
-                    {
-                        data.optionName = opName;
-                        data.prop = prop;
-                        ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, IsCorrectOperation(data.operation, out SmallOp1 expectOp) && opName.Equals(expectOp.optionName)), true);
-                    });
-                    return;
-                case InteractMode.ListUI:
-                    modelOperation_Select = modelOperation;
-                    List<string> options = modelOperation.operations.Select(o => o.name)
-                        .Where(o => !SmallFlowCtrl.maskOperation.Contains(o) && !o.StartsWith(SmallFlowCtrl.backpackFlag)).ToList();
-                    List(modelInfo, string.Empty, options, (opName) =>
-                    {
-                        data.optionName = opName;
-                        data.prop = prop;
-                        ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, IsCorrectOperation(data.operation, out SmallOp1 expectOp) && opName.Equals(expectOp.optionName)), true);
-                    });
-                    return;
-                case InteractMode.Click:
-                case InteractMode.Switch:
-                default:
-                    break;
-            }
-        }
-    }
+    //        switch (modelInfo.InfoData.InteractMode)
+    //        {
+    //            case InteractMode.OpUI:
+    //                modelOperation_Select = modelOperation;
+    //                Drag(modelInfo, string.Empty, modelOperation_Select.currentState, (opName) =>
+    //                {
+    //                    data.optionName = opName;
+    //                    data.prop = prop;
+    //                    ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, IsCorrectOperation(data.operation, out SmallOp1 expectOp) && opName.Equals(expectOp.optionName)), true);
+    //                });
+    //                return;
+    //            case InteractMode.ListUI:
+    //                modelOperation_Select = modelOperation;
+    //                List<string> options = modelOperation.operations.Select(o => o.name)
+    //                    .Where(o => !SmallFlowCtrl.maskOperation.Contains(o) && !o.StartsWith(SmallFlowCtrl.backpackFlag)).ToList();
+    //                List(modelInfo, string.Empty, options, (opName) =>
+    //                {
+    //                    data.optionName = opName;
+    //                    data.prop = prop;
+    //                    ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, IsCorrectOperation(data.operation, out SmallOp1 expectOp) && opName.Equals(expectOp.optionName)), true);
+    //                });
+    //                return;
+    //            case InteractMode.Click:
+    //            case InteractMode.Switch:
+    //            default:
+    //                break;
+    //        }
+    //    }
+    //}
 
     private bool IsCorrectOperation(ModelOperation modelOperation, out SmallOp1 data)
     {
@@ -1097,8 +1101,8 @@ public class UISmallSceneModule : UIModuleBase
             {
                 //提示对错
                 OnErrorShow();
-                //点击错误对象需要释放操作权限
-                ReleaseOperatePermission(GlobalInfo.account.id, modelOperation, data?.optionName);
+                //点击错误对象需要发送全局释放权限消息
+                ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.ReleasePermission));
             }
         }
     }
@@ -1562,6 +1566,20 @@ public class UISmallSceneModule : UIModuleBase
                 SelectAndExecute2D(msg2DOperate.operation, msg2DOperate.optionName);
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
+                // 操作完成时释放发送者的操作权限
+                MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
+                if (brodcastMsg != null)
+                {
+                    // 收到其他用户的广播消息，释放该用户的权限
+                    ReleaseOperatePermission(brodcastMsg.senderId);
+                }
+                else
+                {
+                    // 本地消息（自己完成的操作），释放本地权限并广播给其他用户
+                    ReleaseOperatePermission(GlobalInfo.account.id);
+                    ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.ReleasePermission));
+                }
+                ModelState = ModelState.Unselect;
                 RefreshHighlight();
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteStep:
@@ -1587,7 +1605,7 @@ public class UISmallSceneModule : UIModuleBase
                 }
                 //AcquireOperatePermission(userIdFocus, modelOperationFocused, string.Empty);
                 break;
-            case (ushort)SmallFlowModuleEvent.Look:
+            case (ushort)SmallFlowModuleEvent.ClickObj:
                 ModelOperation modelOperation = smallFlowCtrl.GetModelOperation((msg as MsgBrodcastOperate).GetData<MsgOperation>().modelOperation);
                 int sender = ((MsgBrodcastOperate)msg).senderId;
                 // 选中对象冲突
@@ -1599,8 +1617,8 @@ public class UISmallSceneModule : UIModuleBase
                 {
                     TryExecuteOp(modelOperation, sender);
                     // 考核模式 操作就获得操作权限 没有正确判断
-                    AcquireOperatePermission(sender, modelOperation, string.Empty);
                 }
+                    AcquireOperatePermission(sender, modelOperation);
                 break;
             //case (ushort)SmallFlowModuleEvent.Look2D:
             //    MsgOperation2D msgOperation2D = (msg as MsgBrodcastOperate).GetData<MsgOperation2D>();
@@ -1654,7 +1672,6 @@ public class UISmallSceneModule : UIModuleBase
                                 if(!isOn)
                                     smallFlowCtrl.RestoreState(data.operation, oldState);
                             }
-
                         }, !self);
                     }
                 }
@@ -1669,15 +1686,9 @@ public class UISmallSceneModule : UIModuleBase
                     focusMasterComputerDescrption = msgElement.name;
                 }
                 break;
-            case (ushort)SmallFlowModuleEvent.StepEnd:
-                OnStepChanged();
+            case (ushort)SmallFlowModuleEvent.ReleasePermission:
+                ReleaseOperatePermission(((MsgBrodcastOperate)msg).senderId);
                 break;
-            //case (ushort)SmallFlowModuleEvent.CompleteAll:
-                //Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                //popupDic.Add("确定", new PopupButtonData(null, true));
-                //UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "完成当前百科所有操作", popupDic, showCloseBtn: false));
-                //allOver = true;
-                //break;
             case (ushort)ShortcutEvent.PressAnyKey:
                 ShortcutManager.Instance.CheckShortcutKey(msg, new Dictionary<string, Action>()
                 {
@@ -1830,44 +1841,15 @@ public class UISmallSceneModule : UIModuleBase
     /// 获取对操作对象的操作权
     /// </summary>
     /// <param name="modelOperation"></param>
-    private void AcquireOperatePermission(int userId, ModelOperation modelOperation, string operationName)
+    private void AcquireOperatePermission(int userId, ModelOperation modelOperation)
     {
-        Debug.Log($"状态调试 AcquireOperatePermission - userId:{userId}, modelOperation:{modelOperation?.name}, operationName:{operationName}, 当前用户:{GlobalInfo.account.id}");
-
         //释放当前占用的操作对象
-        var currentOperations = userOpModel.Where(item => item.Value == userId).Select(item => item.Key).ToList();
-        if (currentOperations != null)
-        {
-            foreach (var model in currentOperations)
-            {
-                if (userOpModel.ContainsKey(model)/* && modelOperation != model*/)
-                {
-                    userOpModel.Remove(model);
-                }
-            }
-        }
+        ReleaseOperatePermission(userId);
 
         if (modelOperation == null)
             return;
 
-        //获取操作对象的操作权
-        if (!userOpModel.ContainsKey(modelOperation))
-        {
-            userOpModel.Add(modelOperation, userId);
-            Debug.Log($"状态调试 AcquireOperatePermission - 已添加权限: modelOperation:{modelOperation.name}, userId:{userId}");
-        }
-
-        //获取操作表现联动操作对象的操作权
-        var operation = modelOperation.operations.FirstOrDefault(o => o.name.Equals(operationName));
-        if (operation != null)
-        {
-            var linkageModels = operation.actions.Select(action => action.operation).Where(o => o != null).ToList();
-            foreach (var linkageModel in linkageModels)
-            {
-                if (!userOpModel.ContainsKey(linkageModel))
-                    userOpModel.Add(linkageModel, userId);
-            }
-        }
+        userOpModel.Add(modelOperation,userId);
     }
 
     /// <summary>
@@ -1876,38 +1858,13 @@ public class UISmallSceneModule : UIModuleBase
     /// <param name="userId"></param>
     /// <param name="modelOperation"></param>
     /// <param name="operationName"></param>
-    private void ReleaseOperatePermission(int userId, ModelOperation modelOperation, string operationName)
+    private void ReleaseOperatePermission(int userId, ModelOperation modelOperation)
     {
-        Debug.Log($"状态调试 ReleaseOperatePermission - userId:{userId}, modelOperation:{modelOperation?.name}, operationName:{operationName}, 当前用户:{GlobalInfo.account.id}");
-
-        if (modelOperation == null)
-        {
-            Debug.Log("状态调试 ReleaseOperatePermission - modelOperation为null，返回");
-            return;
-        }
-
         if (userOpModel.ContainsKey(modelOperation) && userOpModel[modelOperation] == userId)
         {
             userOpModel.Remove(modelOperation);
             Debug.Log($"状态调试 ReleaseOperatePermission - 已释放权限: modelOperation:{modelOperation.name}, userId:{userId}");
         }
-        else
-        {
-            Debug.Log($"状态调试 ReleaseOperatePermission - 未找到匹配权限: containsKey:{userOpModel.ContainsKey(modelOperation)}, 当前持有者:{(userOpModel.ContainsKey(modelOperation) ? userOpModel[modelOperation].ToString() : "无")}");
-        }
-
-        //释放联动操作对象的操作权
-        var operation = modelOperation.operations.FirstOrDefault(o => o.name.Equals(operationName));
-        if (operation != null)
-        {
-            var linkageModels = operation.actions.Select(action => action.operation).Where(o => o != null).ToList();
-            foreach (var linkageModel in linkageModels)
-            {
-                if (userOpModel.ContainsKey(linkageModel) && userOpModel[linkageModel] == userId)
-                    userOpModel.Remove(linkageModel);
-            }
-        }
-        ModelState = ModelState.Unselect;
     }
 
     private void ReleaseOperatePermission(int userId)
@@ -1926,29 +1883,6 @@ public class UISmallSceneModule : UIModuleBase
         }
     }
 
-    /// <summary>
-    /// 释放对联动操作对象的操作权
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <param name="modelOperation"></param>
-    /// <param name="operationName"></param>
-    private void ReleaseLinkageOperatePermission(int userId, ModelOperation modelOperation, string operationName)
-    {
-        if (modelOperation == null)
-            return;
-
-        //释放联动操作对象的操作权
-        var operation = modelOperation.operations.FirstOrDefault(o => o.name.Equals(operationName));
-        if (operation != null)
-        {
-            var linkageModels = operation.actions.Select(action => action.operation).Where(o => o != null).ToList();
-            foreach (var linkageModel in linkageModels)
-            {
-                if (userOpModel.ContainsKey(linkageModel) && userOpModel[linkageModel] == userId)
-                    userOpModel.Remove(linkageModel);
-            }
-        }
-    }
 
     /// <summary>
     /// 检查操作对象操作权是否被占用

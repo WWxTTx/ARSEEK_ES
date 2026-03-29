@@ -7,11 +7,44 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using UnityFramework.Runtime;
 
-public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
+public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 {
     bool IBaseBehaviour.UseCallback(int step) => false;
     public Type GetStatusEnumType() => typeof(AvailableStatus);
+
+    // 在 Awake 中提前注册消息，避免 Start 时序晚于消息到达
+    protected virtual void Awake()
+    {
+        AddMsg(new ushort[] {
+            (ushort)SmallFlowModuleEvent.SynchronizationTsq
+        });
+    }
+
+    protected override void InitComponents()
+    {
+        // 消息注册已移至 Awake
+    }
+
+    public override void ProcessEvent(MsgBase msg)
+    {
+        base.ProcessEvent(msg);
+        if (msg.msgId == (ushort)SmallFlowModuleEvent.SynchronizationTsq)
+        {
+            MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
+            if (brodcastMsg != null && brodcastMsg.senderId != GlobalInfo.account.id)
+            {
+                MsgString msgString = brodcastMsg.GetData<MsgString>();
+                if (msgString != null)
+                {
+                    TryToNext(msgString.arg);
+                    ExecuteButtonEvent(msgString.arg);
+                }
+            }
+        }
+    }
+
     [SerializeField]
     public enum AvailableStatus
     {
@@ -1124,11 +1157,23 @@ public class TSQ_TsqXsp : MonoBehaviour, IBaseBehaviour
     /// </summary>
     /// <param name="btn"></param>
     float kd;
+    /// <summary>
+    /// 按钮事件入口 - 本地点击时调用
+    /// </summary>
     public void ButenEvent(string eventname)
     {
-        //检测步骤
+        // 本地执行
         TryToNext(eventname);
+        ExecuteButtonEvent(eventname);
+        // 发送广播消息给其他用户
+        ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationTsq, eventname), true);
+    }
 
+    /// <summary>
+    /// 执行按钮事件的实际逻辑
+    /// </summary>
+    private void ExecuteButtonEvent(string eventname)
+    {
         switch (eventname)
         {
             case "通信状态":

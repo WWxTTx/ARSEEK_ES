@@ -335,8 +335,7 @@ public class SmallFlowCtrl : MonoBase
     public void Init(bool useGuide, List<Flow> flowsTex = null)
     {
         AddMsg(
-            (ushort)ModelOperateEvent.Rotate,
-            (ushort)SmallFlowModuleEvent.NextStep
+            (ushort)ModelOperateEvent.Rotate
         );
 
         this.useGuide = useGuide;
@@ -1053,7 +1052,6 @@ public class SmallFlowCtrl : MonoBase
                     }
                     FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfoId));
                     MasterComputerInteractable = true;
-                    NetworkManager.Instance.IsIMSync = true;
                 }, 0, dummy);
             }
             else
@@ -1065,7 +1063,6 @@ public class SmallFlowCtrl : MonoBase
                     Next(modelInfoId);
                 }
                 FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfoId));
-                NetworkManager.Instance.IsIMSync = true;
             }
         }, dummy);
     }
@@ -1095,9 +1092,6 @@ public class SmallFlowCtrl : MonoBase
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
-                    if (correctOp)
-                        RecordSucessOp(data);
-
                     string hint = op.hint_success;
                     if (string.IsNullOrEmpty(hint))
                         hint = "操作" + data.operation.GetComponent<ModelInfo>().Name;
@@ -1114,7 +1108,6 @@ public class SmallFlowCtrl : MonoBase
                         }
                     }
 
-                    bool stepCompleted = IsStepCompleted();
 
                     SmallStep1 smallStep = nowFlowStep;
 
@@ -1145,42 +1138,38 @@ public class SmallFlowCtrl : MonoBase
                         }
                     }
 
-                    // 检查联动中是否有需要等待的操作（useCallback = true 或 包含弹窗）
-                    bool hasWaitLinkage = opLinkages.Any(o => o.useCallback || HasPopupInLinkage(o.operation, o.optionName));
 
-                    this.WaitTime(0.5f, () =>
+                    //播放提示语音 字幕 保持调用时机一致
+                    FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord,
+                    true ? nowFlowStep?.hint_success : string.Empty, hint, index_NowFlow, index_NowStep, ModelOperationIndex(data.operation), userNo, userName,
+                    GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
+
+                    SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
+
+                    if (opLinkages.Count != 0)
                     {
-                        //播放提示语音 字幕 保持调用时机一致
-                        FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord,
-                        stepCompleted ? nowFlowStep?.hint_success : string.Empty, hint, index_NowFlow, index_NowStep, ModelOperationIndex(data.operation), userNo, userName,
-                        GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
+                        FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
+                        FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CloseCameraOperation));
 
-                        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
-                        if (!hasWaitLinkage)
+                        ExecuteFlowLinkOperation(opLinkages, () =>
                         {
+                            FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.OpenCameraOperation));
+                            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfoId));
+
                             callback?.Invoke(true);
                             Next(modelInfoId);
-                        }
+                            if (correctOp)
+                                RecordSucessOp(data);
+                        }, 0, dummy);
+                    }
+                    else
+                    {
+                        callback?.Invoke(true);
+                        Next(modelInfoId);
 
-                        if (opLinkages.Count != 0)
-                        {
-                            FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
-                            FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CloseCameraOperation));
-
-                            ExecuteFlowLinkOperation(opLinkages, () =>
-                            {
-                                FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.OpenCameraOperation));
-                                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfoId));
-
-                                // 如果有需要等待的联动，在联动完成后播放语音和结束步骤
-                                if (hasWaitLinkage)
-                                {
-                                    callback?.Invoke(true);
-                                    Next(modelInfoId);
-                                }
-                            }, 0, dummy);
-                        }
-                    });
+                        if (correctOp)
+                            RecordSucessOp(data);
+                    }
                 }, 0, dummy);
             }
             else
@@ -1206,31 +1195,8 @@ public class SmallFlowCtrl : MonoBase
 
                 callback?.Invoke(false);
                 FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, modelInfoId));
-                NetworkManager.Instance.IsIMSync = true;
             }
         }, dummy);
-    }
-
-    /// <summary>
-    /// 检查联动操作中是否包含弹窗
-    /// </summary>
-    private bool HasPopupInLinkage(ModelOperation operation, string optionName)
-    {
-        if (operation == null || operation.operations == null)
-            return false;
-
-        foreach (var op in operation.operations)
-        {
-            if (op.name.Equals(optionName) && op.behaveBases != null)
-            {
-                foreach (var behave in op.behaveBases)
-                {
-                    if (behave is BehavePopup)
-                        return true;
-                }
-            }
-        }
-        return false;
     }
 
     private void ExecuteFlowLinkOperation(List<OpLinkage> opLinkages, Action callback, int index = 0, bool dummy = false)
@@ -1248,42 +1214,8 @@ public class SmallFlowCtrl : MonoBase
             return;
         }
 
-        // 检查当前操作是否需要等待完成（useCallback 或 包含弹窗）
-        bool needWait = opLinkages[index].useCallback || HasPopupInLinkage(opLinkages[index].operation, opLinkages[index].optionName);
-
-        if (needWait)
+        StartCoroutine(WaitExecuteOperation(opLinkages[index].operation, opLinkages[index].optionName, (_) =>
         {
-            StartCoroutine(WaitExecuteOperation(opLinkages[index].operation, opLinkages[index].optionName, (_) =>
-            {
-                List<OpLinkage> opLinkages1 = new List<OpLinkage>();
-
-                OperationBase smallOp1 = null;
-
-                for (int i = 0; i < opLinkages[index].operation.operations.Count; i++)
-                {
-                    if (opLinkages[index].optionName == opLinkages[index].operation.operations[i].name)
-                    {
-                        smallOp1 = opLinkages[index].operation.operations[i];
-                    }
-                }
-
-                if (smallOp1 != null)
-                {
-                    opLinkages1 = smallOp1.actions;
-                }
-
-                ExecuteFlowLinkOperation(opLinkages1, () =>
-                {
-                    ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
-                }, 0, dummy);
-
-            }));
-        }
-        else
-        {
-            StartCoroutine(WaitExecuteOperation(opLinkages[index].operation, opLinkages[index].optionName, (_) =>
-            {
-            }));
             List<OpLinkage> opLinkages1 = new List<OpLinkage>();
 
             OperationBase smallOp1 = null;
@@ -1293,7 +1225,6 @@ public class SmallFlowCtrl : MonoBase
                 if (opLinkages[index].optionName == opLinkages[index].operation.operations[i].name)
                 {
                     smallOp1 = opLinkages[index].operation.operations[i];
-                    break;
                 }
             }
 
@@ -1306,7 +1237,8 @@ public class SmallFlowCtrl : MonoBase
             {
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
             }, 0, dummy);
-        }
+
+        }));
     }
 
     /// <summary>
@@ -1610,6 +1542,7 @@ public class SmallFlowCtrl : MonoBase
     private void RecordSucessOp(SmallOp1 op)
     {
         Debug.Log("操作和联动执行完！");
+        ToolManager.SendBroadcastMsg(new MsgInt((ushort)SmallFlowModuleEvent.StepEnd, GlobalInfo.account.id));
         lock (successOPs)
         {
             var executed = successOPs.Find(o => o.operation == op.operation && o.optionName.Equals(op.optionName) && o.prop == op.prop);
@@ -1676,7 +1609,6 @@ public class SmallFlowCtrl : MonoBase
 
     private IEnumerator WaitExecuteOperation(ModelOperation operation, string optionName, Action<OperationBase> callback = null)
     {
-        //yield return new WaitForSeconds(0.3f);
         yield return null;
         ExecuteOperation(operation, optionName, null, callback);
 
@@ -2041,10 +1973,6 @@ public class SmallFlowCtrl : MonoBase
             }
         }
         FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-        Debug.Log("调试 发送 index_NowFlow = " + index_NowFlow + "; index_NowStep = " + index_NowStep);
-        // 操作执行完成，发送当前步骤
-        MsgNextStep msgNextstep = new MsgNextStep((ushort)SmallFlowModuleEvent.NextStep,index_NowFlow, index_NowStep, GlobalInfo.account.id);
-        NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)SmallFlowModuleEvent.NextStep, JsonTool.Serializable(msgNextstep)));
     }
 
     /// <summary>
@@ -2103,17 +2031,6 @@ public class SmallFlowCtrl : MonoBase
                 if (uiRotateModels.TryGetValue(msgModelRotate.id, out Transform model) && model != null)
                 {
                     model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), msgModelRotate.angleZ);
-                }
-                break;
-            case (ushort)SmallFlowModuleEvent.NextStep:
-                // 状态同步
-                MsgNextStep msgOp = ((MsgBrodcastOperate)msg).GetData<MsgNextStep>();
-                if(msgOp.sender != GlobalInfo.account.id)
-                {
-                    Debug.Log("调试 接收 index_NowFlow = " + msgOp.flow + "; index_NowStep = " + msgOp.step);
-                    if (index_NowFlow != msgOp.flow)
-                        SelectFlow(msgOp.flow);
-                    SelectStep(msgOp.step);
                 }
                 break;
         }    
