@@ -28,7 +28,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public bool IsStartSync
     {
         get { return _isStartSync; }
-        set { Log.Debug("RTI是否开始同步:" + value); _isStartSync = value; }
+        set { _isStartSync = value; }
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public bool IsSyncCachedState
     {
         get { return _isSyncCachedState; }
-        set { Log.Debug("RTI是否开始缓存状态同步:" + value); _isSyncCachedState = value; }
+        set { _isSyncCachedState = value; }
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public bool IsSyncState
     {
         get { return _isSyncState; }
-        set { Log.Debug("RTI是否开始状态同步:" + value); _isSyncState = value; }
+        set { _isSyncState = value; }
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public bool IsSyncBaikeState
     {
         get { return _isSyncBaikeState; }
-        set { Log.Debug("RTI是否开始同步百科状态:" + value); _isSyncBaikeState = value; }
+        set { _isSyncBaikeState = value; }
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public bool IsWaitingResponse
     {
         get { return _isWaitingResponse; }
-        set { Log.Debug("RTI是否等待操作响应:" + value); _isWaitingResponse = value; }
+        set { _isWaitingResponse = value; }
     }
 
     /// <summary>
@@ -227,11 +227,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
             currentOp = opsReceive.Dequeue();
             TryExecuteCurrentOp();
         }
-
-        if(!IsSyncCachedState && !IsSyncState && LoadingPanel.Loading)
-        {
-            UIManager.Instance.CloseUI<LoadingPanel>();
-        }
     }
 
     private static string cachedStateLog = "<color=#DCA800>状态调试 执行缓存状态消息:</color>";
@@ -265,7 +260,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     private async UniTaskVoid DelayedSend(MsgBrodcastOperate currentOp, string content)
     {   
         //需要等待36消息先执行 创建场景
-        if(!GlobalInfo.isExam)
+        if(!GlobalInfo.isExam && !GlobalInfo.IsLiveMode())
         {
             if (currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect && !GlobalInfo.CreatedMode)
             {

@@ -51,8 +51,7 @@ public class UISmallSceneFlowModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.SelectStep,
             (ushort)SmallFlowModuleEvent.Guide,
             (ushort)SmallFlowModuleEvent.CompleteStep,
-            (ushort)SmallFlowModuleEvent.ShowUIOperation,
-            (ushort)SmallFlowModuleEvent.ReleasePermission
+            (ushort)SmallFlowModuleEvent.ShowUIOperation
         });
 
         Background = this.GetComponentByChildName<RectTransform>("Background");
@@ -284,9 +283,6 @@ public class UISmallSceneFlowModule : UIModuleBase
                         item2.ItemData.SetAttachment(msgStringInt.arg2 > 0);
                     }
                 }
-                break;
-            case (ushort)SmallFlowModuleEvent.ReleasePermission:
-                isOnClick = true;
                 break;
             case (ushort)SmallFlowModuleEvent.StartExecute:
                 isOnClick = false;

@@ -401,8 +401,8 @@ public class UISmallSceneModule : UIModuleBase
     {
         base.Open(uiData);
 
-        //初始化语音数据
-        SpeechManager.Instance.LoadData();
+        //标记初始化语音数据
+        SpeechManager.Instance.dataInited = false;
 
         //只有培训模式打开完整提示词
         if (CourseMode.Training == GlobalInfo.courseMode)
@@ -438,8 +438,7 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.CloseCameraOperation,
             (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.OtherLeave,
-            (ushort)SmallFlowModuleEvent.StartExecute,
-            (ushort)SmallFlowModuleEvent.ReleasePermission
+            (ushort)SmallFlowModuleEvent.StartExecute
         });
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", false);
 
@@ -1101,8 +1100,6 @@ public class UISmallSceneModule : UIModuleBase
             {
                 //提示对错
                 OnErrorShow();
-                //点击错误对象需要发送全局释放权限消息
-                ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.ReleasePermission));
             }
         }
     }
@@ -1387,9 +1384,9 @@ public class UISmallSceneModule : UIModuleBase
         DOTween.Kill("ErrorShow");
         error.color = new Color(error.color.r, error.color.g, error.color.b, 1);
         error.DOFade(0, 0.5f).SetLoops(3).SetEase(Ease.InOutQuad).SetId("ErrorShow");
-        DOVirtual.DelayedCall(2, () =>
+        DOVirtual.DelayedCall(1, () =>
         {
-            ModelState = ModelState.Unselect;
+            ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
         });
     }
 
@@ -1577,13 +1574,11 @@ public class UISmallSceneModule : UIModuleBase
                 {
                     // 本地消息（自己完成的操作），释放本地权限并广播给其他用户
                     ReleaseOperatePermission(GlobalInfo.account.id);
-                    ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.ReleasePermission));
+                    ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
                 }
                 ModelState = ModelState.Unselect;
                 RefreshHighlight();
-                break;
-            case (ushort)SmallFlowModuleEvent.CompleteStep:
-                ModelState = ModelState.Unselect;
+
                 //进行下一步时直接取消手中道具
                 OnPropChanged(string.Empty);
                 toolModule.CloseBackpack();
@@ -1685,9 +1680,6 @@ public class UISmallSceneModule : UIModuleBase
                     MsgElement msgElement = (msg as MsgBrodcastOperate).GetData<MsgElement>();
                     focusMasterComputerDescrption = msgElement.name;
                 }
-                break;
-            case (ushort)SmallFlowModuleEvent.ReleasePermission:
-                ReleaseOperatePermission(((MsgBrodcastOperate)msg).senderId);
                 break;
             case (ushort)ShortcutEvent.PressAnyKey:
                 ShortcutManager.Instance.CheckShortcutKey(msg, new Dictionary<string, Action>()
@@ -2030,7 +2022,7 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     public void RefreshHighlight()
     {
-        if (GlobalInfo.IsExamMode() || !GlobalInfo.EnableFlow)
+        if (GlobalInfo.IsExamMode())
             return;
 
         var newHighlights = new HashSet<Component>();
@@ -2067,22 +2059,6 @@ public class UISmallSceneModule : UIModuleBase
                             smallFlowCtrl.AddHint(smallOp.operation);
 
                         newHighlights.Add(smallOp.operation);
-
-                        //if (InLookMode && smallOp.optionName.Equals(SmallFlowCtrl.observeFlag))
-                        //{
-                        //    if (!highlights.Contains(smallOp.operation) || !smallOp.operation.TryGetComponent<HighlightPlus.HighlightEffect>(out _))
-                        //        smallFlowCtrl.AddHint(smallOp.operation);
-
-                        //    newHighlights.Add(smallOp.operation);
-                        //}
-
-                        //if (InHandMode && !smallOp.optionName.Equals(SmallFlowCtrl.observeFlag) && smallOp.prop == null)
-                        //{
-                        //    if (!highlights.Contains(smallOp.operation) || !smallOp.operation.TryGetComponent<HighlightPlus.HighlightEffect>(out _))
-                        //        smallFlowCtrl.AddHint(smallOp.operation);
-
-                        //    newHighlights.Add(smallOp.operation);
-                        //}
                     }
                 }
 

@@ -867,7 +867,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
             case (ushort)ExamPanelEvent.Stop:
                 OnExamStop((msg as MsgBrodcastOperate).GetData<MsgInt>().arg);
                 break;
-            case (ushort)ExamPanelEvent.Timeout://房主端计时结束
+            case (ushort)ExamPanelEvent.Timeout://
+                                                //端计时结束
                 OnHostTimeout((msg as MsgBrodcastOperate).GetData<MsgInt>().arg);
                 break;
             case (ushort)ExamPanelEvent.Submit:

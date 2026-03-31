@@ -314,20 +314,22 @@ public class OPLSynCoursePanel : OPLCoursePanel
             SetTitle(GlobalInfo.currentCourseInfo);
             CourseSideBar.SetBaikePage();
 
-            //协同房间不需要分享主画面
+            //直播房主画面 分享画面
             if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && GlobalInfo.IsMainScreen())
                 NetworkManager.Instance.EnableLocalVideo(true);
+            
             if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
             {
-                CourseSideBar.SetBaikePage();
-                Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
-                Debug.Log($"[调试 房间初始化 :{GlobalInfo.currentCourseInfo}");
-                ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
+                if(GlobalInfo.IsOperator())
+                {
+                    CourseSideBar.SetBaikePage();
+                    Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
+                    ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
+                }
             }
 
             if (GlobalInfo.IsHomeowner())
             {
-
                 RoomInfoTog.gameObject.SetActive(true);
                 Mask(true, true);
                 SendMsg(new MsgBase((ushort)RoomChannelEvent.StartMainScreen)); //2026.01.27修改初始化房主为主画面时机
@@ -338,9 +340,9 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 if(GlobalInfo.courseMode == CourseMode.Collaboration)
                     Mask(true, true);
             }
-            UIManager.Instance.CloseUI<LoadingPanel>();
             GlobalInfo.waitExam = false;
             NetworkManager.Instance.IsIMSync = true;
+            UIManager.Instance.CloseUI<LoadingPanel>();
         });
     }
 
@@ -393,46 +395,6 @@ public class OPLSynCoursePanel : OPLCoursePanel
             case (ushort)CoursePanelEvent.CloseMask:
                 Mask(GlobalInfo.IsMainScreen(), true);
                 break;
-            //2026.01.27修改通过消息执行当前脚本方法的冗余方式
-            //case (ushort)ResourcesPanelEvent.SelectCourse:
-            //    OnSelectCourse(((MsgInt)msg).arg);
-            //    break;
-            //直播间切换课程,2026.01.27应该是已弃用功能，保留打印测试验证
-            //case (ushort)CoursePanelEvent.SwitchResource:
-            //    try
-            //    {
-            //        Debug.LogError("直播间切换课程");
-            //        GlobalInfo.currentCourseID = ((MsgBrodcastOperate)msg).GetData<MsgInt>().arg;
-            //        BaikeSelectModule.selectID = 0;
-            //        NetworkManager.Instance.IsIMSync = false;
-            //        InitData(() =>
-            //        {
-            //            Debug.LogError("不确定再次执行Init的原因，首次进入应该不需要再次执行，直播间内切换课程功能是否还存在？");
-            //            UIManager.Instance.CloseUI<LoadingPanel>();
-            //            NetworkManager.Instance.IsIMSync = true;
-            //            if (GlobalInfo.IsHomeowner())
-            //            {
-            //                if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
-            //                {
-            //                    CourseSideBar.SetBaikePage();
-            //                    if (!NetworkManager.Instance.IsIMSyncCachedState && !NetworkManager.Instance.IsIMSyncState)
-            //                    {
-            //                        Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
-            //                        ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
-            //                    }
-            //                }
-            //            }
-            //            else
-            //            {
-            //                Debug.LogError("不清楚为何多做了一重房主判定，应该不会触发，测试看是否有必要");
-            //            }
-            //        });
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Debug.LogError(e.Message);
-            //    }
-            //    break;
             case (ushort)PaintEvent.SyncPaint:
                 //确保初次同步绘图操作的用户开启绘图模块
                 int sender = ((MsgBrodcastOperate)msg).senderId;

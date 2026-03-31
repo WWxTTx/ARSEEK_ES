@@ -172,22 +172,19 @@ public class GlobalInfo
     /// </summary>
     public static void UpdateSpeechMode()
     {
+        // 其他模式根据用户设置
+        if (PlayerPrefs.GetInt(courseVoice) == 0)
+        {
+            SpeechManager.Instance.SpeechMode = false;
+        }
+        else if (PlayerPrefs.GetInt(courseVoice) == 1)
+        {
+            SpeechManager.Instance.SpeechMode = true;
+        }
         //非培训模式无语音提示
         if (courseMode != CourseMode.Training)
         {
             SpeechManager.Instance.SpeechMode = false;
-        }
-        else
-        {
-            // 其他模式根据用户设置
-            if (PlayerPrefs.GetInt(courseVoice) == 0)
-            {
-                SpeechManager.Instance.SpeechMode = false;
-            }
-            else if (PlayerPrefs.GetInt(courseVoice) == 1)
-            {
-                SpeechManager.Instance.SpeechMode = true;
-            }
         }
     }
     #endregion
@@ -575,7 +572,7 @@ public class GlobalInfo
 
     public static bool TwoPlayerMode()
     {
-        return courseMode == CourseMode.OnlineExam || courseMode == CourseMode.Collaboration;
+        return courseMode == CourseMode.OnlineExam || courseMode == CourseMode.Collaboration || courseMode == CourseMode.Exam;
     }
 
     /// <summary>

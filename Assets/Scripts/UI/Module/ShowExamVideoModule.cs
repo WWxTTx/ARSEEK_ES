@@ -12,49 +12,49 @@ using System.Windows.Forms;
 using Button = UnityEngine.UI.Button;
 
 /// <summary>
-/// ²¥·ÅÊÓÆµÄ£¿é
+/// æ˜¾ç¤ºè§†é¢‘æ¨¡å—
 /// </summary>
 public class ShowExamVideoModule : UIModuleBase
 {
-    #region ËùĞè×ÓÎïÌå
-    //ÊÓÆµ²¥·Å×é¼ş
+    #region ç»„ä»¶å¼•ç”¨
+    //è§†é¢‘æ’­æ”¾ç»„ä»¶
     private VideoPlayer ShowVideo;
 
-    //Ğ¡ÆÁºÍÈ«ÆÁµÄ×óÏÂ½Ç²¥·Å¿ª¹Ø
+    //å°çª—/å…¨å±çš„æ’­æ”¾æš‚åœå¼€å…³
     private Toggle playState_toggle;
     private Toggle fullPlayState_toggle;
 
-    //Ğ¡ÆÁºÍÈ«ÆÁµÄ½ø¶ÈÌõ
+    //å°çª—/å…¨å±çš„è¿›åº¦æ¡
     private Slider progressBar_slider;
     private Slider fullProgressBar_slider;
 
-    //Ğ¡ÆÁºÍÈ«ÆÁµÄ²¥·ÅÊ±¼ä£¨ÕâÊÇ×ÜÊ±¼ä£©
+    //å°çª—/å…¨å±çš„æ€»æ—¶é•¿ï¼ˆæœ€å¤§æ—¶é—´ï¼‰
     private Text totalDuration_text;
     private Text fullTotalDuration_text;
 
-    //È«ÆÁ×´Ì¬ÏÂ£¬°üº¬½ø¶ÈÌõ£¬²¥·Å¿ª¹Ø£¬Ê±¼äµÈµÄ¸¸ÎïÌå
+    //å…¨å±çŠ¶æ€ä¸‹ï¼Œåº•éƒ¨æ§åˆ¶æ ï¼ˆæ’­æ”¾ã€æ—¶é—´ç­‰ï¼‰çš„çˆ¶ç»„ä»¶
     private RectTransform fullUnder_rectTransform;
-    //Ğ¡ÆÁ½çÃæ
+    //å°çª—å®¹å™¨
     private RectTransform videoContent_rectTransform;
     #endregion
 
-    //ÊÓÆµ²¥·ÅÊ¹ÓÃµÄRenderTexture
+    //è§†é¢‘æ’­æ”¾ä½¿ç”¨çš„RenderTexture
     private RenderTexture videoRenderTexture;
 
-    //ÓÃÓÚ¿ØÖÆĞ¡ÆÁ½çÃæË«»÷ºÍÈ«ÆÁ½çÃæË«»÷
+    //ç”¨äºæ§åˆ¶å°çª—åŒå‡»å…¨å±/å…¨å±åŒå‡»é€€å‡º
     private float buttonTimer;
     private float fullButtonTimer;
-    //Ğ¡ÓÚË«»÷¼ä¸ô¾Í»á´¥·¢È«ÆÁ»òÕßËõĞ¡
+    //å°çª—åŒå‡»é—´éš”ä¼šè§¦å‘å…¨å±/å°å±
     private float doubleClickGap = 0.3f;
 
-    //ÅĞ¶ÏÊÇ·ñ²¥·ÅÍê±Ï
+    //åˆ¤æ–­æ˜¯å¦æ’­æ”¾ç»“æŸ
     private bool isend = false;
 
-    //¿ØÖÆĞ¡ÆÁ½çÃæÍÏ¶¯
+    //æ§åˆ¶å°çª—å®¹å™¨æ‹–æ‹½
     private bool isDrag = false;
     private Vector2 dragOffset;
 
-    //ÓÃÓÚÈ«ÆÁ×´Ì¬ÏÂ¼ÆÊ±£¬Ê±¼äµ½ÁË¾ÍÒş²ØÏÂ·½½çÃæ
+    //æ§åˆ¶å…¨å±çŠ¶æ€ä¸‹è®¡æ—¶å™¨æ—¶é—´åˆ°äº†å°±éšè—åº•éƒ¨æ 
     private float exitProgressTimer;
     private float exitProgressGap = 3f;
 
@@ -63,11 +63,11 @@ public class ShowExamVideoModule : UIModuleBase
     public ShowExamModuleData VideoModuleData { get; private set; }
 
     /// <summary>
-    /// ³õÊ¼»¯
+    /// åˆå§‹åŒ–
     /// </summary>
     private void Init()
     {
-        #region ²éÕÒ×ÓÎïÌå
+        #region è·å–ç»„ä»¶å¼•ç”¨
         playState_toggle = transform.GetComponentByChildName<Toggle>("ShowVideoToggle");
         progressBar_slider = transform.GetComponentByChildName<Slider>("ShowVideoSlider");
         totalDuration_text = transform.GetComponentByChildName<Text>("Max");
@@ -79,11 +79,11 @@ public class ShowExamVideoModule : UIModuleBase
         videoContent_rectTransform = transform.GetComponentByChildName<RectTransform>("Content");
         #endregion
 
-        //ÉèÖÃ²¼¾Ö
+        //è®¾ç½®æ ‡é¢˜
         transform.GetComponentByChildName<Text>("Title").text = VideoModuleData.title;
 
-        #region ²¥·ÅÊÓÆµÏà¹Ø
-        //ÉèÖÃÆÁÄ»Raw Image
+        #region è®¾ç½®è§†é¢‘æ’­æ”¾
+        //åˆ›å»ºå±å¹•Raw Image
         videoRenderTexture = new RenderTexture(1920, 1080, 1);
         ShowVideo.targetTexture = videoRenderTexture;
         transform.GetComponentByChildName<RawImage>("RawImage").texture = videoRenderTexture;
@@ -92,7 +92,7 @@ public class ShowExamVideoModule : UIModuleBase
         ShowVideo.url = ResManager.Instance.OSSDownLoadPath + VideoModuleData.url;
         ShowVideo.Play();
 
-        //ÊÓÆµ(µØÖ·)¼ÓÔØÊ§°Ü
+        //è§†é¢‘(åœ°å€)åŠ è½½å¤±è´¥
         ShowVideo.errorReceived += (source, message) =>
         {
             ShowVideo.Stop();
@@ -103,52 +103,51 @@ public class ShowExamVideoModule : UIModuleBase
         };
         #endregion
 
-        #region ÉèÖÃ¸÷¸ö°´Å¥£¬¿ª¹ØµÄĞ§¹û
-        //£¨Ğ¡½çÃæ£©µ¥»úÔİÍ££¬Ë«»÷È«ÆÁ
+        #region è®¾ç½®å„ä¸ªæŒ‰é’®çš„ç‚¹å‡»æ•ˆæœ
+        //(å°çª—å£)ç‚¹å‡»æ’­æ”¾æš‚åœ/åŒå‡»å…¨å±
         transform.GetComponentByChildName<Button>("VideoScreenButton").onClick.AddListener(() =>
         {
-            //µ¥»÷
+            //å•å‡»
             playState_toggle.isOn = !playState_toggle.isOn;
 
-            //Ë«»÷
-            if (Time.time - buttonTimer < doubleClickGap)//Ë«»÷È«ÆÁ
+            //åŒå‡»
+            if (Time.time - buttonTimer < doubleClickGap)//åŒå‡»å…¨å±
             {
                 ChangeFullScreen();
             }
             buttonTimer = Time.time;
         });
-        //£¨È«ÆÁ£©µ¥»úÔİÍ££¬Ë«»÷ÍË³öÈ«ÆÁ
+        //(å…¨å±)ç‚¹å‡»æ’­æ”¾æš‚åœ/åŒå‡»é€€å‡ºå…¨å±
         transform.GetComponentByChildName<Button>("VideoScreenButton_Full").onClick.AddListener(() =>
         {
-            //µ¥»÷
+            //å•å‡»
             playState_toggle.isOn = !playState_toggle.isOn;
 
-
-            //Ë«»÷
-            if (Time.time - fullButtonTimer < doubleClickGap)//Ë«»÷ÍÆ³öÈ«ÆÁ
+            //åŒå‡»
+            if (Time.time - fullButtonTimer < doubleClickGap)//åŒå‡»é€€å‡ºå…¨å±
             {
                 ExitFullScreen();
             }
             fullButtonTimer = Time.time;
         });
 
-        //¹Ø±ÕÊÓÆµ½çÃæ°´Å¥
+        //å…³é—­è§†é¢‘çª—å£æŒ‰é’®
         transform.GetComponentByChildName<Button>("Close").onClick.AddListener(() =>
         {
             Close();
         });
-        //È«ÆÁ°´Å¥
+        //å…¨å±æŒ‰é’®
         transform.GetComponentByChildName<Button>("FullScreenButton").onClick.AddListener(() =>
         {
             ChangeFullScreen();
         });
-        //ÍË³öÈ«ÆÁ°´Å¥
+        //é€€å‡ºå…¨å±æŒ‰é’®
         transform.GetComponentByChildName<Button>("ExitFullScreenButton").onClick.AddListener(() =>
         {
             ExitFullScreen();
         });
 
-        //ÔİÍ£ºÍ²¥·Å¿ª¹Ø
+        //æ’­æ”¾æš‚åœå¼€å…³
         playState_toggle.onValueChanged.AddListener((state) =>
         {
             if (state)
@@ -182,7 +181,7 @@ public class ShowExamVideoModule : UIModuleBase
         {
             playState_toggle.transform.GetComponentByChildName<Image>("Image").color = new Vector4(1, 1, 1, 1f / 255f);
         });
-        //£¨È«ÆÁ£©ÔİÍ£ºÍ²¥·Å¿ª¹Ø
+        //å…¨å±æ’­æ”¾æš‚åœå¼€å…³
         fullPlayState_toggle.onValueChanged.AddListener((state) =>
         {
             playState_toggle.isOn = state;
@@ -198,7 +197,7 @@ public class ShowExamVideoModule : UIModuleBase
         });
         fullPlayState_toggle.gameObject.AddComponent<EventTrigger>().AddEvent(EventTriggerType.PointerEnter, (arg) =>
         {
-            fullPlayState_toggle.transform.GetComponentByChildName<Image>("Image").color = new Vector4(1, 1, 1,40f / 255f);
+            fullPlayState_toggle.transform.GetComponentByChildName<Image>("Image").color = new Vector4(1, 1, 1, 40f / 255f);
         });
         fullPlayState_toggle.gameObject.AddComponent<EventTrigger>().AddEvent(EventTriggerType.PointerExit, (arg) =>
         {
@@ -206,8 +205,8 @@ public class ShowExamVideoModule : UIModuleBase
         });
         #endregion
 
-        #region ÉèÖÃ½ø¶ÈÌõ
-        //(Ğ¡ÆÁ)½ø¶ÈÌõÍÏ¶¯¿ØÖÆ
+        #region è®¾ç½®è¿›åº¦æ¡
+        //(å°çª—)è¿›åº¦æ¡æ‹–æ‹½äº‹ä»¶
         EventTrigger eventTrigger = progressBar_slider.gameObject.AddComponent<EventTrigger>();
         eventTrigger.AddEvent(EventTriggerType.PointerDown, (arg) =>
         {
@@ -221,7 +220,7 @@ public class ShowExamVideoModule : UIModuleBase
                 StartCoroutine(StartVideo());
             }
         });
-        //(´óÆÁ)½ø¶ÈÌõÍÏ¶¯¿ØÖÆ
+        //(å…¨å±)è¿›åº¦æ¡æ‹–æ‹½äº‹ä»¶
         EventTrigger eventTrigger1 = fullProgressBar_slider.gameObject.AddComponent<EventTrigger>();
         eventTrigger1.AddEvent(EventTriggerType.PointerDown, (arg) =>
         {
@@ -237,7 +236,7 @@ public class ShowExamVideoModule : UIModuleBase
         });
         #endregion
 
-        //ÉèÖÃĞ¡½çÃæ¿ÉÍÏ¶¯
+        //è®¾ç½®å°çª—å£æ‹–æ‹½
         EventTrigger eventTrigger2 = transform.GetComponentByChildName<Image>("DragImage").gameObject.AddComponent<EventTrigger>();
         eventTrigger2.AddEvent(EventTriggerType.PointerDown, (arg) =>
         {
@@ -251,7 +250,7 @@ public class ShowExamVideoModule : UIModuleBase
     }
 
     /// <summary>
-    /// È«ÆÁ
+    /// å…¨å±
     /// </summary>
     private void ChangeFullScreen()
     {
@@ -264,7 +263,7 @@ public class ShowExamVideoModule : UIModuleBase
     }
 
     /// <summary>
-    /// ÍË³öÈ«ÆÁ
+    /// é€€å‡ºå…¨å±
     /// </summary>
     private void ExitFullScreen()
     {
@@ -272,21 +271,20 @@ public class ShowExamVideoModule : UIModuleBase
         transform.GetComponentByChildName<RectTransform>("FullScreen").gameObject.SetActive(false);
     }
 
-
     private void Update()
     {
-        if (rawVideoLength == 0) 
+        if (rawVideoLength == 0)
         {
             rawVideoLength = ShowVideo.length;
         }
 
-        //½ø¶ÈÌõ
+        //æ›´æ–°è¿›åº¦
         if (progressBar_slider != null && ShowVideo.isPlaying)
         {
-            //ÉèÖÃÏÔÊ¾Ê±¼ä
+            //æ›´æ–°æ˜¾ç¤ºæ—¶é—´
             //Debug.Log(ShowVideo.length);
             totalDuration_text.text = "/" + ToTimeFormat(rawVideoLength);
-            totalDuration_text.GetComponentByChildName<Text>("Now").text = ToTimeFormat(ShowVideo.time) ;
+            totalDuration_text.GetComponentByChildName<Text>("Now").text = ToTimeFormat(ShowVideo.time);
 
             fullTotalDuration_text.text = "/" + ToTimeFormat(rawVideoLength);
             fullTotalDuration_text.GetComponentByChildName<Text>("Now_Full").text = ToTimeFormat(ShowVideo.time);
@@ -295,7 +293,6 @@ public class ShowExamVideoModule : UIModuleBase
             {
                 progressBar_slider.value = (float)ShowVideo.time / (float)ShowVideo.length;
                 fullProgressBar_slider.value = progressBar_slider.value;
-
 
                 if (ShowVideo.length - ShowVideo.time < 0.05)
                 {
@@ -310,9 +307,9 @@ public class ShowExamVideoModule : UIModuleBase
                 progressBar_slider.value = 1;
                 fullProgressBar_slider.value = 1f;
             }
-        } 
+        }
 
-        //²¥·ÅÍêÔİÍ£
+        //è§†é¢‘æ’­æ”¾ç»“æŸæš‚åœ
         if (ShowVideo.length != 0 && progressBar_slider.value == 1 && playState_toggle.isOn && ShowVideo.isPlaying && !isend)
         {
             isend = true;
@@ -320,13 +317,13 @@ public class ShowExamVideoModule : UIModuleBase
             ShowVideo.Stop();
         }
 
-        //ÍÏ¶¯ÊÓÆµ½çÃæ
+        //æ‹–æ‹½è§†é¢‘çª—å£
         if (isDrag)
         {
             videoContent_rectTransform.anchoredPosition = (Vector2)Input.mousePosition - dragOffset;
         }
 
-        //È«ÆÁÏÔÊ¾ÏÂ£¬ÏÔÊ¾ºÍ¹Ø±Õ½ø¶ÈÌõ
+        //å…¨å±æ˜¾ç¤ºä¸‹ï¼Œæ˜¾ç¤ºå’Œå…³é—­è¿›åº¦æ¡
         if (fullUnder_rectTransform.gameObject.activeSelf)
         {
             if (Input.mousePosition.y > 100)
@@ -347,7 +344,7 @@ public class ShowExamVideoModule : UIModuleBase
     }
 
     /// <summary>
-    /// µ±¸¸ÎïÌåÒş²ØÊ±£¬Ïú»ÙÊÓÆµ½çÃæ
+    /// å½“ç»„ä»¶è¢«ç¦ç”¨æ—¶ï¼Œåœæ­¢è§†é¢‘æ’­æ”¾
     /// </summary>
     private void OnDisable()
     {
@@ -363,13 +360,31 @@ public class ShowExamVideoModule : UIModuleBase
         Init();
     }
 
+    public override void Close(UIData uiData = null, UnityAction callback = null)
+    {
+        if (ShowVideo != null)
+        {
+            ShowVideo.Stop();
+            ShowVideo.targetTexture = null;
+        }
+
+        if (videoRenderTexture != null)
+        {
+            videoRenderTexture.Release();
+            Destroy(videoRenderTexture);
+            videoRenderTexture = null;
+        }
+
+        base.Close(uiData, callback);
+    }
+
     public void Destroy()
     {
         Close();
     }
 
     /// <summary>
-    /// ÑÓ³Ù²¥·Å£¬ÎªÁËÅäºÏË«»÷·Å´ó
+    /// å»¶è¿Ÿæ’­æ”¾ï¼Œä¸ºäº†é¿å…åŒå‡»æ”¾å¤§
     /// </summary>
     /// <returns></returns>
     private IEnumerator StartVideo()
@@ -388,7 +403,7 @@ public class ShowExamVideoModule : UIModuleBase
     }
 
     /// <summary>
-    /// ÑÓ³ÙÔİÍ££¬ÎªÁËË«»÷·Å´óºÍËõĞ¡Ê±ÔİÍ£°´Å¥²»ÏÔÊ¾
+    /// å»¶è¿Ÿæš‚åœï¼Œä¸ºäº†é¿å…åŒå‡»æ”¾å¤§ç¼©å°æ—¶æš‚åœæŒ‰é’®æ˜¾ç¤º
     /// </summary>
     /// <returns></returns>
     private IEnumerator StopVideo()
@@ -399,7 +414,7 @@ public class ShowExamVideoModule : UIModuleBase
     }
 
     /// <summary>
-    /// °Ñdouble×ª»»Îª00£º00¸ñÊ½
+    /// å°†doubleè½¬æ¢ä¸º00:00æ ¼å¼
     /// </summary>
     /// <param name="time"></param>
     /// <returns></returns>
@@ -411,7 +426,7 @@ public class ShowExamVideoModule : UIModuleBase
         return string.Format("{0:D2}:{1:D2}", minutes, seconds);
     }
 
-    #region ¶¯Ğ§
+    #region åŠ¨ç”»æ•ˆæœ
     //protected override float joinAnimePlayTime => 0.3f;
     //protected override float exitAnimePlayTime => 0.2f;
 
@@ -432,30 +447,30 @@ public class ShowExamVideoModule : UIModuleBase
 }
 
 /// <summary>
-/// ÓÃÓÚÏÔÊ¾¿¼ºË½çÃæµÄÊı¾İ
+/// è§†é¢‘æ˜¾ç¤ºæ¨¡å—çš„æ•°æ®ç±»
 /// </summary>
-public class ShowExamModuleData : UIData 
+public class ShowExamModuleData : UIData
 {
     /// <summary>
-    /// ÊÓÆµ±êÌâ
+    /// è§†é¢‘æ ‡é¢˜
     /// </summary>
     public string title;
     /// <summary>
-    /// ÊÓÆµµØÖ·
+    /// è§†é¢‘åœ°å€
     /// </summary>
     public string url;
     /// <summary>
-    /// ÎÄ¼şÀàĞÍ
+    /// æ–‡ä»¶ç±»å‹
     /// </summary>
     public string docType;
 
     /// <summary>
-    /// ÓÃÓÚÊäÈëÈ«ÃûurlµÄÇé¿ö£¬ÊÓÆµ´æ´¢ÃûÓ¦¸ÃÊÇÊı×ÖÃû£¨ÏÖÓÃÓÚÔÄ¾í½çÃæÊÓÆµÕ¹Ê¾£©
+    /// æ„é€ æ–¹æ³•ï¼Œä¼ å…¥å®Œæ•´urlï¼Œç³»ç»Ÿä¼šè‡ªåŠ¨å¤„ç†è§†é¢‘å­˜å‚¨å¯¹åº”çš„è·¯å¾„ï¼Œç„¶åè°ƒç”¨ç›¸åº”çš„è§†é¢‘å±•ç¤º
     /// </summary>
     /// <param name="id"></param>
     /// <param name="title"></param>
     /// <param name="url"></param>
-    /// <param name="docType">ÏÖÔÚÖ»Ö§³ÖMP4</param>
+    /// <param name="docType">ç›®å‰åªæ”¯æŒMP4</param>
     /// <param name="closedAction"></param>
     /// <param name="showClose"></param>
     public ShowExamModuleData(string title, string url, string docType)

@@ -93,7 +93,10 @@ public class UISmallSceneMinMapModule : UIModuleBase
             mapUI.parent = transform;
 
         if (mapCamera)
+        {
+            mapCamera.targetTexture = null;
             Destroy(mapCamera.gameObject);
+        }
 
         base.Close(uiData, callback);
     }

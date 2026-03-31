@@ -50,10 +50,10 @@ public class UISmallSceneInfoModule : UIModuleBase
                 LayoutRebuilder.ForceRebuildLayoutImmediate(text.rectTransform);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             }
-            canvasGroup.DOFade(1f, SpeechManager.Instance.InfoFadeInTime);
+            canvasGroup.DOFade(1f, 0);
         }, () =>
         {
-            canvasGroup.DOFade(0f, SpeechManager.Instance.InfoFadeOutTime);
+            canvasGroup.DOFade(0f, 0);
         });
     }
 }

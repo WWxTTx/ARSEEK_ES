@@ -8,7 +8,7 @@ public class HighlightEffectManager : MonoBehaviour
 {
     public static HighlightEffectManager Instance;
     /// <summary>
-    /// ÆÁ±ÎÖ¸¶¨È¨ÖØ²ã
+    /// å±è”½æŒ‡å®šæƒé‡å±‚
     /// </summary>
     [HideInInspector]
     public List<int> maskPriorityList = new List<int>();
@@ -17,6 +17,7 @@ public class HighlightEffectManager : MonoBehaviour
 
     private void Awake()
     {
+        Application.targetFrameRate = 60;
         Instance = this;
         defaultColor = "#8CECFF".HexToColor();
     }
@@ -45,7 +46,7 @@ public class HighlightEffectManager : MonoBehaviour
                 visibility = visibility ?? Visibility.Normal,
                 constantWidth = constantWidth
             });
-            //Debug.Log($"{component.name} ÎïÌå¸ßÁÁ È¨ÖØ({priority})", component);
+            //Debug.Log($"{component.name} ç‰©ä½“é«˜äº® æƒé‡({priority})", component);
         }
         else
         {
@@ -56,7 +57,7 @@ public class HighlightEffectManager : MonoBehaviour
                 visibility = visibility ?? Visibility.Normal,
                 constantWidth = constantWidth
             };
-            //Debug.Log($"{component.name }ÎïÌå¸ßÁÁ È¨ÖØ({priority})¸²¸Ç", component);
+            //Debug.Log($"{component.name }ç‰©ä½“é«˜äº® æƒé‡({priority})è¦†ç›–", component);
         }
 
         UpdateHighlight(component);
@@ -140,7 +141,7 @@ public class HighlightEffectManager : MonoBehaviour
             cache.Clear();
         }
     }
-    [ContextMenu("Ë¢ĞÂËùÓĞ¸ßÁÁ")]
+    [ContextMenu("åˆ·æ–°æ‰€æœ‰é«˜äº®")]
     public void RefreshAllHighlight()
     {
         foreach (var key in cache.Keys)
@@ -151,13 +152,13 @@ public class HighlightEffectManager : MonoBehaviour
 
     private Dictionary<Component, Tweener> tweeners = new Dictionary<Component, Tweener>();
     /// <summary>
-    /// ¸ßÁÁÉÁË¸
+    /// é«˜äº®é—ªçƒ
     /// </summary>
     public void HighlightFlashing(Component component)
     {
         if (tweeners.ContainsKey(component))
         {
-            //Debug.LogWarning("ÒÑ´æÔÚ¸ßÁÁÉÁË¸£º" + component.gameObject.name);
+            //Debug.LogWarning("å·²å­˜åœ¨é«˜äº®é—ªçƒï¼š" + component.gameObject.name);
             return;
         }
 
@@ -172,7 +173,7 @@ public class HighlightEffectManager : MonoBehaviour
         tweeners.Add(component, tweener);
     }
     /// <summary>
-    /// ÒÆ³ı¸ßÁÁÉÁË¸
+    /// ç§»é™¤é«˜äº®é—ªçƒ
     /// </summary>
     public void RemoveHighlightFlashing(Component component)
     {
@@ -183,7 +184,7 @@ public class HighlightEffectManager : MonoBehaviour
         }
         //else
         //{
-        //    Debug.LogWarning("Î´ÕÒµ½ĞèÒÆ³ı¸ßÁÁÉÁË¸" + component.gameObject.name);
+        //    Debug.LogWarning("æœªæ‰¾åˆ°éœ€ç§»é™¤é«˜äº®é—ªçƒ" + component.gameObject.name);
         //}
     }
 }

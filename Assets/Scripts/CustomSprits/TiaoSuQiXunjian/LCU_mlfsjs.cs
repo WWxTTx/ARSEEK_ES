@@ -158,8 +158,8 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             cs[7].text = "0";
             cs[8].text = "0";
             cs[9].text = "0";
-            cs[10].text = "11.8";
-            cs[11].text = "3.1";
+            cs[10].text = "0";
+            cs[11].text = "0";
             cs[12].text = "0.962";
             cs[13].text = "50.1";
 

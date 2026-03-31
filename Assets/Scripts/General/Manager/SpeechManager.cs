@@ -29,8 +29,6 @@ public class SpeechManager : Singleton<SpeechManager>
     public bool SpeechMode;
     public static int EncyclopediaId;
     public Sprite InfoBackground;
-    public float InfoFadeOutTime = 0;
-    public float InfoFadeInTime = 0;
     public Font InfoFont;
     public Color InfoFontColor;
     public int InfoFontSize = 28;
@@ -61,7 +59,7 @@ public class SpeechManager : Singleton<SpeechManager>
     /// </summary>
     private Dictionary<string, float> specialSymbols = new Dictionary<string, float>();
 
-    bool dataInited = false;
+    public bool dataInited = false;
     public void LoadData()
     {
         GlobalInfo.UpdateSpeechMode();
