@@ -773,7 +773,7 @@ public class LiveRoomMemberModule : UIModuleBase
         Button kickBtn = tf.GetComponentByChildName<Button>("KickBtn");
 
         //主画面显示
-        mvToggle.interactable = GlobalInfo.IsHomeowner();
+        mvToggle.interactable = false;//GlobalInfo.IsHomeowner();临时修改，未来直播模式还是要能切
         if (info.Id == GlobalInfo.roomInfo.creatorId && info.Id == GlobalInfo.mainScreenId)
             mvToggle.interactable = false;
         mvToggle.SetIsOnWithoutNotify(info.Id == GlobalInfo.mainScreenId);//设置主画面toggle

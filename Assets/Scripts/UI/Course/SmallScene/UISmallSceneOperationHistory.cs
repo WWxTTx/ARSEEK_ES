@@ -677,7 +677,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
 
         inputField.text = string.Empty;
         inputCancelBtn.onClick?.Invoke();
-        if (data.isFree || !GlobalInfo.EnableFlow)
+        if (GlobalInfo.courseMode != CourseMode.Training)
         {
             FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
         }

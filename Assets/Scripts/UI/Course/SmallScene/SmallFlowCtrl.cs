@@ -189,17 +189,6 @@ public class SmallFlowCtrl : MonoBase
             {
                 ByStepPlayAudio();
             }
-
-            DOVirtual.DelayedCall(0.2f, () =>
-            {
-                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-            });
-
-            if(index_NowFlow == 0 && _index_NowStep == 0)
-            {
-
-                FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));//清除所有操作记录
-            }
         }
     }
 
@@ -938,6 +927,10 @@ public class SmallFlowCtrl : MonoBase
     private void DoSelectStep(int stepIndex)
     {
         isAutoPlay = false; // 非自动播放模式（用户手动选择步骤）
+
+        // 清空操作记录
+        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
+
         // todo 未配置初始视角的步骤，采用上一个步骤的视角？=> 在index_NowStep setter中执行
         // 漫游模式不采用，操作表现可能包含导航
         if (useGuide && stepView.ContainsKey(index_NowFlow) && stepView[index_NowFlow].ContainsKey(stepIndex))
@@ -1896,10 +1889,9 @@ public class SmallFlowCtrl : MonoBase
             else if (op.name.Equals(contactFlag))
                 FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput, string.Empty, op.hint_success, index_Flow, index_Step, -1,
                     string.Empty, string.Empty, GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Contact));
-            //跳步骤时 不显示上一步已执行
-            //else
-            //    FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord, string.Empty, op.hint_success, index_Flow, index_Step, ModelOperationIndex(operation),
-            //        string.Empty, string.Empty, GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
+            else
+                FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord, string.Empty, op.hint_success, index_Flow, index_Step, ModelOperationIndex(operation),
+                    string.Empty, string.Empty, GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
         }
     }
 
@@ -1908,7 +1900,7 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public void Next()
     {
-        DOVirtual.DelayedCall(0.5f, () =>
+        DOVirtual.DelayedCall(0.2f, () =>
         {
             if (IsStepCompleted())
             {
@@ -1932,12 +1924,19 @@ public class SmallFlowCtrl : MonoBase
                     }
                     else
                     {
-                        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                         index_NowFlow += 1;
                         index_NowStep = 0;
                     }
+                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                 }
             }
+
+
+
+            DOVirtual.DelayedCall(0.2f, () =>
+            {
+                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+            });
         });
     }
 

@@ -465,7 +465,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 }
                 else
                 {
-                    string[] flow5 = { "试验", "静特性试验", "开始静态试验" };
+                    string[] flow5 = {"开始静态试验" };
                     steps = flow5.ToList();
                 }
                 StartFlow();

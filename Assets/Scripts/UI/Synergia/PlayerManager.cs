@@ -122,7 +122,7 @@ public class PlayerManager : MonoBase
     /// <param name="id"></param>
     private void TryAddNewUser(int id)
     {
-        if (id!= GlobalInfo.account.id)
+        if (id!= GlobalInfo.account.id && (GlobalInfo.isExam && !GlobalInfo.IsHomeowner()))//考核模式，房主不创建角色模型
         {
             GameObject go = Instantiate(indicatorPrefab, transform);
             GazeIndicator gazeIndicator = go.GetComponent<GazeIndicator>();

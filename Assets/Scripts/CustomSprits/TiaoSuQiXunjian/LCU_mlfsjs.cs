@@ -161,7 +161,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             cs[10].text = "0";
             cs[11].text = "0";
             cs[12].text = "0.962";
-            cs[13].text = "50.1";
+            cs[13].text = "0";
 
             cs[14].text = "停机态";//状态文字
             cs[14].color = gre;

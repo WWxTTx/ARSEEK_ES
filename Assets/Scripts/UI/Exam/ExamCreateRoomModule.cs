@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.ComTypes;
+using UI.Dates;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.ServiceRequestData;
-using UI.Dates;
 
 /// <summary>
 /// 创建考核房间弹窗，TODO和协同分离或者抽离父类
@@ -23,6 +25,7 @@ public class ExamCreateRoomModule : CreateRoomModule
         tagType = 3;
 
         base.Open(uiData);
+        startDate = DateTime.Now;
 
         //datePicker = GetComponentInChildren<DatePicker>(true);
         //datePicker.SelectedDate = startDate = DateTime.Today;
@@ -104,7 +107,8 @@ public class ExamCreateRoomModule : CreateRoomModule
     protected override void CreateRoomAndJoin(string roomName, string roomPassword, int duration, int courseId, string courseTitle, string courseIcon)
     {
         ExamRoomType roomType = LiveRoom.isOn ? ExamRoomType.Person : ExamRoomType.Group;
-        NetworkManager.Instance.CreateExamReserveRoom(roomName, roomPassword, (startDate + startTime).ToString("yyyy-MM-dd HH:mm"), duration, roomType, courseId, courseTitle, courseIcon,
+        
+        NetworkManager.Instance.CreateExamReserveRoom(roomName, roomPassword, "", duration, roomType, courseId, courseTitle, courseIcon,
            (roomUuid) =>
            {
                FormMsgManager.Instance.SendMsg(new MsgBase((ushort)RoomChannelEvent.UpdateRoomList));

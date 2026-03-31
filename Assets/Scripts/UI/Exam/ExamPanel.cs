@@ -888,6 +888,11 @@ public class ExamPanel : HoverHintPanel
                 FullScene.gameObject.SetActive(false);
                 FullScreenUserId = -1;
             }
+            //房间里只剩房主了，停止考核
+            if(allMemberItem.Count == 1)
+            {
+                StopExam();
+            }
         }
         WaitHint.SetActive(allMemberItem.Count == 0);
     }
