@@ -84,14 +84,7 @@ namespace UnityFramework.Runtime
             //单人考核
             if (GlobalInfo.courseMode == CourseMode.Exam)
             {
-                if (GlobalInfo.IsHomeowner())
-                {
-                    NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
-                }
-                else
-                {
-                    SendLocalMsg(msgBrodcastOperate);
-                }
+                NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
             }
             //多人考核
             else if (GlobalInfo.courseMode == CourseMode.OnlineExam)
@@ -101,17 +94,7 @@ namespace UnityFramework.Runtime
             //协同
             else if (GlobalInfo.courseMode == CourseMode.Collaboration)
             {
-                if (GlobalInfo.IsMainScreen() || GlobalInfo.IsHomeowner())
-                {
-                    NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
-                }
-                else
-                {
-                    if (synergia)
-                        NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
-                    else
-                        SendLocalMsg(msgBrodcastOperate);
-                }
+                NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
             }
             //直播
             else if (GlobalInfo.courseMode == CourseMode.Livebroadcast)

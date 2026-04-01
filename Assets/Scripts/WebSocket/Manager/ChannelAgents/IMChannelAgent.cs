@@ -173,6 +173,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
     }
 
+    bool OpenLoading = false;
     /// <summary>
     /// 处理操作消息
     /// </summary>
@@ -190,35 +191,32 @@ public class IMChannelAgent : NetworkChannelAgentBase
             if (GlobalInfo.playTimeRatio > 0)
             {
                 IsSyncCachedState = true;
+                OpenLoading = true;
                 UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
             }
 
             currentOp = stateHelper.DequeueCachedStateOp();
             TryExecuteCurrentOp();
         }
-        //完成缓存状态同步
-        if(IsSyncCachedState)
-            IsSyncCachedState = false;
+        IsSyncCachedState = false;
 
         //执行状态消息
         //等待百科状态同步完成再执行后续操作 //&& !GlobalInfo.isARTracking 
         while (IsStartSync && !IsSyncCachedState && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
-
+             
             if (GlobalInfo.playTimeRatio > 0)
             {
                 IsSyncState = true;
+                OpenLoading = true;
                 UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
             }
 
             currentOp = stateHelper.DequeueStateOp();
             TryExecuteCurrentOp();
         }
-        if (IsSyncState)
-        {
-            IsSyncState = false;
-        }
+        IsSyncState = false;
 
         //执行操作消息 //&& !GlobalInfo.isARTracking
         while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
@@ -226,6 +224,14 @@ public class IMChannelAgent : NetworkChannelAgentBase
             deltaTime = 0;
             currentOp = opsReceive.Dequeue();
             TryExecuteCurrentOp();
+        }
+
+        if (OpenLoading)
+        {
+            OpenLoading = false;
+            UIManager.Instance.CloseUI<LoadingPanel>();
+            GlobalInfo.uiAnimRatio = 1f;
+            GlobalInfo.playTimeRatio = 1f;
         }
     }
 
@@ -435,14 +441,13 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         CurrentStateToSync = cachedPacket.state;
 
-        // 重连步骤推导：从缓存消息推导最终的流程步骤
-        DeriveFinalStepFromCache();
-
         stateHelper.UpdateCachedStateVersion(cachedPacket);
         Debug.Log("<color=#14A857>状态调试 重连者添加缓存:</color>" + JsonTool.Serializable(cachedPacket));
 
-        deltaTime = 0;
+        // 重连步骤推导：从缓存消息推导最终的流程步骤
+        DeriveFinalStepFromCache();
 
+        deltaTime = 0;
         GlobalInfo.version = cachedPacket.version;
     }
 
@@ -491,8 +496,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         // 3. 如果最后一条消息是112(Operate)或118(CompleteExecute)，需要推进步骤
         if ((cachedPacket.data != null &&
-            (cachedPacket.data.msgId == (ushort)SmallFlowModuleEvent.Operate ||
-             cachedPacket.data.msgId == (ushort)SmallFlowModuleEvent.CompleteExecute)) &&
+            (cachedPacket.data.msgId == (ushort)SmallFlowModuleEvent.CompleteExecute)) &&
             finalFlowIndex >= 0)
         {
             // 根据completeCount推进步骤

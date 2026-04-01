@@ -1565,17 +1565,8 @@ public class UISmallSceneModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
                 // 操作完成时释放发送者的操作权限
                 MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
-                if (brodcastMsg != null)
-                {
-                    // 收到其他用户的广播消息，释放该用户的权限
-                    ReleaseOperatePermission(brodcastMsg.senderId);
-                }
-                else
-                {
-                    // 本地消息（自己完成的操作），释放本地权限并广播给其他用户
-                    ReleaseOperatePermission(GlobalInfo.account.id);
-                    ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
-                }
+                ReleaseOperatePermission();
+
                 ModelState = ModelState.Unselect;
                 RefreshHighlight();
 
@@ -1850,13 +1841,9 @@ public class UISmallSceneModule : UIModuleBase
     /// <param name="userId"></param>
     /// <param name="modelOperation"></param>
     /// <param name="operationName"></param>
-    private void ReleaseOperatePermission(int userId, ModelOperation modelOperation)
+    private void ReleaseOperatePermission()
     {
-        if (userOpModel.ContainsKey(modelOperation) && userOpModel[modelOperation] == userId)
-        {
-            userOpModel.Remove(modelOperation);
-            Debug.Log($"状态调试 ReleaseOperatePermission - 已释放权限: modelOperation:{modelOperation.name}, userId:{userId}");
-        }
+        userOpModel.Clear();
     }
 
     private void ReleaseOperatePermission(int userId)

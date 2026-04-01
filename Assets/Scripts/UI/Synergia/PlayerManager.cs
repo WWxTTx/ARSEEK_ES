@@ -65,12 +65,6 @@ public class PlayerManager : MonoBase
                 SyncUser(msgIntVector.arg, msgIntVector.v3, msgIntVector.v4);
                 break;
             case (ushort)RoomChannelEvent.OtherJoin:
-                //新成员加入房间时，为其创建角色指示器
-                MsgIntString joinMsg = (MsgIntString)msg;
-                if (GlobalInfo.TwoPlayerMode())
-                {
-                    TryAddNewUser(joinMsg.arg1);
-                }
                 break;
             case (ushort)RoomChannelEvent.OtherLeave:
                 //移除离线成员
@@ -122,7 +116,8 @@ public class PlayerManager : MonoBase
     /// <param name="id"></param>
     private void TryAddNewUser(int id)
     {
-        if (id!= GlobalInfo.account.id && (GlobalInfo.isExam && !GlobalInfo.IsHomeowner()))//考核模式，房主不创建角色模型
+        //限制 非自身 多人考核非房主 协同
+        if (id!= GlobalInfo.account.id && (GlobalInfo.courseMode == CourseMode.Collaboration || (GlobalInfo.courseMode == CourseMode.OnlineExam && !GlobalInfo.IsHomeowner())) )
         {
             GameObject go = Instantiate(indicatorPrefab, transform);
             GazeIndicator gazeIndicator = go.GetComponent<GazeIndicator>();

@@ -107,8 +107,12 @@ public class Option_GeneralModule : UIModuleBase
 
         CourseVoice.SetValueWithoutNotify(PlayerPrefs.GetInt(GlobalInfo.courseVoice, 1));
 
+        if (!PlayerPrefs.HasKey(GlobalInfo.courseVoice))
+        {
+            PlayerPrefs.SetInt(GlobalInfo.courseVoice, 1);
+        }
         CourseVoice.onValueChanged.AddListener(index =>
-        { 
+        {
             PlayerPrefs.SetInt(GlobalInfo.courseVoice, index);
             if(index == 1)
             {

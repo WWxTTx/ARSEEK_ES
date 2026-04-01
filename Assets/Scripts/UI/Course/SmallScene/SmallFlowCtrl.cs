@@ -1050,6 +1050,13 @@ public class SmallFlowCtrl : MonoBase
                         RecordSucessOp(data);
                         Next();
                     }
+                    else
+                    {
+                        DOVirtual.DelayedCall(0.2f, () =>
+                        {
+                            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+                        });
+                    }
                     MasterComputerInteractable = true;
                 }, 0, dummy);
             }
@@ -1060,6 +1067,13 @@ public class SmallFlowCtrl : MonoBase
                 {
                     RecordSucessOp(data);
                     Next();
+                }
+                else
+                {
+                    DOVirtual.DelayedCall(0.2f, () =>
+                    {
+                        FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+                    });
                 }
             }
         }, dummy);

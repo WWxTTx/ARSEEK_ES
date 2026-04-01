@@ -311,8 +311,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             return;
 
         StopReconnect();
-        if(!joiningRoom)
-            UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
         delayReconnectCo = StartCoroutine(_delayReconnect());
     }
 

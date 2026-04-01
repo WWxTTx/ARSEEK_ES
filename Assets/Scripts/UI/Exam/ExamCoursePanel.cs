@@ -44,6 +44,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
     private bool logout;
 
+    /// <summary>
+    /// 暂存的百科ID，用于BaikeSelect消息在百科列表加载完成前到达时暂存
+    /// </summary>
+    private int pendingBaikeId = -1;
+
     public override void Open(UIData uiData = null)
     {
         GlobalInfo.waitExam = true;
@@ -219,6 +224,14 @@ public partial class ExamCoursePanel : OPLCoursePanel
         }
 
         int baikeId = ((MsgBrodcastOperate)msg).GetData<MsgInt>().arg;
+
+        // 百科列表未加载完成（GetExamination异步请求未返回），暂存百科ID
+        if (GlobalInfo.currentWikiList == null)
+        {
+            pendingBaikeId = baikeId;
+            return;
+        }
+
         if (!NetworkManager.Instance.IsIMSyncState)
         {
             UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
@@ -232,7 +245,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         else
         {
             ChangeBaike(baikeId);
-        }  
+        }
     }
 
     /// <summary>
@@ -909,6 +922,14 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     {
                         StartExam(msgExamStartData);
 
+                        // 加载待处理或第一个百科（BaikeSelect消息可能在倒计时期间被跳过）
+                        int baikeToLoad = pendingBaikeId > 0 ? pendingBaikeId : (GlobalInfo.currentWikiList?[0]?.id ?? 0);
+                        if (baikeToLoad > 0 && GlobalInfo.currentWiki == null)
+                        {
+                            pendingBaikeId = -1;
+                            ChangeBaike(baikeToLoad);
+                        }
+
                         //获取已提交的考核记录，用于还原百科操作记录列表
                         if (GlobalInfo.IsGroupMode())
                         {
@@ -973,7 +994,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             return;
         }
         Log.Debug("开始倒计时");
-        inExam = false;
         startTimingTrans.gameObject.SetActive(true);
         float index = 0;
         text.text = "3";
@@ -1192,7 +1212,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="submitUserId"></param>
     /// <param name="submitExamId"></param>
     private void OnExamSubmit(int submitUserId, int submitExamId)
-    {            
+    {
         if (submitExamId != examId)
             return;
         //todo 记录本场考核已提交人员
@@ -1223,12 +1243,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
             {
                 Submit(() =>
                 {
-                    var popupDic = new Dictionary<string, PopupButtonData>();
-                    popupDic.Add("确定", new PopupButtonData(() =>
-                    {
-                        Quit();
-                    }, true));
-                    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核提交成功，退出房间", popupDic, showCloseBtn: false));
+                    Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+                    popupDic.Add("确定", new PopupButtonData(() => Quit(), true));
+                    // 使用自动确认弹窗，10秒后自动退出
+                    UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "其他考生已提交考核，系统自动提交", popupDic, 10, true, () => Quit()));
                 }, false);
             }
         }
