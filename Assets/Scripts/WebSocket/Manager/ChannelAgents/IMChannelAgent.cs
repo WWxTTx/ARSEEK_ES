@@ -116,6 +116,10 @@ public class IMChannelAgent : NetworkChannelAgentBase
     private bool _isSyncBaikeState = false;
     private bool _isWaitingResponse = false;
     /// <summary>
+    /// 是否有待处理的状态同步请求
+    /// </summary>
+    private bool _pendingStateSync = false;
+    /// <summary>
     /// 当前接收的同步消息包中的状态
     /// </summary>
     private IMState currentState;
@@ -172,6 +176,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
             opsQueue.Enqueue(msg);
         }
     }
+
+    public void SetPendingStateSync(bool pending) { _pendingStateSync = pending; }
+    public bool HasCachedPacket() { return cachedPacket != null; }
 
     bool OpenLoading = false;
     /// <summary>
@@ -327,9 +334,10 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
                         if (GlobalInfo.IsOperator())
                         {
-                            //中途加入或本地为旧版本
-                            if (GlobalInfo.version < version - 1)
+                            //修改为仅房主尝试重连 非房主从房主处获取当前状态
+                            if (GlobalInfo.IsHomeowner())
                             {
+                                _pendingStateSync = false;
                                 SyncVersion(packet);
                             }
                             else
@@ -340,11 +348,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
                             }
                             //更新本地版本
                             GlobalInfo.version = version;
-                        }
-                        else
-                        {
-                            pendingOps.Enqueue(packet.data);
-                            pendingVersion = version;
                         }
                     }
                 }
@@ -359,45 +362,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
                 }
                 break;
         }
-    }
-
-    /// <summary>
-    /// 待处理的消息队列（用于非操作者缓存消息）
-    /// </summary>
-    private Queue<MsgBrodcastOperate> pendingOps = new Queue<MsgBrodcastOperate>();
-    private int pendingVersion = 0;
-
-    /// <summary>
-    /// 处理缓存的消息（获得操作权限后调用）
-    /// </summary>
-    public void ProcessPendingMessages()
-    {
-        if (pendingOps.Count == 0)
-            return;
-
-        Debug.Log($"[RTI调试] ProcessPendingMessages | 处理缓存消息数量:{pendingOps.Count} | pendingVersion:{pendingVersion}");
-
-        // 如果版本差距大，需要同步版本
-        if (GlobalInfo.version < pendingVersion - 1 && cachedPacket != null)
-        {
-            SyncVersion(cachedPacket);
-        }
-        else
-        {
-            IsStartSync = true;
-            // 处理所有缓存的消息
-            while (pendingOps.Count > 0)
-            {
-                var op = pendingOps.Dequeue();
-                opsReceive.Enqueue(op);
-                stateHelper.UpdateState(op);
-            }
-
-            // 更新版本
-            GlobalInfo.version = pendingVersion;
-        }
-
-        pendingVersion = 0;
     }
 
     /// <summary>
@@ -444,104 +408,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
         stateHelper.UpdateCachedStateVersion(cachedPacket);
         Debug.Log("<color=#14A857>状态调试 重连者添加缓存:</color>" + JsonTool.Serializable(cachedPacket));
 
-        // 重连步骤推导：从缓存消息推导最终的流程步骤
-        DeriveFinalStepFromCache();
-
         deltaTime = 0;
         GlobalInfo.version = cachedPacket.version;
-    }
-
-    /// <summary>
-    /// 从缓存消息推导最终的流程步骤，生成合成的SelectStep消息
-    /// 解决105(SelectStep)消息被TruncateStateList过滤后重连步骤不正确的问题
-    /// </summary>
-    private void DeriveFinalStepFromCache()
-    {
-        if (cachedPacket == null || cachedPacket.state == null || cachedPacket.state.stateOps == null)
-            return;
-
-        int finalFlowIndex = -1;
-        int finalStepIndex = -1;
-
-        // 1. 遍历缓存消息，找最新的105(SelectStep)消息
-        foreach (var op in cachedPacket.state.stateOps)
-        {
-            if (op != null && op.msgId == (ushort)SmallFlowModuleEvent.SelectStep)
-            {
-                try
-                {
-                    var stepData = JsonTool.DeSerializable<MsgStringTuple<int, int, string>>(op.data);
-                    if (stepData != null && stepData.arg2 != null)
-                    {
-                        finalFlowIndex = stepData.arg2.Item1;
-                        finalStepIndex = stepData.arg2.Item2;
-                    }
-                }
-                catch (System.Exception e)
-                {
-                    Log.Warning("解析缓存SelectStep消息失败: " + e.Message);
-                }
-            }
-        }
-
-        // 2. 统计118(CompleteExecute)消息数量
-        int completeCount = 0;
-        foreach (var op in cachedPacket.state.stateOps)
-        {
-            if (op != null && op.msgId == (ushort)SmallFlowModuleEvent.CompleteExecute)
-            {
-                completeCount++;
-            }
-        }
-
-        // 3. 如果最后一条消息是112(Operate)或118(CompleteExecute)，需要推进步骤
-        if ((cachedPacket.data != null &&
-            (cachedPacket.data.msgId == (ushort)SmallFlowModuleEvent.CompleteExecute)) &&
-            finalFlowIndex >= 0)
-        {
-            // 根据completeCount推进步骤
-            // 获取SmallFlowCtrl来查询每个任务的步骤数量
-            SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelRoot?.GetComponentInChildren<SmallFlowCtrl>(true);
-            if (smallFlowCtrl != null && smallFlowCtrl.flows != null && completeCount > 0)
-            {
-                int fi = finalFlowIndex;
-                int si = finalStepIndex;
-                for (int i = 0; i < completeCount; i++)
-                {
-                    si++;
-                    // 如果步骤超出当前任务，进入下一个任务
-                    if (fi < smallFlowCtrl.flows.Length && si >= smallFlowCtrl.flows[fi].steps.Count)
-                    {
-                        si = 0;
-                        fi++;
-                    }
-                }
-                // 确保不越界
-                if (fi < smallFlowCtrl.flows.Length)
-                {
-                    finalFlowIndex = fi;
-                    finalStepIndex = si;
-                }
-            }
-        }
-
-        // 4. 如果推导出了有效步骤，生成合成的105消息并插入缓存
-        if (finalFlowIndex >= 0 && finalStepIndex >= 0)
-        {
-            var synthMsg = new MsgStringTuple<int, int, string>();
-            synthMsg.msgId = (ushort)SmallFlowModuleEvent.SelectStep;
-            synthMsg.arg2 = new Tuple<int, int, string>(finalFlowIndex, finalStepIndex, string.Empty);
-            synthMsg.arg1 = string.Empty;
-            var brodcastMsg = new MsgBrodcastOperate
-            {
-                senderId = 0,
-                msgId = synthMsg.msgId,
-                data = JsonTool.Serializable(synthMsg)
-            };
-
-            cachedPacket.state.stateOps.Insert(0, brodcastMsg);
-            Debug.Log($"<color=#14A857>状态调试 重连步骤推导: flowIndex={finalFlowIndex}, stepIndex={finalStepIndex}, completeCount={completeCount}</color>");
-        }
     }
 
     /// <summary>
@@ -631,8 +499,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         lock (asynLock)
             opsQueue.Clear();
         opsReceive.Clear();
-        pendingOps.Clear();
-        pendingVersion = 0;
+        _pendingStateSync = false;
         CurrentStateToSync = null;
         cachedPacket = null;
         stateHelper.Clear(true);

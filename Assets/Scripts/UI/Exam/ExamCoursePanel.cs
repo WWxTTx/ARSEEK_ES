@@ -347,21 +347,17 @@ public partial class ExamCoursePanel : OPLCoursePanel
             //等待FlowModule操作列表初始化完成
             this.WaitTime(0.15f, () =>
             {
-                //个人考核 提交考核记录
-                if (!GlobalInfo.IsGroupMode())
+                //提交考核记录
+                smallSceneModule.operationHistoryModule.OnRecordChanged.RemoveAllListeners();
+                smallSceneModule.smallFlowCtrl.OnFreeOperationInvoked.RemoveAllListeners();
+                smallSceneModule.operationHistoryModule.OnRecordChanged.AddListener(( recordData) =>
                 {
-                    // 每次操作记录变化时提交 
-                    smallSceneModule.operationHistoryModule.OnRecordChanged.RemoveAllListeners();
-                    smallSceneModule.smallFlowCtrl.OnFreeOperationInvoked.RemoveAllListeners();
-                    smallSceneModule.operationHistoryModule.OnRecordChanged.AddListener(( recordData) =>
-                    {
-                        ExamUtility.Instance.EnqueueOperation(examId, GlobalInfo.currentWiki.id, recordData, GetExamineModelStates());
-                    });
-                    smallSceneModule.smallFlowCtrl.OnFreeOperationInvoked.AddListener(() =>
-                    {
-                        ExamUtility.Instance.EnqueueOperation(examId, GlobalInfo.currentWiki.id, null, GetExamineModelStates());
-                    });
-                }
+                    ExamUtility.Instance.EnqueueOperation(examId, GlobalInfo.currentWiki.id, recordData, GetExamineModelStates());
+                });
+                smallSceneModule.smallFlowCtrl.OnFreeOperationInvoked.AddListener(() =>
+                {
+                    ExamUtility.Instance.EnqueueOperation(examId, GlobalInfo.currentWiki.id, null, GetExamineModelStates());
+                });
             });
         });
     }

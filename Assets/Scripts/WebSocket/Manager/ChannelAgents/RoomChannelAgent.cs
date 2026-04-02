@@ -175,6 +175,10 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                     {
                         Log.Debug($"[协同调试] 房主给新成员分配操作权限 | newMemberId:{newMember.Id}");
                         networkManager.SetUserControl(newMember.Id, true);
+
+                        // 房主检测到新/重连成员时，发送步骤同步
+                        Log.Debug($"[状态调试] 房主发送步骤同步 | 新成员Id:{member.Key}");
+                        networkManager.SendStepSync();
                     }
                 }
             }

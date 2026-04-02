@@ -405,7 +405,11 @@ public enum SmallFlowModuleEvent
     /// LCU_mlfsjs 按钮事件同步
     /// </summary>
     SynchronizationLcu,                    // ID:138
-    Max,                                    // ID:139
+    /// <summary>
+    /// 步骤同步（非房主重连跳步骤）
+    /// </summary>
+    StepSync,                              // ID:139
+    Max,                                   // ID:140
 }
 
 /// <summary>
@@ -413,7 +417,7 @@ public enum SmallFlowModuleEvent
 /// </summary>
 public enum ExercisesModuleEvent
 {
-    Min = SmallFlowModuleEvent.Max + 1,  // ID:137
+    Min = SmallFlowModuleEvent.Max + 1,  // ID:141
     /// <summary>
     /// 选择答案
     /// </summary>

@@ -470,8 +470,8 @@ public class BehaveMoveCamera : BehaveDotween
                         ModelManager.Instance.CameraDotween = false;
                         if (playerController != null)
                         {
-                            //playerController.CameraFollowTween.Play();
-                            //playerController.CameraRotateTween.Play();
+                            playerController.CameraFollowTween.Play();
+                            playerController.CameraRotateTween.Play();
                         }
                         else
                         {
@@ -2554,9 +2554,14 @@ public class BehaveFocus : BehaveDotween
                 sequence.Append(camera.DOMove(ctrlGO.transform.position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
                 sequence.Join(camera.DORotate(ctrlGO.transform.eulerAngles, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease)).OnComplete(() =>
                 {
-                    ModelManager.Instance.CameraDotween = false; 
+                    ModelManager.Instance.CameraDotween = false;
                     if (playerController == null)
                         ModelManager.Instance.UpdateCameraPose();
+                    else
+                    {
+                        playerController.CameraFollowTween.Play();
+                        playerController.CameraRotateTween.Play();
+                    }
 
                     callback?.Invoke();
                 });
@@ -2664,13 +2669,6 @@ public class BehavePopup : BehaveBase
         Dictionary<string, PopupButtonData> popupData = new Dictionary<string, PopupButtonData>();
         popupData.Add("确定", new PopupButtonData(callback, true));
         UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", message, popupData));
-    }
-
-    private System.Collections.IEnumerator WaitForAudioEnd(System.Action onComplete)
-    {
-        // 等待音频播放完成
-        yield return new WaitUntil(() => !SpeechManager.Instance.IsAudioPlaying);
-        onComplete?.Invoke();
     }
 
     public override void SetInitialState()

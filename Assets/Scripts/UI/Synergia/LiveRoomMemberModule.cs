@@ -234,7 +234,8 @@ public class LiveRoomMemberModule : UIModuleBase
             if (GlobalInfo.account.id == newJoinedId)
             {
                 Debug.Log($"[协同调试] 成员断线重连 | IsOperator:{GlobalInfo.IsOperator()}");
-                //成员断线重连后确保操作权限状态
+                // Operator 重连的同步由 RoomChannelAgent.UpdateRoomMembers 触发
+                // 非 Operator 重连需打开遮罩
                 if (!GlobalInfo.IsOperator())
                 {
                     SendMsg(new MsgBase((ushort)CoursePanelEvent.OpenMask));
@@ -359,7 +360,7 @@ public class LiveRoomMemberModule : UIModuleBase
 
                 // YG: 改成等待百科加载完成
                 //StartCoroutine(WaitForBaikeComplete(() => {
-                NetworkManager.Instance.SyncCachedVersion();
+                NetworkManager.Instance.TrySyncCachedVersion();
                 SendMsg(new MsgBase((ushort)CoursePanelEvent.CloseMask));
                 SendMsg(new MsgBase((ushort)MediaChannelEvent.RemoveView));
 

@@ -1099,8 +1099,9 @@ public class SmallFlowCtrl : MonoBase
         {
             if (op != null)
             {
-                //Debug.Log("已配置操作：index_NowFlow = " + index_NowFlow + "; index_NowStep = " + index_NowStep);
                 ModelOperationEventManager.Publish(new ModelStateEvent(modelInfoId, data.optionName));
+                Debug.Log("操作和执行完成！");
+                ToolManager.SendBroadcastMsg(new MsgInt((ushort)SmallFlowModuleEvent.StepEnd, GlobalInfo.account.id));
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
@@ -1618,8 +1619,6 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="op"></param>
     private void RecordSucessOp(SmallOp1 op)
     {
-        Debug.Log("操作和联动执行完！");
-        ToolManager.SendBroadcastMsg(new MsgInt((ushort)SmallFlowModuleEvent.StepEnd, GlobalInfo.account.id));
         lock (successOPs)
         {
             var executed = successOPs.Find(o => o.operation == op.operation && o.optionName.Equals(op.optionName) && o.prop == op.prop);

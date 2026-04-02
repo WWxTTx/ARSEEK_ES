@@ -3096,3 +3096,4 @@ MonoBehaviour:
   InfoFontColor: {r: 1, g: 1, b: 1, a: 1}
   InfoFontSize: 28
   ShowInfoKey: 32
+  dataInited: 0

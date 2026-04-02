@@ -7,6 +7,7 @@ using UnityFramework.Runtime;
 using static UnityFramework.Runtime.ServiceRequestData;
 using Newtonsoft.Json.Linq;
 using RenderHeads.Media.AVProMovieCapture;
+using UnityEngine.EventSystems;
 
 /// <summary>
 /// 协同各通道相关接口
@@ -327,7 +328,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
     public void SendIMMsg(MsgBrodcastOperate msg)
     {
-        if (mIMChannelAgent == null || !mIMChannelAgent.IsChannelConnected()) 
+        if (mIMChannelAgent == null || !mIMChannelAgent.IsChannelConnected())
         {
             Debug.LogWarning($"连接已断开 发送失败 {JsonTool.Serializable(msg)}");
             return;
@@ -335,9 +336,44 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         mIMChannelAgent.SendOperationData(msg);
     }
 
-    public void SyncCachedVersion()
+    /// <summary>
+    /// 房主发送当前步骤位置给新/重连成员
+    /// </summary>
+    public void SendStepSync()
     {
-        mIMChannelAgent.SyncCachedVersion();
+        if (mIMChannelAgent == null || !mIMChannelAgent.IsChannelConnected())
+            return;
+
+        SmallFlowCtrl ctrl = ModelManager.Instance.modelRoot?.GetComponentInChildren<SmallFlowCtrl>(true);
+        if (ctrl == null)
+            return;
+
+        JObject stepData = new JObject
+        {
+            ["flowIndex"] = ctrl.index_NowFlow,
+            ["stepIndex"] = ctrl.index_NowStep
+        };
+
+        mIMChannelAgent.SendOperationData(new MsgBrodcastOperate
+        {
+            msgId = (ushort)SmallFlowModuleEvent.StepSync,
+            data = stepData.ToString(Newtonsoft.Json.Formatting.None)
+        });
+    }
+
+    /// <summary>
+    /// 尝试同步缓存版本（cachedPacket 可能为 null）
+    /// </summary>
+    public void TrySyncCachedVersion()
+    {
+        if (mIMChannelAgent.HasCachedPacket())
+        {
+            mIMChannelAgent.SyncCachedVersion();
+        }
+        else
+        {
+            mIMChannelAgent.SetPendingStateSync(true);
+        }
     }
 
     public void SyncBaikeState()

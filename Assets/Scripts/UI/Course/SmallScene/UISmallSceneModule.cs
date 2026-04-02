@@ -403,7 +403,7 @@ public class UISmallSceneModule : UIModuleBase
 
         //标记初始化语音数据
         SpeechManager.Instance.dataInited = false;
-
+        GlobalInfo.UpdateSpeechMode();
         //只有培训模式打开完整提示词
         if (CourseMode.Training == GlobalInfo.courseMode)
             UIManager.Instance.OpenModuleUI<UISmallSceneInfoModule>(ParentPanel, transform, null);
@@ -428,8 +428,8 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.Operate,
             (ushort)SmallFlowModuleEvent.MasterComputerSelect,
             (ushort)SmallFlowModuleEvent.CompleteStep,
+             (ushort)SmallFlowModuleEvent.StepEnd,
             (ushort)SmallFlowModuleEvent.CompleteExecute,
-            (ushort)SmallFlowModuleEvent.StepEnd,
             (ushort)SmallFlowModuleEvent.CompleteAll,
             (ushort)SmallFlowModuleEvent.HideMonitor,
             (ushort)SmallFlowModuleEvent.MaxMap,
@@ -465,7 +465,7 @@ public class UISmallSceneModule : UIModuleBase
         {
             SmallSceneData data = uiData as SmallSceneData;
             if (data.flows != null)
-                smallFlowCtrl.Init(!GlobalInfo.IsExamMode(), data.flows);//todo强制引导视角
+                smallFlowCtrl.Init(!GlobalInfo.IsExamMode());//todo强制引导视角
             else
             {
                 smallFlowCtrl.Init(!GlobalInfo.IsExamMode());
@@ -1562,6 +1562,9 @@ public class UISmallSceneModule : UIModuleBase
                 Msg2DOperate msg2DOperate = msg as Msg2DOperate;
                 SelectAndExecute2D(msg2DOperate.operation, msg2DOperate.optionName);
                 break;
+            case (ushort)SmallFlowModuleEvent.StepEnd:
+                ModelState = ModelState.Unselect;
+                break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
                 // 操作完成时释放发送者的操作权限
                 MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
@@ -1642,10 +1645,7 @@ public class UISmallSceneModule : UIModuleBase
 
                     if(GlobalInfo.isExam)
                     {
-                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, (isOn) =>
-                        {
-                            ModelState = ModelState.Operated;
-                        }, !self);
+                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName);
                     }
                     else
                     {
