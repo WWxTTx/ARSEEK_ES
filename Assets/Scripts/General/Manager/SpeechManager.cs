@@ -14,6 +14,20 @@ public class SpeechManager : Singleton<SpeechManager>
 {
     public AudioSource audioSource;
 
+    private void Start()
+    {
+        if (!PlayerPrefs.HasKey(GlobalInfo.courseVoice))
+        {
+            PlayerPrefs.SetInt(GlobalInfo.courseVoice, 1);
+            GlobalInfo.UpdateSpeechMode();
+            Debug.Log("语音模式" + SpeechMode);
+        }
+        else
+        {
+            Debug.Log("语音未进" + PlayerPrefs.GetInt(GlobalInfo.courseVoice));
+        }
+    }
+
     /// <summary>
     /// 字幕文本组件
     /// </summary>

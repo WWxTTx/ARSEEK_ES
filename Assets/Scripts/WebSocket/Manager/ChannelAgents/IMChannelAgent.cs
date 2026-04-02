@@ -334,8 +334,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
                         if (GlobalInfo.IsOperator())
                         {
-                            //修改为仅房主尝试重连 非房主从房主处获取当前状态
-                            if (GlobalInfo.IsHomeowner())
+                            //中途加入或本地为旧版本
+                            if (GlobalInfo.version < version - 1)
                             {
                                 _pendingStateSync = false;
                                 SyncVersion(packet);
