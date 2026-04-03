@@ -84,7 +84,7 @@ namespace UnityFramework.Runtime
             //单人考核
             if (GlobalInfo.courseMode == CourseMode.Exam)
             {
-                NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
+                SendLocalMsg(msgBrodcastOperate);
             }
             //多人考核
             else if (GlobalInfo.courseMode == CourseMode.OnlineExam)

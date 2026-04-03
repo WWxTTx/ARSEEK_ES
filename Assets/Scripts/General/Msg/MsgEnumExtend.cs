@@ -405,10 +405,6 @@ public enum SmallFlowModuleEvent
     /// LCU_mlfsjs 按钮事件同步
     /// </summary>
     SynchronizationLcu,                    // ID:138
-    /// <summary>
-    /// 步骤同步（非房主重连跳步骤）
-    /// </summary>
-    StepSync,                              // ID:139
     Max,                                   // ID:140
 }
 

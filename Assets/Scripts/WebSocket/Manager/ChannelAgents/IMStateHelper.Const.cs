@@ -100,8 +100,8 @@ public partial class IMStateHelper
         { (ushort)IntegrationModuleEvent.AnimFinish, MsgStateType.UpdateAppend },
         { (ushort)IntegrationModuleEvent.AlphaValue, MsgStateType.UpdateAppend },
         ////集成百科 syncbaikestate TODO
-        { (ushort)SmallFlowModuleEvent.SelectFlow, MsgStateType.Update },
-        { (ushort)SmallFlowModuleEvent.SelectStep, MsgStateType.Update },
+        //{ (ushort)SmallFlowModuleEvent.SelectFlow, MsgStateType.Update },
+        //{ (ushort)SmallFlowModuleEvent.SelectStep, MsgStateType.Update },
         //{ (ushort)SmallFlowModuleEvent.Operate, MsgStateType.Default },
         //{ (ushort)SmallFlowModuleEvent.MasterComputerOperate, MsgStateType.Default },
         //{ (ushort)SmallFlowModuleEvent.Input, MsgStateType.Default },

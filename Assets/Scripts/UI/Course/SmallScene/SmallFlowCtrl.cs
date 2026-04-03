@@ -1030,6 +1030,7 @@ public class SmallFlowCtrl : MonoBase
 
         ExecuteOperation(data.operation, data.optionName, data.prop, (op) =>
         {
+            ModelOperationEventManager.Publish(new ModelStateEvent(modelInfoId, data.optionName));
             if (op != null)
             {
                 OnFreeOperationInvoked?.Invoke();

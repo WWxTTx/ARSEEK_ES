@@ -430,7 +430,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             (ushort)ExamPanelEvent.Submit,
             (ushort)ExamPanelEvent.ExerciseScore,
             (ushort)SmallFlowModuleEvent.CompleteStep,
-            (ushort)SmallFlowModuleEvent.SelectStep
         });
 
         submit = this.GetComponentByChildName<Button>("Submit");

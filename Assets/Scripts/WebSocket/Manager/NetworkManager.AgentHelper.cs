@@ -337,31 +337,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     }
 
     /// <summary>
-    /// 房主发送当前步骤位置给新/重连成员
-    /// </summary>
-    public void SendStepSync()
-    {
-        if (mIMChannelAgent == null || !mIMChannelAgent.IsChannelConnected())
-            return;
-
-        SmallFlowCtrl ctrl = ModelManager.Instance.modelRoot?.GetComponentInChildren<SmallFlowCtrl>(true);
-        if (ctrl == null)
-            return;
-
-        JObject stepData = new JObject
-        {
-            ["flowIndex"] = ctrl.index_NowFlow,
-            ["stepIndex"] = ctrl.index_NowStep
-        };
-
-        mIMChannelAgent.SendOperationData(new MsgBrodcastOperate
-        {
-            msgId = (ushort)SmallFlowModuleEvent.StepSync,
-            data = stepData.ToString(Newtonsoft.Json.Formatting.None)
-        });
-    }
-
-    /// <summary>
     /// 尝试同步缓存版本（cachedPacket 可能为 null）
     /// </summary>
     public void TrySyncCachedVersion()

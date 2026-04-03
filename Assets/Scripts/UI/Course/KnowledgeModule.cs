@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
@@ -116,7 +116,6 @@ public class KnowledgeModule : UIModuleBase
 #endif
             (ushort)IntegrationModuleEvent.AnimSelect,
             (ushort)SmallFlowModuleEvent.SelectFlow,
-            (ushort)SmallFlowModuleEvent.SelectStep,
             (ushort)SmallFlowModuleEvent.SelectStep,
             (ushort)SmallFlowModuleEvent.Guide,
             (ushort)SmallFlowModuleEvent.CompleteStep
