@@ -282,8 +282,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         get { return mIMChannelAgent.IsStartSync; }
         set
         {
-            if (!GlobalInfo.IsLiveMode())
-                return;
             mIMChannelAgent.IsStartSync = value;
         }
     }

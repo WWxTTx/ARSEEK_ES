@@ -149,12 +149,11 @@ namespace UnityFramework.Runtime
         }
 
         /// <summary>
-        /// 广播消息
+        /// 本地广播消息 AddMsg(msgIds) / RegistMsg()
         /// </summary>
         /// <param name="msg">广播的消息</param>
         public void SendMsg(MsgBase msg)
         {
-            NetworkManager.Instance.IsIMSync = true;
             if (!dicEventMsg.ContainsKey(msg.msgId))
             {
                 return;

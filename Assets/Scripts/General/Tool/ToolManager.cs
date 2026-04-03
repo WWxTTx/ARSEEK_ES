@@ -77,14 +77,17 @@ namespace UnityFramework.Runtime
         /// 发送直播和协同消息
         /// </summary>
         /// <param name="msg"></param>
-        /// <param name="synergia">仅用于协同房间 是否允许非主画面权限用户广播</param>
+        /// <param name="synergia">特殊 在部分情况走全体，部分走本地</param>
         public static void SendBroadcastMsg(MsgBase msg, bool synergia = false)
         {
             MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(msg.msgId, JsonTool.Serializable(msg));
             //单人考核
             if (GlobalInfo.courseMode == CourseMode.Exam)
             {
-                SendLocalMsg(msgBrodcastOperate);
+                if (synergia)
+                    NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
+                else
+                    FormMsgManager.Instance.SendMsg(msgBrodcastOperate);
             }
             //多人考核
             else if (GlobalInfo.courseMode == CourseMode.OnlineExam)
@@ -99,21 +102,13 @@ namespace UnityFramework.Runtime
             //直播
             else if (GlobalInfo.courseMode == CourseMode.Livebroadcast)
             {
-                SendLocalMsg(msgBrodcastOperate);
+                FormMsgManager.Instance.SendMsg(msgBrodcastOperate);
             }
             //本地
             else
             {
-                SendLocalMsg(msgBrodcastOperate);
-            }
-        }
-
-        private static void SendLocalMsg(MsgBrodcastOperate msgBrodcastOperate)
-        {
-            if (FormMsgManager.Instance != null)
                 FormMsgManager.Instance.SendMsg(msgBrodcastOperate);
-            else
-                Log.Error("FormMsgManager Instance is null!");
+            }
         }
     }
 }

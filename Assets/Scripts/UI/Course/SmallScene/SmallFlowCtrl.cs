@@ -427,7 +427,7 @@ public class SmallFlowCtrl : MonoBase
                 break;
             case PropType.MasterComputer:
                 InitBackpackProp(modelInfo);
-                Init2DProps(modelInfo);
+                //Init2DProps(modelInfo);
                 break;
             case PropType.GlobalPerspective:
                 globalPerspective = modelInfo.GetComponent<ModelOperation>();
@@ -515,44 +515,44 @@ public class SmallFlowCtrl : MonoBase
     /// 初始化上位机道具包含的2D道具
     /// </summary>
     /// <param name="modelInfo"></param>
-    private void Init2DProps(ModelInfo modelInfo)
-    {
-        masterComputerCanvas = modelInfo.AutoComponent<CanvasGroup>();
+    //private void Init2DProps(ModelInfo modelInfo)
+    //{
+    //    masterComputerCanvas = modelInfo.AutoComponent<CanvasGroup>();
 
-        var modelInfos = modelInfo.GetComponentsInChildren<ModelInfo>();
-        ModelOperation modelOperation;
-        foreach (ModelInfo info in modelInfos)
-        {
-            modelOperation = info.GetComponent<ModelOperation>();
-            if (modelOperation == null)
-                continue;
+    //    var modelInfos = modelInfo.GetComponentsInChildren<ModelInfo>();
+    //    ModelOperation modelOperation;
+    //    foreach (ModelInfo info in modelInfos)
+    //    {
+    //        modelOperation = info.GetComponent<ModelOperation>();
+    //        if (modelOperation == null)
+    //            continue;
 
-            modelOperation.initState = modelOperation.currentState;
+    //        modelOperation.initState = modelOperation.currentState;
 
-            switch (info.InfoData.InteractMode)
-            {
-                case InteractMode.Click2D:
-                    Button button = info.GetComponentInChildren<Button>();
-                    button.GetComponentInChildren<Text>().text = info.Name;
-                    button.onClick.AddListener(() =>
-                    {
-                        //todo
-                    });
-                    break;
-                case InteractMode.Menu2D:
-                    Dropdown dropdown = info.GetComponentInChildren<Dropdown>();
-                    dropdown.options = modelOperation.operations.Select(o => new Dropdown.OptionData(o.name)).ToList();
-                    dropdown.SetValueWithoutNotify(dropdown.options.FindIndex(o => o.text.Equals(modelOperation.initState)));
-                    dropdown.onValueChanged.AddListener((value) =>
-                    {
-                        FormMsgManager.Instance.SendMsg(new Msg2DOperate((ushort)SmallFlowModuleEvent.Operate2D, modelOperation, dropdown.options[value].text));
-                    });
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
+    //        switch (info.InfoData.InteractMode)
+    //        {
+    //            case InteractMode.Click2D:
+    //                Button button = info.GetComponentInChildren<Button>();
+    //                button.GetComponentInChildren<Text>().text = info.Name;
+    //                button.onClick.AddListener(() =>
+    //                {
+    //                    //todo
+    //                });
+    //                break;
+    //            case InteractMode.Menu2D:
+    //                Dropdown dropdown = info.GetComponentInChildren<Dropdown>();
+    //                dropdown.options = modelOperation.operations.Select(o => new Dropdown.OptionData(o.name)).ToList();
+    //                dropdown.SetValueWithoutNotify(dropdown.options.FindIndex(o => o.text.Equals(modelOperation.initState)));
+    //                dropdown.onValueChanged.AddListener((value) =>
+    //                {
+    //                    FormMsgManager.Instance.SendMsg(new Msg2DOperate((ushort)SmallFlowModuleEvent.Operate2D, modelOperation, dropdown.options[value].text));
+    //                });
+    //                break;
+    //            default:
+    //                break;
+    //        }
+    //    }
+    //}
 
     /// <summary>
     /// 初始化自动道具

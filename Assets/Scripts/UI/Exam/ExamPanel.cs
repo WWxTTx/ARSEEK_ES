@@ -198,8 +198,8 @@ public class ExamPanel : HoverHintPanel
                     ResetRoom(() =>
                     {
                         ////清空上轮考核的状态信息
-                        //ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush));
-  
+                        ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
+
                         //上轮考核已全部结束答题 清除缓存
                         OnExamStop();
                         ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
@@ -311,18 +311,18 @@ public class ExamPanel : HoverHintPanel
         activeExamId = id;
 
         //清空上轮考核的状态信息
-        ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush));
+        ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
 
         OnExamStart();
 
         DateTime startTime = GlobalInfo.ServerTime;
         DateTime endTime = startTime.AddMinutes(GlobalInfo.currentCourseInfo.duration).AddSeconds(3);
-        ToolManager.SendBroadcastMsg(new MsgExamStart((ushort)ExamPanelEvent.Start, id, startTime, endTime, ExamUtility.Instance.ExamineeRecords));
+        ToolManager.SendBroadcastMsg(new MsgExamStart((ushort)ExamPanelEvent.Start, id, startTime, endTime, ExamUtility.Instance.ExamineeRecords),true);
         ToolManager.SendBroadcastMsg(new MsgInt()
         {
             msgId = (ushort)BaikeSelectModuleEvent.BaikeSelect,
             arg = GlobalInfo.currentWikiList?[0]?.id ?? 0
-        });
+        }, true);
 
         #region 开始3秒无法操作
         RootCanvasGroup.blocksRaycasts = false;
@@ -352,8 +352,8 @@ public class ExamPanel : HoverHintPanel
 
         inStop = true;
 
-        ToolManager.SendBroadcastMsg(new MsgInt(msgId, activeExamId));
-        ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush));
+        ToolManager.SendBroadcastMsg(new MsgInt(msgId, activeExamId), true);
+        ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
 
         RequestManager.Instance.EndExam(activeExamId, () =>
         {

@@ -23,12 +23,19 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public int ReceivedOpCount => opsReceive.Count;
 
     /// <summary>
-    /// 是否开始同步
+    /// 消息同步总开关 关闭后消息堆积到本地开放
     /// </summary>
     public bool IsStartSync
     {
         get { return _isStartSync; }
-        set { _isStartSync = value; }
+        set
+        {
+            if (!value && _isStartSync)
+            {
+                Debug.LogWarning($"状态调试 [IsStartSync] 暂停同步，调用栈：\n{new System.Diagnostics.StackTrace()}");
+            }
+            _isStartSync = value;
+        }
     }
 
     /// <summary>
