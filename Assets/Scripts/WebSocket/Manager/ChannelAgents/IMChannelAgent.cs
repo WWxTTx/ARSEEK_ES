@@ -189,7 +189,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             TryExecuteCurrentOp();
         }
         //完成状态同步
-        if (IsStartSync && IsSyncState && stateHelper.ReceivedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f)
+        if (IsStartSync && IsSyncState && stateHelper.ReceivedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f && !IsSyncBaikeState)
         {
             UIManager.Instance.CloseUI<LoadingPanel>();
             IsSyncState = false;
@@ -198,6 +198,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
             //请求同步相机
             NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
+            //确保交互状态恢复
+            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
         }
 
         //执行单条操作同步消息
@@ -348,11 +350,13 @@ public class IMChannelAgent : NetworkChannelAgentBase
         GlobalInfo.isLive = true;
         //确保进入课程模块后再进行消息同步
         IsStartSync = UIManager.Instance.IsOpen<ExamPanel>() || UIManager.Instance.IsOpen<ExamCoursePanel>() || UIManager.Instance.IsOpen<OPLSynCoursePanel>();/*true;*/
-        IsSyncBaikeState = false;
+        IsSyncBaikeState = true;
         opsReceive.Clear();
 
         CurrentStateToSync = packet.state;
         stateHelper.UpdateStateVersion(packet);
+
+        NetworkManager.Instance.SyncBaikeState();
 
         deltaTime = 0;
     }

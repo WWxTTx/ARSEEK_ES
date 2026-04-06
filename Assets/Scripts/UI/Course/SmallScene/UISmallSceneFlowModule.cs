@@ -418,6 +418,73 @@ public class UISmallSceneFlowModule : UIModuleBase
         OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
     }
 
+    /// <summary>
+    /// 安全地选中步骤节点（带边界检查）
+    /// 用于协同状态同步
+    /// </summary>
+    /// <param name="flowIndex">任务索引</param>
+    /// <param name="stepIndex">步骤索引</param>
+    /// <returns>是否成功选中</returns>
+    public bool TrySelectNode(int flowIndex, int stepIndex)
+    {
+        if (viewItemIds == null || viewItemIds.Count == 0)
+        {
+            Log.Warning("viewItemIds 未初始化，无法选择步骤节点");
+            return false;
+        }
+
+        if (smallFlowCtrl == null || smallFlowCtrl.flows == null)
+        {
+            Log.Warning("smallFlowCtrl 或 flows 未初始化，无法选择步骤节点");
+            return false;
+        }
+
+        if (flowIndex < 0 || flowIndex >= smallFlowCtrl.flows.Length)
+        {
+            Log.Warning($"flowIndex {flowIndex} 超出范围 [0, {smallFlowCtrl.flows.Length})，无法选择步骤节点");
+            return false;
+        }
+
+        string flowId = smallFlowCtrl.flows[flowIndex].ID;
+        if (!viewItemIds.ContainsKey(flowId))
+        {
+            Log.Warning($"flowId {flowId} 不在 viewItemIds 中，无法选择步骤节点");
+            return false;
+        }
+
+        TreeViewItem flowItem = mTreeView.GetTreeItemById(viewItemIds[flowId]);
+        if (flowItem == null)
+        {
+            Log.Warning($"flowItem for flowId {flowId} 为 null，无法选择步骤节点");
+            return false;
+        }
+
+        var steps = smallFlowCtrl.flows[flowIndex].steps;
+        if (steps == null || stepIndex < 0 || stepIndex >= steps.Count)
+        {
+            Log.Warning($"stepIndex {stepIndex} 超出范围，无法选择步骤节点");
+            return false;
+        }
+
+        string stepUID = steps[stepIndex].ID;
+        if (!viewItemIds.ContainsKey(stepUID))
+        {
+            Log.Warning($"stepUID {stepUID} 不在 viewItemIds 中，无法选择步骤节点");
+            return false;
+        }
+
+        TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[stepUID]);
+        if (stepItem == null)
+        {
+            Log.Warning($"stepItem for stepUID {stepUID} 为 null，无法选择步骤节点");
+            return false;
+        }
+
+        mTreeView.ExpandParent(stepItem);
+        OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
+        return true;
+    }
+
     #region 动效
     protected override float joinAnimePlayTime => 0.3f;
     protected override float exitAnimePlayTime => 0.2f;

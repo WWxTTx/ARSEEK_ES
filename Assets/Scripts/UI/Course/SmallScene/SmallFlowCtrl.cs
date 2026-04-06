@@ -769,6 +769,7 @@ public class SmallFlowCtrl : MonoBase
         foreach (var flow in flows.Take(index_NowFlow))
         {
             indexFlow += 1;
+            indexStep = -1;  // 每个 flow 开始时重置步骤索引
             foreach (var step in flow.steps)
             {
                 indexStep += 1;
@@ -798,6 +799,8 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public void SelectStep(int stepIndex)
     {
+        // 清空操作记录
+        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
         //初始全局视角
         if (!firstEnter && globalPerspective != null)
         {
@@ -850,6 +853,23 @@ public class SmallFlowCtrl : MonoBase
 
         // 清空操作记录
         FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
+
+        // 先恢复之前 flow 的操作记录
+        int indexFlow = -1;
+        int prevFlowStep = -1;
+        foreach (var flow in flows.Take(index_NowFlow))
+        {
+            indexFlow += 1;
+            prevFlowStep = -1;
+            foreach (var step in flow.steps)
+            {
+                prevFlowStep += 1;
+                foreach (var operation in step.ops)
+                {
+                    RefreshOpHistory(operation.operation, operation.optionName, indexFlow, prevFlowStep);
+                }
+            }
+        }
 
         // todo 未配置初始视角的步骤，采用上一个步骤的视角？=> 在index_NowStep setter中执行
         // 漫游模式不采用，操作表现可能包含导航
@@ -1695,6 +1715,22 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 将所有操作道具重置到初始状态
+    /// 用于协同/考核状态恢复前的准备
+    /// </summary>
+    public void ResetAllToInitState()
+    {
+        foreach (var modelOperation in operationIDs)
+        {
+            if (!string.IsNullOrEmpty(modelOperation.Value.initState)
+                && !modelOperation.Value.currentState.Equals(modelOperation.Value.initState))
+            {
+                SetFinalState(modelOperation.Value, modelOperation.Value.initState, ignoreCondition: true, processLinkages: false);
+            }
+        }
+    }
+
+    /// <summary>
     /// 设置为最终状态
     /// 协同、考核状态同步
     /// </summary>
@@ -1702,6 +1738,9 @@ public class SmallFlowCtrl : MonoBase
     {
         if (modelStates == null)
             return;
+
+        // 先将所有道具重置到初始状态，确保差量恢复的正确性
+        ResetAllToInitState();
 
         foreach (var item in modelStates)
         {
@@ -1777,37 +1816,31 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public void Next()
     {
-        DOVirtual.DelayedCall(0.2f, () =>
+        isAutoPlay = true; // 自动播放模式
+        if (index_NowFlow <= flows.Length - 1)
         {
-            isAutoPlay = true; // 自动播放模式
-            if (index_NowFlow <= flows.Length - 1)
+            if (index_NowStep < nowFlowSteps.Count - 1)
             {
-                if (index_NowStep < nowFlowSteps.Count - 1)
+                index_NowStep += 1;
+                FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
+            }
+            else
+            {
+                if (index_NowFlow + 1 > flows.Length - 1)
                 {
-                    index_NowStep += 1;
-                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
+                    Debug.Log("已完成所有任务");
                 }
                 else
                 {
-                    if (index_NowFlow + 1 > flows.Length - 1)
-                    {
-                        Debug.Log("已完成所有任务");
-                    }
-                    else
-                    {
-                        index_NowFlow += 1;
-                        index_NowStep = 0;
-                        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
-                    }
+                    index_NowFlow += 1;
+                    index_NowStep = 0;
+                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                 }
             }
-
-
-
-            DOVirtual.DelayedCall(0.2f, () =>
-            {
-                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-            });
+        }
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
         });
     }
 

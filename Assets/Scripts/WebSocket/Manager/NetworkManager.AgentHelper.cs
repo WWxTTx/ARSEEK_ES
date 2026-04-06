@@ -302,8 +302,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         get { return mIMChannelAgent.IsSyncBaikeState; }
         set
         {
-            if (!GlobalInfo.IsLiveMode())
-                return;
             mIMChannelAgent.IsSyncBaikeState = value;
         }
     }
@@ -337,10 +335,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     public void SyncBaikeState()
     {
         IMState currentState = mIMChannelAgent.CurrentStateToSync;
-        if (currentState == null)
+        if (currentState == null || currentState.baikeState == null)
         {
-            UIManager.Instance.CloseUI<LoadingPanel>();
-            IsIMSync = true;
+            IsIMSyncBaikeState = false;
             return;
         }
         IsIMSyncBaikeState = true;
@@ -349,101 +346,77 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
     private IEnumerator _syncBaikeStateCo(IMState currentState)
     {
-        ////todo 等待百科完成初始化
-        //yield return new WaitForSeconds(0.5f);
-
-        if (IsIMSyncState)
+        BaikeState currentBaikeState = currentState.baikeState;
+        if (currentBaikeState == null || string.IsNullOrEmpty(currentBaikeState.data))
         {
-            BaikeState currentBaikeState = currentState.baikeState;
-            if (currentBaikeState == null || string.IsNullOrEmpty(currentBaikeState.data))
+            yield return new WaitForEndOfFrame();
+            if (!IsIMSyncState)
+                UIManager.Instance.CloseUI<LoadingPanel>();
+            IsIMSync = true;
+            IsIMSyncBaikeState = false;
+            yield break;
+        }
+
+        GameObject model = ModelManager.Instance.modelGo;
+
+        // 如果模型不存在（PreSyncVersion 销毁了模型），等待 stateOps 重建场景
+        if (model == null)
+        {
+            // 先允许 stateOps 执行（让36号消息等重建场景）
+            IsIMSyncBaikeState = false;
+
+            // 等待模型加载完成
+            float waitTimeout = 10f;
+            float waitElapsed = 0f;
+            while (waitElapsed < waitTimeout)
             {
-                yield return new WaitForEndOfFrame();
+                yield return new WaitForSeconds(0.1f);
+                waitElapsed += 0.1f;
+                model = ModelManager.Instance.modelGo;
+                if (model != null)
+                    break;
+            }
+
+            if (model == null)
+            {
+                Log.Warning("等待模型加载超时，跳过百科状态同步");
                 if (!IsIMSyncState)
                     UIManager.Instance.CloseUI<LoadingPanel>();
                 IsIMSync = true;
-                IsIMSyncBaikeState = false;
                 yield break;
             }
 
-            GameObject model = ModelManager.Instance.modelGo;
+            // 模型加载完成后，重新阻塞 stateOps，恢复 baikeState
+            IsIMSyncBaikeState = true;
+        }
 
-            switch (GlobalInfo.currentBaikeType)
-            {
-                //case BaikeType.Dismantling:
-                //    DismantlingBaikeState dismantilingBaikeState = JsonTool.DeSerializable<DismantlingBaikeState>(currentBaikeState.data);
-                //    if (dismantilingBaikeState != null && model)
-                //    {
-                //        DismantlingController dismantlingController = model.GetComponent<DismantlingController>();
-                //        if (dismantlingController)
-                //        {
-                //            Transform foldCtrl = ComponentExtend.FindChildByName(model.transform, dismantilingBaikeState.foldCtrl);
-                //            if (foldCtrl)
-                //            {
-                //                dismantlingController.latestFoldableModel = foldCtrl.GetComponent<ModelOperation>();
-                //                //跳转到当前拆解层级
-                //                dismantlingController.JumpToState(foldCtrl.gameObject);
-                //            }
-                //            else
-                //            {
-                //                //当前无拆解，初始状态全部组合
-                //                dismantlingController.JumpToState(null);
-                //            }
-                //            dismantlingController.isDispersing = false;
-                //            dismantlingController.isFolding = false;
-                //        }
+        switch (GlobalInfo.currentBaikeType)
+        {
+            case BaikeType.SmallScene:
+            default:
+                SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentBaikeState.data);
+                if (smallSceneBaikeState != null && model)
+                {
+                    SmallFlowCtrl smallFlowCtrl = model.GetComponentInChildren<SmallFlowCtrl>(true);
+                    if (smallFlowCtrl != null)
+                        smallFlowCtrl.SetFinalState(smallSceneBaikeState.modelStates, smallSceneBaikeState.flowIndex, smallSceneBaikeState.stepIndex);
 
-                //        yield return new WaitForSeconds(0.5f);
-                //        //同步选中模型
-                //        SelectionModel selectionModel = model.GetComponent<SelectionModel>();
-                //        if (dismantilingBaikeState.selectModels != null)
-                //        {
-                //            foreach (KeyValuePair<string, int> um in dismantilingBaikeState.selectModels)
-                //            {
-                //                if (IsIMSyncState && um.Value == GlobalInfo.account.id)
-                //                    continue;
-                //                GameObject selectGo = model.transform.FindChildByName(um.Key)?.gameObject;
-                //                if (GlobalInfo.IsUserOperator(um.Value))
-                //                {
-                //                    selectionModel.SelectModel(selectGo, um.Value);
-                //                }
-                //            }
-                //        }
-                //    }
-                //    break;
-                case BaikeType.SmallScene:
-                default:
-                    SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentBaikeState.data);
-                    if (smallSceneBaikeState != null && model)
+                    UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
+                    if(historyModule != null)
                     {
-                        SmallFlowCtrl smallFlowCtrl = model.GetComponentInChildren<SmallFlowCtrl>(true);
-                        if (smallFlowCtrl != null)
-                            smallFlowCtrl.SetFinalState(smallSceneBaikeState.modelStates, smallSceneBaikeState.flowIndex, smallSceneBaikeState.stepIndex);
-                        
-                        UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
-                        if(historyModule != null)
-                        {
-                            historyModule.UpdateOpRecordList(smallSceneBaikeState.operations);
-                        }
-
-                        if (GlobalInfo.EnableFlow)
-                        {
-                            UISmallSceneFlowModule flowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>(true);
-                            if (flowModule != null)
-                                flowModule.SelectNode(smallSceneBaikeState.flowIndex, smallSceneBaikeState.stepIndex);
-                        }
-
-                        UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
-                        if (smallSceneModule != null)
-                        {
-                            //if (!string.IsNullOrEmpty(smallSceneBaikeState.simSystemState))
-                            //{
-                            //    smallSceneModule.simuSystem?.RecoverSystem(smallSceneBaikeState.simSystemState);
-                            //}
-                            smallSceneModule.ResetUIState();
-                        }
+                        historyModule.UpdateOpRecordList(smallSceneBaikeState.operations);
                     }
-                    break;
-            }
+
+                    // 等待 UISmallSceneFlowModule 初始化完成后同步步骤
+                    yield return StartCoroutine(WaitAndSelectNode(smallSceneBaikeState.flowIndex, smallSceneBaikeState.stepIndex));
+
+                    UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
+                    if (smallSceneModule != null)
+                    {
+                        smallSceneModule.ResetUIState();
+                    }
+                }
+                break;
         }
 
         yield return new WaitForFixedUpdate();
@@ -454,6 +427,37 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         IsIMSyncBaikeState = false;
         //完成百科状态同步后，清空待同步状态，避免切换百科后重复同步
         mIMChannelAgent.CurrentStateToSync = null;
+    }
+
+    /// <summary>
+    /// 等待 UISmallSceneFlowModule 初始化完成并选中指定步骤
+    /// </summary>
+    /// <param name="flowIndex">任务索引</param>
+    /// <param name="stepIndex">步骤索引</param>
+    /// <returns></returns>
+    private IEnumerator WaitAndSelectNode(int flowIndex, int stepIndex)
+    {
+        float timeout = 3f;
+        float elapsed = 0f;
+
+        UISmallSceneFlowModule flowModule = null;
+
+        while (elapsed < timeout)
+        {
+            flowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>(true);
+            if (flowModule != null && flowModule.viewItemIds != null && flowModule.viewItemIds.Count > 0)
+                break;
+            yield return new WaitForSeconds(0.1f);
+            elapsed += 0.1f;
+        }
+
+        if (flowModule == null || flowModule.viewItemIds == null || flowModule.viewItemIds.Count == 0)
+        {
+            Log.Warning("UISmallSceneFlowModule 未初始化，跳过步骤同步");
+            yield break;
+        }
+
+        flowModule.TrySelectNode(flowIndex, stepIndex);
     }
 
     /// <summary>

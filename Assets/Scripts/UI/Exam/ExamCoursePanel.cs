@@ -344,6 +344,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
             encyclopediaModelLoaded = true;
 
+            NetworkManager.Instance.SyncBaikeState();
+
             //等待FlowModule操作列表初始化完成
             this.WaitTime(0.15f, () =>
             {

@@ -688,9 +688,12 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 GotoNextStep();
             }
             else
-            {
-                data.smallSceneModule.OnErrorShow();
-                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+            {                //仅单机模式需要错误提示
+                if (GlobalInfo.courseMode == CourseMode.Training)
+                {
+                    data.smallSceneModule.OnErrorShow();
+                    FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+                }
             }
         }
     }
