@@ -586,26 +586,14 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
                     DOVirtual.DelayedCall(7f, () =>
                     {
-                        if (TextDic["主用"].text == "A机")
-                            smallSceneModule.ShowHint(string.Format("最高频率{0}HZ，最低频率{1}HZ,频率偏差{2}%", 50.05f, 49.88f, 0.24), 1);
-                        else
-                            smallSceneModule.ShowHint(string.Format("最高频率{0}HZ，最低频率{1}HZ,频率偏差{2}%", 50.04f, 49.87f, 0.23), 1);
+                        smallSceneModule.ShowHint(string.Format("最高频率{0}HZ，最低频率{1}HZ,频率偏差{2}%", 50.05f, 49.88f, 0.24), 1);
                     });
 
                     DOVirtual.DelayedCall(12f, () =>
                     {
-                        if (TextDic["主用"].text == "A机")
-                        {
-                            TextDic["b频率偏差"].text = "0.24";
-                            TextDic["b最低频率"].text = "49.88";
-                            TextDic["b最高频率"].text = "50.05";
-                        }
-                        else
-                        {
-                            TextDic["b频率偏差"].text = "0.23";
-                            TextDic["b最低频率"].text = "49.87";
-                            TextDic["b最高频率"].text = "50.04";
-                        }
+                        TextDic["b频率偏差"].text = "0.24";
+                        TextDic["b最低频率"].text = "49.88";
+                        TextDic["b最高频率"].text = "50.05";
                         daoyeKd.progress = 1;
                         daoyeKd.SetVerticesDirty();
                     });
@@ -749,7 +737,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         }
                     }, 1f, 10).SetEase(Ease.Linear);
 
-                    DOVirtual.DelayedCall(7f, () =>
+                    DOVirtual.DelayedCall(5f, () =>
                     {
                         if (TextDic["主用"].text == "A机")
                         {
@@ -919,18 +907,17 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     }, 1f, 10).SetEase(Ease.Linear);
 
                     // ---------- 结束提示 ----------
-                    DOVirtual.DelayedCall(7f, () =>
+                    DOVirtual.DelayedCall(6f, () =>
                     {
                         smallSceneModule.ShowHint(string.Format("最高频率：{0:F2} Hz," + "最低频率：{1:F2} %,不动时间:{2:F2} s,调节时间:{3:F2}s", max, min, nomone, move), 1);
-
+                        TextDic["s最低频率"].text = min.ToString("F2");
+                        TextDic["s最高频率"].text = max.ToString("F2");
+                        TextDic["s不动时间"].text = nomone.ToString("F2");
+                        TextDic["s调节时间"].text = move.ToString("F2");
                     });
 
                     DOVirtual.DelayedCall(14, () =>
                     {
-                        TextDic["s最低频率"].text = max.ToString("F2");
-                        TextDic["s最高频率"].text = min.ToString("F2");
-                        TextDic["s不动时间"].text = nomone.ToString("F2");
-                        TextDic["s调节时间"].text = move.ToString("F2");
                         Othercallback.Invoke();
                         smallSceneModule.ModelState = ModelState.Operated;
                     });
