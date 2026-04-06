@@ -1058,16 +1058,12 @@ public class SmallFlowCtrl : MonoBase
                     {
                         ExecuteFlowLinkOperation(opLinkages, () =>
                         {
-                            // 所有联动操作（包括导航）完成后，发送StepEnd
-                            ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.StepEnd));
                             callback?.Invoke(true);
                             Next();
                         }, 0, dummy);
                     }
                     else
                     {
-                        // 无联动操作，直接发送StepEnd
-                        ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.StepEnd));
                         callback?.Invoke(true);
                         Next();
                     }
@@ -1078,6 +1074,12 @@ public class SmallFlowCtrl : MonoBase
                 SendOperatingRecordMsg(data, null, userNo, userName, string.Empty);
 
                 callback?.Invoke(false);
+
+                // 操作失败时也要发送 CompleteExecute 释放控制
+                DOVirtual.DelayedCall(0.2f, () =>
+                {
+                    FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+                });
             }
         }, dummy);
     }
@@ -1154,10 +1156,12 @@ public class SmallFlowCtrl : MonoBase
         }
         else if (hasguide)
         {
-            // 有导航：导航到目标位置再继续
+            // 导航：恢复相机跟随
             PauseCameraFollow(false);
             guideBehave.Execute(() =>
             {
+                // 导航完成：暂停相机跟随
+                PauseCameraFollow();
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
             });
         }
@@ -1407,9 +1411,6 @@ public class SmallFlowCtrl : MonoBase
 
             if (shouldWait)
             {
-                // 行为需要等待 则完暂停相机跟随 
-                PauseCameraFollow();
-
                 currentBehave.Execute(() =>
                 {
                     Execute(behaveBases, ++index, max, onComplete, dummy);
@@ -1428,14 +1429,15 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
-    /// 暂停相机跟随/旋转 DOTween，防止行为动画完成后相机被拉回角色位置
+    /// 暂停/恢复相机跟随，防止行为完成后相机被拉回角色位置
+    /// 行为组执行期间统一暂停，仅导航行为临时恢复，CompleteExecute 统一释放
     /// </summary>
     private void PauseCameraFollow(bool pause = true)
     {
         PlayerController pc = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
         if (pc != null)
         {
-            if(pause)
+            if (pause)
             {
                 pc.CameraFollowTween?.Pause();
                 pc.CameraRotateTween?.Pause();

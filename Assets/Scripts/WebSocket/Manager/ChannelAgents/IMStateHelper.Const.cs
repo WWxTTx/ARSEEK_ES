@@ -124,7 +124,6 @@ public partial class IMStateHelper
         { (ushort)SmallFlowModuleEvent.StartExecute, MsgStateType.Default },
         { (ushort)SmallFlowModuleEvent.CompleteExecute, MsgStateType.Default },
         { (ushort)SmallFlowModuleEvent.CompleteStep, MsgStateType.Default },
-        { (ushort)SmallFlowModuleEvent.StepEnd, MsgStateType.Default },
         //考试
         { (ushort)ExamPanelEvent.Start, MsgStateType.Update },
         { (ushort)ExamPanelEvent.Submit, MsgStateType.Default },

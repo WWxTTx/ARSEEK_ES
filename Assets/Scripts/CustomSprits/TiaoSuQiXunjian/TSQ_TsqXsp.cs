@@ -206,9 +206,12 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOTween.To(() => 0f, x =>
                     {
                         TextDic["机组频率"].text = x.ToString("F2");
+                        TextDic["齿盘测频"].text = x.ToString("F2");
+                        TextDic["机组转速"].text = (x * 2 - 0.1f).ToString("F2");
                     }, 50, 6);
                     DOTween.To(() => 0f, x =>
                     {
+                        TextDic["导叶目标"].text = x.ToString("F2");
                         TextDic["导叶目标值"].text = x.ToString("F2");
                         TextDic["导叶开度"].text = x.ToString("F2");
                         CalculateBladeOpening(x);
@@ -577,23 +580,32 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     TextDic["导叶目标值"].text = "14";
                     DOTween.To(() => 0f, x =>
                     {
-                        //TextDic["导叶开度"].text = TextDic["机组频率"].text = daoyeKd.points[(int)(x * 10)].ToString("F2");
-                        //CalculateBladeOpening(x);
                         daoyeKd.progress = x;
                         daoyeKd.SetVerticesDirty();
                     }, 1f, 10).SetEase(Ease.Linear);
 
                     DOVirtual.DelayedCall(7f, () =>
                     {
-                        smallSceneModule.ShowHint(string.Format("最高频率{0}HZ，最低频率{1}HZ,频率偏差{2}%", 50.05f, 49.88f, 0.24), 1);
-
+                        if (TextDic["主用"].text == "A机")
+                            smallSceneModule.ShowHint(string.Format("最高频率{0}HZ，最低频率{1}HZ,频率偏差{2}%", 50.05f, 49.88f, 0.24), 1);
+                        else
+                            smallSceneModule.ShowHint(string.Format("最高频率{0}HZ，最低频率{1}HZ,频率偏差{2}%", 50.04f, 49.87f, 0.23), 1);
                     });
 
                     DOVirtual.DelayedCall(12f, () =>
                     {
-                        TextDic["b最低频率"].text = "50.05";
-                        TextDic["b最高频率"].text = "49.88";
-                        TextDic["b频率偏差"].text = "0.24";
+                        if (TextDic["主用"].text == "A机")
+                        {
+                            TextDic["b频率偏差"].text = "0.24";
+                            TextDic["b最低频率"].text = "49.88";
+                            TextDic["b最高频率"].text = "50.05";
+                        }
+                        else
+                        {
+                            TextDic["b频率偏差"].text = "0.23";
+                            TextDic["b最低频率"].text = "49.87";
+                            TextDic["b最高频率"].text = "50.04";
+                        }
                         daoyeKd.progress = 1;
                         daoyeKd.SetVerticesDirty();
                     });

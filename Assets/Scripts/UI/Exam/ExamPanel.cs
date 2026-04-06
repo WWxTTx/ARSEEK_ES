@@ -890,6 +890,21 @@ public class ExamPanel : HoverHintPanel
             }
         }
         WaitHint.SetActive(allMemberItem.Count == 0);
+
+        //检查是否所有考生都已离开，如果是则自动结束考核
+        CheckAndStopExamWhenNoExaminee();
+    }
+
+    /// <summary>
+    /// 检查是否所有考生都已离开，如果是则自动结束考核
+    /// </summary>
+    private void CheckAndStopExamWhenNoExaminee()
+    {
+        if (inExam && allMemberItem.Count == 0)
+        {
+            Log.Debug("所有考生已离开，自动结束考核");
+            StopExam();
+        }
     }
 
     /// <summary>

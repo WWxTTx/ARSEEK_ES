@@ -425,7 +425,6 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.Operate,
             (ushort)SmallFlowModuleEvent.MasterComputerSelect,
             (ushort)SmallFlowModuleEvent.CompleteStep,
-             (ushort)SmallFlowModuleEvent.StepEnd,
             (ushort)SmallFlowModuleEvent.CompleteExecute,
             (ushort)SmallFlowModuleEvent.CompleteAll,
             (ushort)SmallFlowModuleEvent.HideMonitor,
@@ -1558,13 +1557,6 @@ public class UISmallSceneModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.Operate2D:
                 Msg2DOperate msg2DOperate = msg as Msg2DOperate;
                 SelectAndExecute2D(msg2DOperate.operation, msg2DOperate.optionName);
-                break;
-            case (ushort)SmallFlowModuleEvent.StepEnd:
-                // 只有发送者本人才能设置 Unselect 状态，避免打断其他用户的操作动画
-                if (((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id)
-                {
-                    ModelState = ModelState.Unselect;
-                }
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
                 // 操作完成时释放发送者的操作权限

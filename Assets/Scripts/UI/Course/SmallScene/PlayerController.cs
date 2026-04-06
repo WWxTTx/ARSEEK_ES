@@ -537,6 +537,9 @@ public class PlayerController : MonoBase
                 ModelRotateTween.ChangeEndValue(transform.eulerAngles);
                 ModelFollowTween.Play();
                 ModelRotateTween.Play();
+                // 恢复相机跟随角色
+                CameraFollowTween?.Play();
+                CameraRotateTween?.Play();
                 break;
         }
     }

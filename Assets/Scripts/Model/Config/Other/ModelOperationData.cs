@@ -468,15 +468,13 @@ public class BehaveMoveCamera : BehaveDotween
                         }
 
                         ModelManager.Instance.CameraDotween = false;
-                        if (playerController != null)
-                        {
-                            playerController.CameraFollowTween.Play();
-                            playerController.CameraRotateTween.Play();
-                        }
-                        else
+                        if (playerController == null)
                         {
                             ModelManager.Instance.UpdateCameraPose();
                         }
+                        // 不在这里恢复相机跟随，由 SmallFlowCtrl.Execute() 和 CompleteExecute 统一管理
+                        // 行为组执行期间相机保持暂停，仅导航行为临时恢复，CompleteExecute 最终释放
+
                         callback?.Invoke();
                     });
                 }
@@ -2560,11 +2558,8 @@ public class BehaveFocus : BehaveDotween
                     ModelManager.Instance.CameraDotween = false;
                     if (playerController == null)
                         ModelManager.Instance.UpdateCameraPose();
-                    else
-                    {
-                        playerController.CameraFollowTween.Play();
-                        playerController.CameraRotateTween.Play();
-                    }
+                    // 不在这里恢复相机跟随，由 SmallFlowCtrl.Execute() 和 CompleteExecute 统一管理
+                    // 行为组执行期间相机保持暂停，仅导航行为临时恢复，CompleteExecute 最终释放
 
                     callback?.Invoke();
                 });
