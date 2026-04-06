@@ -167,8 +167,9 @@ public class ExamCreateRoomModule : CreateRoomModule
     protected override void JoinRoomCallback()
     {
         //记录当前房间信息
-        GlobalInfo.SetCourseMode(CourseMode.OnlineExam);
+        // 先设置 roomInfo，再设置课程模式，确保 SetCourseMode 能根据 roomInfo.ExamType 正确判断个人/小组考核
         GlobalInfo.roomInfo = thisRoomInfo;
+        GlobalInfo.SetCourseMode(CourseMode.OnlineExam);
 
         GlobalInfo.currentCourseID = thisCourseId;
         UIManager.Instance.CloseUI<ExamTrainingPanel>();

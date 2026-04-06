@@ -113,7 +113,6 @@ public class Option_GeneralModule : UIModuleBase
             if(index == 1)
             {
                 //标记初始化语音数据
-                SpeechManager.Instance.dataInited = false;
                 SpeechManager.Instance.LoadData();
             }
         });

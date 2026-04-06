@@ -15,15 +15,6 @@ public partial class IMStateHelper
     public int ReceivedStateOpCount { get { return stateReceive.Count; } }
 
     /// <summary>
-    /// 获取待处理的缓存状态操作数量
-    /// </summary>
-    public int ReceivedCachedStateOpCount { get { return cachedStateReceive.Count; } }
-
-    /// <summary>
-    /// 待处理的缓存状态操作队列
-    /// </summary>
-    private Queue<MsgBrodcastOperate> cachedStateReceive = new Queue<MsgBrodcastOperate>();
-    /// <summary>
     /// 待处理的状态操作队列
     /// </summary>
     private Queue<MsgBrodcastOperate> stateReceive = new Queue<MsgBrodcastOperate>();
@@ -106,28 +97,30 @@ public partial class IMStateHelper
 
         switch (GlobalInfo.currentBaikeType)
         {
-            case BaikeType.Dismantling:
-                DismantlingBaikeState dismantlingBaikeState = new DismantlingBaikeState();
+            //case BaikeType.Dismantling:
+            //    DismantlingBaikeState dismantlingBaikeState = new DismantlingBaikeState();
 
-                DismantlingController dismantlingController = ModelManager.Instance.modelRoot.GetComponentInChildren<DismantlingController>(true);
-                if (dismantlingController)
-                {
-                    dismantlingBaikeState.foldCtrl = dismantlingController.latestFoldableModel?.name;
-                }
+            //    DismantlingController dismantlingController = ModelManager.Instance.modelRoot.GetComponentInChildren<DismantlingController>(true);
+            //    if (dismantlingController)
+            //    {
+            //        dismantlingBaikeState.foldCtrl = dismantlingController.latestFoldableModel?.name;
+            //    }
 
-                SelectionModel selectionModel = ModelManager.Instance.modelRoot.GetComponentInChildren<SelectionModel>(true);
-                if (selectionModel)
-                {
-                    dismantlingBaikeState.selectModels = new Dictionary<string, int>();
-                    foreach (KeyValuePair<GameObject, int> um in selectionModel.userSelectModels)
-                    {
-                        dismantlingBaikeState.selectModels.Add(um.Key.name, um.Value);
-                    }
-                }
+            //    SelectionModel selectionModel = ModelManager.Instance.modelRoot.GetComponentInChildren<SelectionModel>(true);
+            //    if (selectionModel)
+            //    {
+            //        dismantlingBaikeState.selectModels = new Dictionary<string, int>();
+            //        foreach (KeyValuePair<GameObject, int> um in selectionModel.userSelectModels)
+            //        {
+            //            dismantlingBaikeState.selectModels.Add(um.Key.name, um.Value);
+            //        }
+            //    }
 
-                baikeState.data = JsonTool.Serializable(dismantlingBaikeState);
-                break;
+            //    baikeState.data = JsonTool.Serializable(dismantlingBaikeState);
+            //    break;
+            //目前仅制作了模拟场景这一种
             case BaikeType.SmallScene:
+            default:
                 SmallSceneBaikeState smallSceneBaikeState = new SmallSceneBaikeState();
 
                 SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelRoot.GetComponentInChildren<SmallFlowCtrl>(true);
@@ -136,25 +129,24 @@ public partial class IMStateHelper
                     smallSceneBaikeState.flowIndex = smallFlowCtrl.index_NowFlow;
                     smallSceneBaikeState.stepIndex = smallFlowCtrl.index_NowStep;
                     smallSceneBaikeState.modelStates = smallFlowCtrl.GetModelStates();
-                    smallSceneBaikeState.successOpDatas = smallFlowCtrl.successOPs.Select(o => new SuccessOpData()
-                    {
-                        id = o.operation.GetComponent<ModelInfo>().ID,
-                        optionName = o.optionName,
-                        propId = o.prop?.ID
-                    }).ToList();
+                    //现在的执行全是单个操作一个步骤 不再需要保存一个步骤中做完了哪些
+                    //smallSceneBaikeState.successOpDatas = smallFlowCtrl.successOPs.Select(o => new SuccessOpData()
+                    //{
+                    //    id = o.operation.GetComponent<ModelInfo>().ID,
+                    //    optionName = o.optionName,
+                    //    propId = o.prop?.ID
+                    //}).ToList();
                 }
 
                 UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
-                if (smallSceneModule != null)
-                    smallSceneBaikeState.simSystemState = smallSceneModule.simuSystem?.GetSystemState();
+                //if (smallSceneModule != null)
+                //    smallSceneBaikeState.simSystemState = smallSceneModule.simuSystem?.GetSystemState();
 
                 UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>();
                 if(historyModule != null)
                     smallSceneBaikeState.operations = historyModule.OpRecordList;
 
                 baikeState.data = JsonTool.Serializable(smallSceneBaikeState);
-                break;
-            default:
                 break;
         }
         return baikeState;
@@ -200,47 +192,6 @@ public partial class IMStateHelper
         if (stateReceive.Count == 0)
             return null;
         return stateReceive.Dequeue();
-    }
-
-    /// <summary>
-    /// 同步缓存操作版本,将操作列表添加到待处理队列并更新本地操作状态
-    /// </summary>
-    /// <param name="msg"></param>
-    public void UpdateCachedStateVersion(IMPacket packet)
-    {
-        cachedStateReceive.Clear();
-
-        List<MsgBrodcastOperate> states = packet.state.stateOps;
-        for (int i = 0; i < states.Count; i++)
-        {
-            EnqueueCachedStateOp(states[i]);
-        }
-
-        EnqueueCachedStateOp(packet.data);
-    }
-
-    /// <summary>
-    /// 添加缓存状态消息并更新列表
-    /// </summary>
-    /// <param name="msg"></param>
-    private void EnqueueCachedStateOp(MsgBrodcastOperate msg)
-    {
-        if (msg == null)
-            return;
-
-        cachedStateReceive.Enqueue(msg);
-        UpdateState(msg);
-    }
-
-    /// <summary>
-    /// 获取待同步的缓存状态消息
-    /// </summary>
-    /// <param name="msg"></param>
-    public MsgBrodcastOperate DequeueCachedStateOp()
-    {
-        if (cachedStateReceive.Count == 0)
-            return null;
-        return cachedStateReceive.Dequeue();
     }
 
     /// <summary>
@@ -582,7 +533,7 @@ public partial class IMStateHelper
     /// <summary>
     /// 清空状态
     /// </summary>
-    public void Clear(bool clearCache = false)
+    public void Clear()
     {
         stateReceive.Clear();
         filterState.Clear();
@@ -591,7 +542,5 @@ public partial class IMStateHelper
         userOpsLineSend.Clear();
         opsSend.Clear();
         stateSend.Clear();
-        if (clearCache)
-            cachedStateReceive.Clear();
     }
 }

@@ -487,7 +487,7 @@ public class GlobalInfo
 
         set 
         {
-            if (value > 0f && (NetworkManager.Instance.IsIMSyncCachedState || NetworkManager.Instance.IsIMSyncState))
+            if (value > 0f && NetworkManager.Instance.IsIMSyncState)
                 return;
             _playTimeRatio = value;
         }

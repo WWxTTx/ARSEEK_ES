@@ -232,7 +232,7 @@ public class SelectionModel : MonoBase
                 int userId = userSelectedName.arg1;
                 if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsUserOperator(userId))
                     return;
-                if (NetworkManager.Instance.IsIMSyncCachedState && userId == GlobalInfo.account.id)
+                if (NetworkManager.Instance.IsIMSyncState && userId == GlobalInfo.account.id)
                     return;
                 GameObject go = ModelManager.Instance.GetModelByUUID(userSelectedName.arg2);
                 SelectModel(go, userId);

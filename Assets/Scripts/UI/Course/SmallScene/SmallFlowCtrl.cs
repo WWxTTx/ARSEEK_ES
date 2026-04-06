@@ -290,7 +290,7 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 当前步骤已执行并列操作集合
     /// </summary>
-    public List<SmallOp1> successOPs = new List<SmallOp1>();
+    //public List<SmallOp1> successOPs = new List<SmallOp1>();
 
     public Color selectHighlight = new Color(0.55f, 0.92f, 1f);
     public Color hintHighlight = Color.red;
@@ -317,17 +317,17 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     private bool firstEnter;
 
-    private CanvasGroup masterComputerCanvas;
-    public bool MasterComputerInteractable
-    {
-        set
-        {
-            if (masterComputerCanvas == null)
-                return;
-            //masterComputerCanvas.alpha = value ? 1 : 0.5f;
-            //masterComputerCanvas.blocksRaycasts = value;
-        }
-    }
+    //private CanvasGroup masterComputerCanvas;
+    //public bool MasterComputerInteractable
+    //{
+    //    set
+    //    {
+    //        if (masterComputerCanvas == null)
+    //            return;
+    //        //masterComputerCanvas.alpha = value ? 1 : 0.5f;
+    //        //masterComputerCanvas.blocksRaycasts = value;
+    //    }
+    //}
 
     /// <summary>
     /// 初始化绑定步骤和任务完成事件
@@ -512,49 +512,6 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
-    /// 初始化上位机道具包含的2D道具
-    /// </summary>
-    /// <param name="modelInfo"></param>
-    //private void Init2DProps(ModelInfo modelInfo)
-    //{
-    //    masterComputerCanvas = modelInfo.AutoComponent<CanvasGroup>();
-
-    //    var modelInfos = modelInfo.GetComponentsInChildren<ModelInfo>();
-    //    ModelOperation modelOperation;
-    //    foreach (ModelInfo info in modelInfos)
-    //    {
-    //        modelOperation = info.GetComponent<ModelOperation>();
-    //        if (modelOperation == null)
-    //            continue;
-
-    //        modelOperation.initState = modelOperation.currentState;
-
-    //        switch (info.InfoData.InteractMode)
-    //        {
-    //            case InteractMode.Click2D:
-    //                Button button = info.GetComponentInChildren<Button>();
-    //                button.GetComponentInChildren<Text>().text = info.Name;
-    //                button.onClick.AddListener(() =>
-    //                {
-    //                    //todo
-    //                });
-    //                break;
-    //            case InteractMode.Menu2D:
-    //                Dropdown dropdown = info.GetComponentInChildren<Dropdown>();
-    //                dropdown.options = modelOperation.operations.Select(o => new Dropdown.OptionData(o.name)).ToList();
-    //                dropdown.SetValueWithoutNotify(dropdown.options.FindIndex(o => o.text.Equals(modelOperation.initState)));
-    //                dropdown.onValueChanged.AddListener((value) =>
-    //                {
-    //                    FormMsgManager.Instance.SendMsg(new Msg2DOperate((ushort)SmallFlowModuleEvent.Operate2D, modelOperation, dropdown.options[value].text));
-    //                });
-    //                break;
-    //            default:
-    //                break;
-    //        }
-    //    }
-    //}
-
-    /// <summary>
     /// 初始化自动道具
     /// </summary>
     /// <param name="modelInfo"></param>
@@ -632,16 +589,6 @@ public class SmallFlowCtrl : MonoBase
             return false;
         }
 
-        //判断是否已执行操作
-        for (int i = 0; i < successOPs.Count; i++)
-        {
-            if (successOPs[i].optionName.Equals(inputFlag) && successOPs[i].prop == null)
-            {
-                Debug.LogWarning("操作已执行！");
-                return false;
-            }
-        }
-
         SmallOp1 data = nowFlowStep.ops.Find(value => value.operation.ID.Equals(optionName));
         if (data == null)
         {
@@ -666,16 +613,6 @@ public class SmallFlowCtrl : MonoBase
             return false;
         }
 
-        //判断是否已执行操作
-        for (int i = 0; i < successOPs.Count; i++)
-        {
-            if (successOPs[i].optionName.Equals(inputFlag) && successOPs[i].prop == null)
-            {
-                Debug.LogWarning("操作已执行！");
-                return false;
-            }
-        }
-
         SmallOp1 data = nowFlowStep.ops.Find(value => value.operation.ID.Equals(id) && value.optionName.Equals(optionName));
         if (data == null)
         {
@@ -695,15 +632,6 @@ public class SmallFlowCtrl : MonoBase
         if (nowFlowSteps == null || index_NowStep < 0 || index_NowStep >= nowFlowSteps.Count)
         {
             return string.Empty;
-        }
-
-        //判断是否已执行操作
-        for (int i = 0; i < successOPs.Count; i++)
-        {
-            if (successOPs[i].optionName.Equals(inputFlag) && successOPs[i].prop == null)
-            {
-                return string.Empty;
-            }
         }
 
         SmallOp1 data = nowFlowStep.ops.Find(value => value.optionName.Equals(inputFlag));
@@ -738,13 +666,6 @@ public class SmallFlowCtrl : MonoBase
             if (index_NowStep < 0 || nowFlowSteps == null || index_NowStep >= nowFlowSteps.Count)
             {
                 Debug.Log("当前步骤数越界，无正确操作");
-                return false;
-            }
-            //判断是否已执行操作
-            var executed = successOPs.Find(o => o.operation == operation && o.prop == prop);
-            if (executed != null)
-            {
-                Debug.LogWarning("操作已执行！");
                 return false;
             }
             //判断是否是正确操作物体
@@ -865,7 +786,6 @@ public class SmallFlowCtrl : MonoBase
         }
 
         cache.Clear();
-        successOPs.Clear();
     }
 
     public SmallStep1 CurrentStep()
@@ -1039,16 +959,13 @@ public class SmallFlowCtrl : MonoBase
                 {
                     if (!string.IsNullOrEmpty(op.hint_success))
                     {
-                        FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord,
-                            string.Empty, op.hint_success, index_NowFlow, index_NowStep, ModelOperationIndex(data.operation), userNo, userName,
-                            GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
+                        SendOperatingRecordMsg(data, op, userNo, userName, string.Empty);
                     }
 
                     callback?.Invoke(true);
                     //考核模式下 如果执行的步骤正确，就调用步骤结束
                     if(isOnOperation)
                     {
-                        RecordSucessOp(data);
                         Next();
                     }
                     else
@@ -1058,7 +975,6 @@ public class SmallFlowCtrl : MonoBase
                             FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
                         });
                     }
-                    MasterComputerInteractable = true;
                 }, 0, dummy);
             }
             else
@@ -1066,7 +982,6 @@ public class SmallFlowCtrl : MonoBase
                 callback?.Invoke(true);
                 if (isOnOperation)
                 {
-                    RecordSucessOp(data);
                     Next();
                 }
                 else
@@ -1102,7 +1017,6 @@ public class SmallFlowCtrl : MonoBase
             {
                 ModelOperationEventManager.Publish(new ModelStateEvent(modelInfoId, data.optionName));
                 Debug.Log("操作和执行完成！");
-                ToolManager.SendBroadcastMsg(new MsgInt((ushort)SmallFlowModuleEvent.StepEnd, GlobalInfo.account.id));
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
@@ -1137,66 +1051,31 @@ public class SmallFlowCtrl : MonoBase
 
 
                     //记录
-                    string hint = op.hint_success;
-                    if (string.IsNullOrEmpty(hint))
-                        hint = "操作" + data.operation.GetComponent<ModelInfo>().Name;
-                    if (data.prop != null)
-                    {
-                        switch (data.prop.PropType)
-                        {
-                            case PropType.BackPack:
-                            case PropType.BackPack_Original:
-                                hint = $"使用{data.prop.Name},{hint}";
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                    FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord,
-                    true ? nowFlowStep?.hint_success : string.Empty, hint, index_NowFlow, index_NowStep, ModelOperationIndex(data.operation), userNo, userName,
-                    GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
+                    SendOperatingRecordMsg(data, op, userNo, userName);
 
                     SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
                     if (opLinkages.Count != 0)
                     {
                         ExecuteFlowLinkOperation(opLinkages, () =>
                         {
+                            // 所有联动操作（包括导航）完成后，发送StepEnd
+                            ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.StepEnd));
                             callback?.Invoke(true);
                             Next();
-                            if (correctOp)
-                                RecordSucessOp(data);
                         }, 0, dummy);
                     }
                     else
                     {
+                        // 无联动操作，直接发送StepEnd
+                        ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.StepEnd));
                         callback?.Invoke(true);
                         Next();
-
-                        if (correctOp)
-                            RecordSucessOp(data);
                     }
                 }, 0, dummy);
             }
             else
             {
-                //Debug.Log("未配置操作：index_NowFlow = " + index_NowFlow + "; index_NowStep = " + index_NowStep);
-                string hint = "操作" + data.operation.GetComponent<ModelInfo>().Name;
-                if (data.prop != null)
-                {
-                    switch (data.prop.PropType)
-                    {
-                        case PropType.BackPack:
-                        case PropType.BackPack_Original:
-                            hint = $"使用{data.prop.Name},{hint}";
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-                FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord,
-                    string.Empty, hint, index_NowFlow, index_NowStep, ModelOperationIndex(data.operation), userNo, userName,
-                    GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
+                SendOperatingRecordMsg(data, null, userNo, userName, string.Empty);
 
                 callback?.Invoke(false);
             }
@@ -1276,6 +1155,7 @@ public class SmallFlowCtrl : MonoBase
         else if (hasguide)
         {
             // 有导航：导航到目标位置再继续
+            PauseCameraFollow(false);
             guideBehave.Execute(() =>
             {
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
@@ -1413,12 +1293,6 @@ public class SmallFlowCtrl : MonoBase
                 //Debug.Log(operation.name + "-执行行为-" + optionName);
                 cache.Add(info.ID, optionName);
 
-                //聚焦操作不影响上位机
-                if (!optionName.Equals(focusFlag))
-                {
-                    MasterComputerInteractable = false;
-                }
-
                 Execute(op.behaveBases, 0, op.behaveBases.Count, () =>
                 {
                     if(operation != null)
@@ -1517,30 +1391,60 @@ public class SmallFlowCtrl : MonoBase
     {
         if (index < max)
         {
+            var currentBehave = behaveBases[index];
+
             // dummy 模式下跳过相机和移动相关行为
-            if (dummy && IsDummySkipBehavior(behaveBases[index].behaveType, false))
+            if (dummy && IsDummySkipBehavior(currentBehave.behaveType, false))
             {
                 Execute(behaveBases, ++index, max, onComplete, dummy);
                 return;
             }
 
             //勾选等待执行完成时等待上一表现执行完成再执行下一表现，或执行最后一个表现时等待表现执行完成后再执行操作完成回调 新增：对自定义脚本的接口的UseCallback获取该行为是否要等待
-            if (behaveBases[index].useCallBack || index == max - 1 || (behaveBases[index] is BehaveCustomScript customScript && behaveBases[index].ctrlGO.GetComponent<IBaseBehaviour>().UseCallback(customScript.Step)))
+            bool isLastBehavior = index == max - 1;
+            bool isCustomScriptWithCallback = currentBehave is BehaveCustomScript customScript && currentBehave.ctrlGO != null && currentBehave.ctrlGO.GetComponent<IBaseBehaviour>()?.UseCallback(customScript.Step) == true;
+            bool shouldWait = currentBehave.useCallBack || isLastBehavior || isCustomScriptWithCallback;
+
+            if (shouldWait)
             {
-                behaveBases[index].Execute(() =>
+                // 行为需要等待 则完暂停相机跟随 
+                PauseCameraFollow();
+
+                currentBehave.Execute(() =>
                 {
                     Execute(behaveBases, ++index, max, onComplete, dummy);
                 });
             }
             else
             {
-                behaveBases[index].Execute(null);
+                currentBehave.Execute(null);
                 Execute(behaveBases, ++index, max, onComplete, dummy);
             }
         }
         else
         {
             WaitAudioEnd(onComplete).Forget();
+        }
+    }
+
+    /// <summary>
+    /// 暂停相机跟随/旋转 DOTween，防止行为动画完成后相机被拉回角色位置
+    /// </summary>
+    private void PauseCameraFollow(bool pause = true)
+    {
+        PlayerController pc = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
+        if (pc != null)
+        {
+            if(pause)
+            {
+                pc.CameraFollowTween?.Pause();
+                pc.CameraRotateTween?.Pause();
+            }
+            else
+            {
+                pc.CameraFollowTween?.Play();
+                pc.CameraRotateTween?.Play();
+            }
         }
     }
 
@@ -1612,39 +1516,6 @@ public class SmallFlowCtrl : MonoBase
                 RunAction(action.operation.operations.Find(value => value.name.Equals(action.optionName)).actions.FindAll(a => a.operation != null), null, 0, dummy);
             }
         }, dummy);
-    }
-
-    /// <summary>
-    /// 保存已完成操作
-    /// </summary>
-    /// <param name="op"></param>
-    private void RecordSucessOp(SmallOp1 op)
-    {
-        lock (successOPs)
-        {
-            var executed = successOPs.Find(o => o.operation == op.operation && o.optionName.Equals(op.optionName) && o.prop == op.prop);
-            if (executed == null)
-            {
-                successOPs.Add(op);
-                //Debug.LogWarning($"操作和联动执行完！{successOPs.Count}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// 当前步骤是否已执行完全部并列操作
-    /// </summary>
-    /// <returns></returns>
-    public bool IsStepCompleted()
-    {
-        if (!GlobalInfo.EnableFlow)
-            return false;
-
-        if (nowFlowStep != null && nowFlowStep.ops.Count == successOPs.Count)
-        {
-            return true;
-        }
-        return false;
     }
 
     /// <summary>
@@ -1825,7 +1696,7 @@ public class SmallFlowCtrl : MonoBase
     /// 设置为最终状态
     /// 协同、考核状态同步
     /// </summary>
-    public void SetFinalState(List<OpDicData> modelStates, int index_NowFlow, int index_NowStep, List<SuccessOpData> successOpDatas)
+    public void SetFinalState(List<OpDicData> modelStates, int index_NowFlow, int index_NowStep)
     {
         if (modelStates == null)
             return;
@@ -1849,16 +1720,6 @@ public class SmallFlowCtrl : MonoBase
         this.index_NowFlow = index_NowFlow;
         // 直接设置私有字段，避免触发 setter 中的完整逻辑
         _index_NowStep = index_NowStep;
-
-        if (successOpDatas != null)
-        {
-            successOPs = successOpDatas.Select(d => new SmallOp1()
-            {
-                operation = GetModelOperation(d.id),
-                optionName = d.optionName,
-                prop = GetModelInfo(d.propId)
-            }).ToList();
-        }
     }
 
     /// <summary>
@@ -1916,19 +1777,13 @@ public class SmallFlowCtrl : MonoBase
     {
         DOVirtual.DelayedCall(0.2f, () =>
         {
-            if (IsStepCompleted())
-            {
-                successOPs.Clear();
-                MasterComputerInteractable = true;
-            }
-
             isAutoPlay = true; // 自动播放模式
             if (index_NowFlow <= flows.Length - 1)
             {
                 if (index_NowStep < nowFlowSteps.Count - 1)
                 {
-                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                     index_NowStep += 1;
+                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                 }
                 else
                 {
@@ -1940,8 +1795,8 @@ public class SmallFlowCtrl : MonoBase
                     {
                         index_NowFlow += 1;
                         index_NowStep = 0;
+                        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                     }
-                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                 }
             }
 
@@ -1978,6 +1833,46 @@ public class SmallFlowCtrl : MonoBase
         if (string.IsNullOrEmpty(id))
             return null;
         return toolIDs[id];
+    }
+
+    /// <summary>
+    /// 发送操作记录消息
+    /// </summary>
+    /// <param name="data">操作数据</param>
+    /// <param name="op">操作配置，为null时直接使用道具名称作为提示</param>
+    /// <param name="userNo">操作人工号</param>
+    /// <param name="userName">操作人姓名</param>
+    /// <param name="stepHint">步骤提示，为null时使用当前步骤的hint_success</param>
+    private void SendOperatingRecordMsg(SmallOp1 data, OperationBase op, string userNo, string userName, string stepHint = null)
+    {
+        string hint;
+        if (op != null && !string.IsNullOrEmpty(op.hint_success))
+            hint = op.hint_success;
+        else
+            hint = "操作" + data.operation.GetComponent<ModelInfo>().Name;
+
+        if (data.prop != null)
+        {
+            switch (data.prop.PropType)
+            {
+                case PropType.BackPack:
+                case PropType.BackPack_Original:
+                    hint = $"使用{data.prop.Name},{hint}";
+                    break;
+            }
+        }
+
+        FormMsgManager.Instance.SendMsg(new MsgOperatingRecord(
+            (ushort)SmallFlowModuleEvent.OperatingRecord,
+            stepHint ?? nowFlowStep?.hint_success ?? string.Empty,
+            hint,
+            index_NowFlow,
+            index_NowStep,
+            ModelOperationIndex(data.operation),
+            userNo,
+            userName,
+            GlobalInfo.ServerTimeFormat,
+            UISmallSceneOperationHistory.OpType.Operation));
     }
 
     /// <summary>

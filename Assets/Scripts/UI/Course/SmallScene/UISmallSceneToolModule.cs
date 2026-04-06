@@ -879,8 +879,8 @@ public class UISmallSceneToolModule : UIModuleBase
 
         Dictionary<int, Sequence> newHighlights = new Dictionary<int, Sequence>();
         Transform tmpTooltem = null;
-        int tmpToolID;
-        foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops.Except(smallFlowCtrl.successOPs, new SmallOpEqualityComparer()))
+        int tmpToolID; 
+        foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops)
         {
             if (smallOp.optionName.Equals(SmallFlowCtrl.contactFlag))//联系
             {

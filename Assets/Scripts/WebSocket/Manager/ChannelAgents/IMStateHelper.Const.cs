@@ -120,6 +120,11 @@ public partial class IMStateHelper
         { (ushort)SmallFlowModuleEvent.Input, MsgStateType.Default },
         { (ushort)SmallFlowModuleEvent.Contact, MsgStateType.Default },
         { (ushort)SmallFlowModuleEvent.OperatingRecordChange, MsgStateType.Default },
+        // 操作执行状态消息（修复协同模式UI卡死：确保配对消息都被保存，避免重连后UI标志位不配对）
+        { (ushort)SmallFlowModuleEvent.StartExecute, MsgStateType.Default },
+        { (ushort)SmallFlowModuleEvent.CompleteExecute, MsgStateType.Default },
+        { (ushort)SmallFlowModuleEvent.CompleteStep, MsgStateType.Default },
+        { (ushort)SmallFlowModuleEvent.StepEnd, MsgStateType.Default },
         //考试
         { (ushort)ExamPanelEvent.Start, MsgStateType.Update },
         { (ushort)ExamPanelEvent.Submit, MsgStateType.Default },

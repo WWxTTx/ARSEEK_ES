@@ -295,14 +295,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     }
 
     /// <summary>
-    /// 是否正在缓存状态同步
-    /// </summary>
-    public bool IsIMSyncCachedState
-    {
-        get { return mIMChannelAgent.IsSyncCachedState; }
-    }
-
-    /// <summary>
     /// 是否正在同步百科状态
     /// </summary>
     public bool IsIMSyncBaikeState
@@ -339,14 +331,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// </summary>
     public void TrySyncCachedVersion()
     {
-        if (mIMChannelAgent.HasCachedPacket())
-        {
-            mIMChannelAgent.SyncCachedVersion();
-        }
-        else
-        {
-            mIMChannelAgent.SetPendingStateSync(true);
-        }
+        mIMChannelAgent.SyncCachedVersion();
     }
 
     public void SyncBaikeState()
@@ -367,13 +352,13 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         ////todo 等待百科完成初始化
         //yield return new WaitForSeconds(0.5f);
 
-        if (IsIMSyncCachedState || IsIMSyncState)
+        if (IsIMSyncState)
         {
             BaikeState currentBaikeState = currentState.baikeState;
             if (currentBaikeState == null || string.IsNullOrEmpty(currentBaikeState.data))
             {
                 yield return new WaitForEndOfFrame();
-                if (!IsIMSyncCachedState && !IsIMSyncState)
+                if (!IsIMSyncState)
                     UIManager.Instance.CloseUI<LoadingPanel>();
                 IsIMSync = true;
                 IsIMSyncBaikeState = false;
@@ -384,54 +369,55 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
             switch (GlobalInfo.currentBaikeType)
             {
-                case BaikeType.Dismantling:
-                    DismantlingBaikeState dismantilingBaikeState = JsonTool.DeSerializable<DismantlingBaikeState>(currentBaikeState.data);
-                    if (dismantilingBaikeState != null && model)
-                    {
-                        DismantlingController dismantlingController = model.GetComponent<DismantlingController>();
-                        if (dismantlingController)
-                        {
-                            Transform foldCtrl = ComponentExtend.FindChildByName(model.transform, dismantilingBaikeState.foldCtrl);
-                            if (foldCtrl)
-                            {
-                                dismantlingController.latestFoldableModel = foldCtrl.GetComponent<ModelOperation>();
-                                //跳转到当前拆解层级
-                                dismantlingController.JumpToState(foldCtrl.gameObject);
-                            }
-                            else
-                            {
-                                //当前无拆解，初始状态全部组合
-                                dismantlingController.JumpToState(null);
-                            }
-                            dismantlingController.isDispersing = false;
-                            dismantlingController.isFolding = false;
-                        }
+                //case BaikeType.Dismantling:
+                //    DismantlingBaikeState dismantilingBaikeState = JsonTool.DeSerializable<DismantlingBaikeState>(currentBaikeState.data);
+                //    if (dismantilingBaikeState != null && model)
+                //    {
+                //        DismantlingController dismantlingController = model.GetComponent<DismantlingController>();
+                //        if (dismantlingController)
+                //        {
+                //            Transform foldCtrl = ComponentExtend.FindChildByName(model.transform, dismantilingBaikeState.foldCtrl);
+                //            if (foldCtrl)
+                //            {
+                //                dismantlingController.latestFoldableModel = foldCtrl.GetComponent<ModelOperation>();
+                //                //跳转到当前拆解层级
+                //                dismantlingController.JumpToState(foldCtrl.gameObject);
+                //            }
+                //            else
+                //            {
+                //                //当前无拆解，初始状态全部组合
+                //                dismantlingController.JumpToState(null);
+                //            }
+                //            dismantlingController.isDispersing = false;
+                //            dismantlingController.isFolding = false;
+                //        }
 
-                        yield return new WaitForSeconds(0.5f);
-                        //同步选中模型
-                        SelectionModel selectionModel = model.GetComponent<SelectionModel>();
-                        if (dismantilingBaikeState.selectModels != null)
-                        {
-                            foreach (KeyValuePair<string, int> um in dismantilingBaikeState.selectModels)
-                            {
-                                if (IsIMSyncCachedState && um.Value == GlobalInfo.account.id)
-                                    continue;
-                                GameObject selectGo = model.transform.FindChildByName(um.Key)?.gameObject;
-                                if (GlobalInfo.IsUserOperator(um.Value))
-                                {
-                                    selectionModel.SelectModel(selectGo, um.Value);
-                                }
-                            }
-                        }
-                    }
-                    break;
+                //        yield return new WaitForSeconds(0.5f);
+                //        //同步选中模型
+                //        SelectionModel selectionModel = model.GetComponent<SelectionModel>();
+                //        if (dismantilingBaikeState.selectModels != null)
+                //        {
+                //            foreach (KeyValuePair<string, int> um in dismantilingBaikeState.selectModels)
+                //            {
+                //                if (IsIMSyncState && um.Value == GlobalInfo.account.id)
+                //                    continue;
+                //                GameObject selectGo = model.transform.FindChildByName(um.Key)?.gameObject;
+                //                if (GlobalInfo.IsUserOperator(um.Value))
+                //                {
+                //                    selectionModel.SelectModel(selectGo, um.Value);
+                //                }
+                //            }
+                //        }
+                //    }
+                //    break;
                 case BaikeType.SmallScene:
+                default:
                     SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentBaikeState.data);
                     if (smallSceneBaikeState != null && model)
                     {
                         SmallFlowCtrl smallFlowCtrl = model.GetComponentInChildren<SmallFlowCtrl>(true);
                         if (smallFlowCtrl != null)
-                            smallFlowCtrl.SetFinalState(smallSceneBaikeState.modelStates, smallSceneBaikeState.flowIndex, smallSceneBaikeState.stepIndex, smallSceneBaikeState.successOpDatas);
+                            smallFlowCtrl.SetFinalState(smallSceneBaikeState.modelStates, smallSceneBaikeState.flowIndex, smallSceneBaikeState.stepIndex);
                         
                         UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
                         if(historyModule != null)
@@ -449,22 +435,20 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                         UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
                         if (smallSceneModule != null)
                         {
-                            if (!string.IsNullOrEmpty(smallSceneBaikeState.simSystemState))
-                            {
-                                smallSceneModule.simuSystem?.RecoverSystem(smallSceneBaikeState.simSystemState);
-                            }
-                            smallSceneModule.RefreshHighlight();
+                            //if (!string.IsNullOrEmpty(smallSceneBaikeState.simSystemState))
+                            //{
+                            //    smallSceneModule.simuSystem?.RecoverSystem(smallSceneBaikeState.simSystemState);
+                            //}
+                            smallSceneModule.ResetUIState();
                         }
                     }
-                    break;
-                default:
                     break;
             }
         }
 
         yield return new WaitForFixedUpdate();
 
-        if (!IsIMSyncCachedState && !IsIMSyncState)
+        if (!IsIMSyncState)
             UIManager.Instance.CloseUI<LoadingPanel>();
         IsIMSync = true;
         IsIMSyncBaikeState = false;

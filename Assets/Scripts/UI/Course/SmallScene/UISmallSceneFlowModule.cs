@@ -384,34 +384,18 @@ public class UISmallSceneFlowModule : UIModuleBase
                 if (!(msg is MsgIntInt))//跳步骤时消息不处理
                     return;
 
-                int completedStep = ((MsgIntInt)msg).arg1;
-                if (smallFlowCtrl.index_NowFlow > smallFlowCtrl.flows.Length - 1 || completedStep > smallFlowCtrl.nowFlowSteps.Count - 1)
+                // arg1 是新步骤索引（SmallFlowCtrl.Next() 已自增后发送）
+                int newStepIndex = ((MsgIntInt)msg).arg1;
+                if (smallFlowCtrl.index_NowFlow > smallFlowCtrl.flows.Length - 1 || newStepIndex > smallFlowCtrl.nowFlowSteps.Count - 1)
                     return;
 
-                if (completedStep < smallFlowCtrl.nowFlowSteps.Count - 1)
-                {
-                    //切换下一步骤
-                    TreeViewItem stepitem = mTreeView.GetTreeItemById(viewItemIds[smallFlowCtrl.nowFlowSteps[completedStep + 1].ID]);
-                    if (stepitem == null)
-                        return;
-                    mTreeView.ExpandParent(stepitem);
-                    mTreeView.MoveToItem(stepitem);
-                    OnItemCustomEvent(stepitem, CustomEvent.ItemClicked, GlobalInfo.account.id, smallFlowCtrl.nowFlowSteps[completedStep + 1].ID);
-                }
-                else if (smallFlowCtrl.index_NowFlow < smallFlowCtrl.flows.Length - 1)
-                {
-                    //切换下一任务的第一个步骤
-                    var flow = smallFlowCtrl.flows[smallFlowCtrl.index_NowFlow + 1];
-                    TreeViewItem flowItem = mTreeView.GetTreeItemById(viewItemIds[flow.ID]);
-                    if (flowItem == null)
-                        return;
-                    string stepUID = flow.steps[0].ID;
-                    TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[stepUID]);
-                    if (stepItem == null)
-                        return;
-                    mTreeView.ExpandParent(stepItem);
-                    OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
-                }
+                // 直接高亮新步骤（不需要 +1，因为 arg1 已经是新步骤索引）
+                TreeViewItem stepitem = mTreeView.GetTreeItemById(viewItemIds[smallFlowCtrl.nowFlowSteps[newStepIndex].ID]);
+                if (stepitem == null)
+                    return;
+                mTreeView.ExpandParent(stepitem);
+                mTreeView.MoveToItem(stepitem);
+                OnItemCustomEvent(stepitem, CustomEvent.ItemClicked, GlobalInfo.account.id, smallFlowCtrl.nowFlowSteps[newStepIndex].ID);
                 break;
         }
     }

@@ -487,7 +487,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
     {
         if (!data.isFree && smallFlowCtrl != null && smallFlowCtrl.nowFlowStep != null)
         {
-            foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops.Except(smallFlowCtrl.successOPs, new SmallOpEqualityComparer()))
+            foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops)
             {
                 if (smallOp.optionName.Equals(SmallFlowCtrl.inputFlag))
                 {

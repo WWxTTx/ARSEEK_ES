@@ -73,8 +73,7 @@ public class SpeechManager : Singleton<SpeechManager>
     /// </summary>
     private Dictionary<string, float> specialSymbols = new Dictionary<string, float>();
 
-    public bool dataInited = false;
-    public void LoadData()
+    public bool LoadData()
     {
         GlobalInfo.UpdateSpeechMode();
         // 如果语音模式开启且不在考核模式，加载语音数据
@@ -82,16 +81,18 @@ public class SpeechManager : Singleton<SpeechManager>
         {
             if (EncyclopediaId != GlobalInfo.currentWiki.id)
             {
+                StepSpeechData = null;
                 RequestManager.Instance.GetSpeechList(GlobalInfo.currentWiki.id, (data) =>
                 {
                     SaveData(data);
                 }, errorMsg =>
                 {
-                    dataInited = false;
                     Debug.LogError("获取百科语音失败");
                 });
+                return true;
             }
         }
+        return false;
     }
 
     public void SaveData(List<SpeechData> pediaSpeechData)
@@ -115,7 +116,6 @@ public class SpeechManager : Singleton<SpeechManager>
                     StepSpeechData[step.Key].Add(tipType, new List<SpeechData>() { data });
             }
         }
-        dataInited = true;
     }
 
     UnityAction<SpeechData> onDataFetched;
@@ -414,30 +414,19 @@ public class SpeechManager : Singleton<SpeechManager>
     {
         GlobalInfo.UpdateSpeechMode();
         // 等待 StepSpeechData 初始化
-        if (!dataInited)
+        if (LoadData())
         {
-            LoadData();
-            StartCoroutine(WaitAndPlayImmediate(stepId, index, tipType));
-            return;
+            if (StepSpeechData == null)
+            {
+                StartCoroutine(WaitStepSpeechData(stepId, index, tipType));
+                return;
+            }
         }
 
         // 停止当前播放（无论什么类型）
         StopSpeech();
 
         // 直接播放，跳过所有 TipType 检查
-        SpeechData speechData = GetSpeechData(stepId, index, tipType);
-        if (speechData != null && speechData.audioUrl != null)
-        {
-            DoSpeech(speechData, tipType);
-        }
-    }
-
-    /// <summary>
-    /// 等待 StepSpeechData 初始化后立即播放
-    /// </summary>
-    private IEnumerator WaitAndPlayImmediate(string stepId, int index, TipType tipType)
-    {
-        yield return new WaitUntil(() => dataInited);
         SpeechData speechData = GetSpeechData(stepId, index, tipType);
         if (speechData != null && speechData.audioUrl != null)
         {

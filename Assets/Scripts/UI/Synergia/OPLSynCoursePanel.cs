@@ -320,7 +320,8 @@ public class OPLSynCoursePanel : OPLCoursePanel
             
             if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
             {
-                if(GlobalInfo.IsOperator())
+                //只有房主可以发送百科消息
+                if(GlobalInfo.IsHomeowner())
                 {
                     CourseSideBar.SetBaikePage();
                     Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
@@ -523,7 +524,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
     {
         if (!GlobalInfo.IsHomeowner())
             return;
-        if (NetworkManager.Instance.IsIMSyncState || NetworkManager.Instance.IsIMSyncCachedState)
+        if (NetworkManager.Instance.IsIMSyncState)
             return;
         Debug.LogError("房主选择课程");
         MsgInt msgInt = new MsgInt((ushort)CoursePanelEvent.SwitchResource, courseId);

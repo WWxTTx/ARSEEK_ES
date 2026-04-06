@@ -114,7 +114,7 @@ public class AdaptiveListModule : UIModuleBase
                 {
                     if (isOn)
                     {
-                        if (!NetworkManager.Instance.IsIMSyncCachedState && !NetworkManager.Instance.IsIMSyncState)
+                        if (!NetworkManager.Instance.IsIMSyncState)
                         {
                             ToolManager.SendBroadcastMsg(new MsgString((ushort)AdaptiveListEvent.Select, info.ID), true);
                         }
@@ -160,7 +160,7 @@ public class AdaptiveListModule : UIModuleBase
 
                 button.onClick.AddListener(() =>
                 {
-                    if (!NetworkManager.Instance.IsIMSyncCachedState && !NetworkManager.Instance.IsIMSyncState)
+                    if (!NetworkManager.Instance.IsIMSyncState)
                     {
                         ToolManager.SendBroadcastMsg(new MsgString((ushort)AdaptiveListEvent.Select, info.ID), true);
                     }

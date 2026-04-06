@@ -531,29 +531,29 @@ public partial class ExamCoursePanel : OPLCoursePanel
                             smallSceneModule.operationHistoryModule.UpdateOpRecordList(opRecordData);
                         }
                         //同步操作对象状态
-                        if (answerOp.modelStates != null)
-                        {
-                            smallSceneModule.smallFlowCtrl.SetFinalState(answerOp.modelStates.Select(s=>new OpDicData()
-                            {
-                                id = s.id,
-                                optionName = s.optionName,
-                                uiTargetModelEulerZ = float.Parse(s.uiTargetModelEulerZ)
-                            }).ToList(), 0, 0, null);
-                        }
+                        //if (answerOp.modelStates != null)
+                        //{
+                        //    smallSceneModule.smallFlowCtrl.SetFinalState(answerOp.modelStates.Select(s=>new OpDicData()
+                        //    {
+                        //        id = s.id,
+                        //        optionName = s.optionName,
+                        //        uiTargetModelEulerZ = float.Parse(s.uiTargetModelEulerZ)
+                        //    }).ToList(), 0, 0);
+                        //}
                         //同步仿真系统状态
-                        if (answerOp.modelStates != null)
-                        {
-                            var systemState = answerOp.modelStates.Find(s => s.id.Equals("SimuSystemState"));
-                            if (systemState != null && !string.IsNullOrEmpty(systemState.optionName))
-                            {
-                                smallSceneModule.simuSystem?.RecoverSystem(systemState.optionName);
-                            }
+                        //if (answerOp.modelStates != null)
+                        //{
+                            //var systemState = answerOp.modelStates.Find(s => s.id.Equals("SimuSystemState"));
+                            //if (systemState != null && !string.IsNullOrEmpty(systemState.optionName))
+                            //{
+                            //    smallSceneModule.simuSystem?.RecoverSystem(systemState.optionName);
+                            //}
                             //var fatal = answerOp.modelStates.Find(s => s.id.Equals("FatalFinishMessage"));
                             //if (fatal != null)
                             //{
                             //    smallSceneModule.FatalFinishMessage = fatal.optionName;
                             //}
-                        }
+                        //}
                     }
                     break;
                 case (int)PediaType.Exercise:

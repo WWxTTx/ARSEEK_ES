@@ -326,6 +326,8 @@ public class UISmallSceneModule : UIModuleBase
             {
                 case ModelState.Unselect:
                     modelOperation_Highlight = modelOperation_Focused = modelOperation_Select = null;
+                    if (playerController)
+                        playerController.BlockUserInput = false;
                     EnableCameraControl(true);
                     SetSelect(false);
                     ModelManager.Instance.AdaptModelRestrict();
@@ -345,10 +347,22 @@ public class UISmallSceneModule : UIModuleBase
                     EnableCameraControl(true);
                     break;
                 case ModelState.Select:
+                    if (playerController)
+                        playerController.BlockUserInput = false;
                     SetSelect(true);
                     break;
                 case ModelState.Operating:
-                    EnableCameraControl(false);
+                    // 保持 playerController 启用以支持导航行为，仅屏蔽用户输入
+                    if (playerController)
+                    {
+                        playerController.BlockUserInput = true;
+                    }
+                    else
+                    {
+                        CameraMove.enabled = false;
+                        CameraRotate.enabled = false;
+                        CameraZoom.enabled = false;
+                    }
                     break;
                 case ModelState.Operated:
                     modelOperation_Highlight = modelOperation_Focused;
@@ -401,9 +415,6 @@ public class UISmallSceneModule : UIModuleBase
     {
         base.Open(uiData);
 
-        //标记初始化语音数据
-        SpeechManager.Instance.dataInited = false;
-        GlobalInfo.UpdateSpeechMode();
         //只有培训模式打开完整提示词
         if (CourseMode.Training == GlobalInfo.courseMode)
             UIManager.Instance.OpenModuleUI<UISmallSceneInfoModule>(ParentPanel, transform, null);
@@ -1563,7 +1574,11 @@ public class UISmallSceneModule : UIModuleBase
                 SelectAndExecute2D(msg2DOperate.operation, msg2DOperate.optionName);
                 break;
             case (ushort)SmallFlowModuleEvent.StepEnd:
-                ModelState = ModelState.Unselect;
+                // 只有发送者本人才能设置 Unselect 状态，避免打断其他用户的操作动画
+                if (((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id)
+                {
+                    ModelState = ModelState.Unselect;
+                }
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
                 // 操作完成时释放发送者的操作权限
@@ -1740,6 +1755,19 @@ public class UISmallSceneModule : UIModuleBase
         ClearHighlight();
         RefreshHighlight();
         userOpModel.Clear();
+    }
+
+    /// <summary>
+    /// 重连后重置UI交互状态
+    /// </summary>
+    public void ResetUIState()
+    {
+        // 重置操作权限记录
+        userOpModel.Clear();
+        // 重置模型状态（会自动重置focusHint的blocksRaycasts）
+        ModelState = ModelState.Unselect;
+        // 刷新高亮显示
+        RefreshHighlight();
     }
 
     private void OnPropChanged(string propID)
@@ -2016,7 +2044,7 @@ public class UISmallSceneModule : UIModuleBase
 
         if (smallFlowCtrl.nowFlowStep != null)
         {
-            foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops.Except(smallFlowCtrl.successOPs, new SmallOpEqualityComparer()))
+            foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops)
             {
                 // 待操作对象已聚焦时，不添加提示高亮
                 if (smallOp.operation == modelOperation_Focused)

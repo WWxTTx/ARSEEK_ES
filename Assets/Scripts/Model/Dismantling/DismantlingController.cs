@@ -619,7 +619,7 @@ public class DismantlingController : MonoBehaviour
         //选中 
         this.WaitTime(0.1f, () =>
         {
-            if(!NetworkManager.Instance.IsIMSyncCachedState || userId != GlobalInfo.account.id)
+            if(!NetworkManager.Instance.IsIMSyncState || userId != GlobalInfo.account.id)
             {
                 if(!GlobalInfo.IsLiveMode() || GlobalInfo.IsUserOperator(userId))
                     SelectionCtrl.SelectModel(go, userId);

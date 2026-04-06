@@ -1,11 +1,9 @@
-using Cysharp.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Windows.Interop;
 using UnityEngine;
 using UnityFramework.Runtime;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// rti同步通道代理类
@@ -23,28 +21,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public int ReceivedOpCount => opsReceive.Count;
 
     /// <summary>
-    /// 消息同步总开关 关闭后消息堆积到本地开放
+    /// 是否开始同步
     /// </summary>
     public bool IsStartSync
     {
         get { return _isStartSync; }
-        set
-        {
-            if (!value && _isStartSync)
-            {
-                Debug.LogWarning($"状态调试 [IsStartSync] 暂停同步，调用栈：\n{new System.Diagnostics.StackTrace()}");
-            }
-            _isStartSync = value;
-        }
-    }
-
-    /// <summary>
-    /// 是否正在进行缓存状态同步
-    /// </summary>
-    public bool IsSyncCachedState
-    {
-        get { return _isSyncCachedState; }
-        set { _isSyncCachedState = value; }
+        set { Log.Debug("RTI是否开始同步:" + value); _isStartSync = value; }
     }
 
     /// <summary>
@@ -53,7 +35,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public bool IsSyncState
     {
         get { return _isSyncState; }
-        set { _isSyncState = value; }
+        set { Log.Debug("RTI是否开始状态同步:" + value); _isSyncState = value; }
     }
 
     /// <summary>
@@ -62,7 +44,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public bool IsSyncBaikeState
     {
         get { return _isSyncBaikeState; }
-        set { _isSyncBaikeState = value; }
+        set { Log.Debug("RTI是否开始同步百科状态:" + value); _isSyncBaikeState = value; }
     }
 
     /// <summary>
@@ -71,7 +53,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public bool IsWaitingResponse
     {
         get { return _isWaitingResponse; }
-        set { _isWaitingResponse = value; }
+        set { Log.Debug("RTI是否等待操作响应:" + value); _isWaitingResponse = value; }
     }
 
     /// <summary>
@@ -118,14 +100,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
     private byte[] recvDataByte;
 
     private bool _isStartSync = false;
-    private bool _isSyncCachedState = false;
     private bool _isSyncState = false;
     private bool _isSyncBaikeState = false;
     private bool _isWaitingResponse = false;
-    /// <summary>
-    /// 是否有待处理的状态同步请求
-    /// </summary>
-    private bool _pendingStateSync = false;
     /// <summary>
     /// 当前接收的同步消息包中的状态
     /// </summary>
@@ -184,10 +161,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
     }
 
-    public void SetPendingStateSync(bool pending) { _pendingStateSync = pending; }
-    public bool HasCachedPacket() { return cachedPacket != null; }
-
-    bool OpenLoading = false;
     /// <summary>
     /// 处理操作消息
     /// </summary>
@@ -197,106 +170,108 @@ public class IMChannelAgent : NetworkChannelAgentBase
             return;
 
         deltaTime += Time.deltaTime;
-        //先执行缓存状态消息
-        while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedCachedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
+
+        //执行状态同步消息
+        //等待百科状态同步完成再执行后续操作
+        while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
 
             if (GlobalInfo.playTimeRatio > 0)
             {
-                IsSyncCachedState = true;
-                OpenLoading = true;
-                UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
-            }
-
-            currentOp = stateHelper.DequeueCachedStateOp();
-            TryExecuteCurrentOp();
-        }
-        IsSyncCachedState = false;
-
-        //执行状态消息
-        //等待百科状态同步完成再执行后续操作 //&& !GlobalInfo.isARTracking 
-        while (IsStartSync && !IsSyncCachedState && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
-        {
-            deltaTime = 0;
-             
-            if (GlobalInfo.playTimeRatio > 0)
-            {
+                GlobalInfo.uiAnimRatio = 0f;
+                GlobalInfo.playTimeRatio = 0f;
                 IsSyncState = true;
-                OpenLoading = true;
                 UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
             }
 
             currentOp = stateHelper.DequeueStateOp();
             TryExecuteCurrentOp();
         }
-        IsSyncState = false;
+        //完成状态同步
+        if (IsStartSync && IsSyncState && stateHelper.ReceivedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f)
+        {
+            UIManager.Instance.CloseUI<LoadingPanel>();
+            IsSyncState = false;
+            GlobalInfo.uiAnimRatio = 1f;
+            GlobalInfo.playTimeRatio = 1f;
 
-        //执行操作消息 //&& !GlobalInfo.isARTracking
-        while (IsStartSync && !IsSyncState && !IsSyncCachedState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
+            //请求同步相机
+            NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
+        }
+
+        //执行单条操作同步消息
+        while (IsStartSync && !IsSyncState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
+
             currentOp = opsReceive.Dequeue();
             TryExecuteCurrentOp();
         }
-
-        if (OpenLoading)
-        {
-            OpenLoading = false;
-            UIManager.Instance.CloseUI<LoadingPanel>();
-            GlobalInfo.uiAnimRatio = 1f;
-            GlobalInfo.playTimeRatio = 1f;
-        }
     }
 
-    private static string cachedStateLog = "<color=#DCA800>状态调试 执行缓存状态消息:</color>";
-    private static string stateLog = "<color=#C02C24>状态调试 执行状态消息:</color>";
-    private static string opLog = "<color=#14A857>状态调试 执行消息:</color>";
+    private static string stateLog = "<color=#C02C24>执行状态消息:</color>";
+    private static string opLog = "<color=#14A857>执行消息:</color>";
 
     /// <summary>
     /// 执行操作
     /// </summary>
     private void TryExecuteCurrentOp()
     {
-        if (string.IsNullOrEmpty(currentOp.data))
+        if (currentOp == null)
             return;
 
-        string content = JsonTool.Serializable(currentOp);
-
-        if (currentOp.msgId == (ushort)CoursePanelEvent.SwitchResource
-            || currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect
-            || currentOp.msgId == (ushort)ExamPanelEvent.Start)
+        Log.Debug($"{(IsSyncState ? stateLog : opLog)} {JsonTool.Serializable(currentOp)}");
+        try
         {
-            IsStartSync = false;
-        }
+            if (string.IsNullOrEmpty(currentOp.data))
+                return;
 
-        //// 保证消息可执行
-        DelayedSend(currentOp, content).Forget();
+            if (currentOp.msgId == (ushort)CoursePanelEvent.SwitchResource
+                || currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect
+                || currentOp.msgId == (ushort)ExamPanelEvent.Start)
+            {
+                IsStartSync = false;
+            }
+            FormMsgManager.Instance.SendMsg(currentOp);
+        }
+        catch (Exception e)
+        {
+            if (networkManager.IsLeavingRoom)
+            {
+                IsStartSync = true;
+                return;
+            }
+
+            Log.Error($"执行消息错误: {e.Message}");
+            IsStartSync = false;
+            Invoke("Delayed", 2);
+            return;
+        }
     }
 
     /// <summary>
-    /// 重连时消息是并发的，这里相当于重新排序
+    /// 重新广播
     /// </summary>
-    private async UniTaskVoid DelayedSend(MsgBrodcastOperate currentOp, string content)
-    {   
-        //需要等待36消息先执行 创建场景
-        if(!GlobalInfo.isExam && !GlobalInfo.IsLiveMode())
+    private void Delayed()
+    {
+        Log.Debug("重新广播消息:" + JsonTool.Serializable(currentOp));
+
+        try
         {
-            if (currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect && !GlobalInfo.CreatedMode)
-            {
-                FormMsgManager.Instance.SendMsg(currentOp);
-                GlobalInfo.CreatedMode = true;
-            }
-
-            await UniTask.WaitUntil(() => FindObjectOfType<UISmallSceneModule>() != null);
-
-            //有时会莫名其妙的发两次新建场景 覆盖掉之前正确的重连
-            if (currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect && GlobalInfo.CreatedMode)
-                return;
+            FormMsgManager.Instance.SendMsg(currentOp);
+            IsStartSync = true;
         }
+        catch (Exception e)
+        {
+            Log.Error("重新广播消息失败，错误为:" + e);
 
-        FormMsgManager.Instance.SendMsg(currentOp);
-        Log.Debug($"{(IsSyncCachedState ? cachedStateLog : IsSyncState ? stateLog : opLog)} {content}");
+            if (networkManager.IsLeavingRoom)
+            {
+                IsStartSync = true;
+                return;
+            }
+        }
     }
 
     public override void ProcessMessage(string message)
@@ -312,18 +287,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         string type = jObject[NetworkManager.TYPE].ToString();
 
-        // 添加入口日志
-        Debug.Log($"[RTI调试] ProcessMessage入口 | IsOperator:{GlobalInfo.IsOperator()} | controllerIds:[{string.Join(",", GlobalInfo.controllerIds)}] | 当前用户ID:{GlobalInfo.account?.id}");
-
         switch (type)
         {
             case NetworkManager.RTI_ACTION:
                 int version = int.Parse(jObject[NetworkManager.PAYLOAD][NetworkManager.VERSION].ToString());
                 string datamsg = jObject[NetworkManager.PAYLOAD][NetworkManager.COMMAND].ToString();
-
-                // 添加版本信息日志
-                Debug.Log($"[RTI调试] RTI_ACTION | version:{version} | localVersion:{GlobalInfo.version} | versionDiff:{version - GlobalInfo.version}");
-
                 if (string.IsNullOrEmpty(datamsg))
                 {
                     IsWaitingResponse = false;
@@ -344,12 +312,10 @@ public class IMChannelAgent : NetworkChannelAgentBase
                             //中途加入或本地为旧版本
                             if (GlobalInfo.version < version - 1)
                             {
-                                _pendingStateSync = false;
                                 SyncVersion(packet);
                             }
                             else
                             {
-                                IsStartSync = true;
                                 opsReceive.Enqueue(packet.data);
                                 stateHelper.UpdateState(packet.data);
                             }
@@ -379,9 +345,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
-        //更新当前房间信息
-        GlobalInfo.SetCourseMode(default);
-
+        GlobalInfo.isLive = true;
         //确保进入课程模块后再进行消息同步
         IsStartSync = UIManager.Instance.IsOpen<ExamPanel>() || UIManager.Instance.IsOpen<ExamCoursePanel>() || UIManager.Instance.IsOpen<OPLSynCoursePanel>();/*true;*/
         IsSyncBaikeState = false;
@@ -394,29 +358,14 @@ public class IMChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// 同步缓存版本
+    /// 同步缓存版本（直播非房主获取权限时调用）
     /// </summary>
     public void SyncCachedVersion()
     {
         if (cachedPacket == null)
             return;
 
-        DebugHelper.Info(ChannelType.rti, $"[cached] {cachedPacket.version}{JsonTool.Serializable(cachedPacket)}");
-
-        //开始进行版本同步前，清除一些状态
-        SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
-
-        IsStartSync = true;
-        IsSyncBaikeState = false;
-        opsReceive.Clear();
-
-        CurrentStateToSync = cachedPacket.state;
-
-        stateHelper.UpdateCachedStateVersion(cachedPacket);
-        Debug.Log("<color=#14A857>状态调试 重连者添加缓存:</color>" + JsonTool.Serializable(cachedPacket));
-
-        deltaTime = 0;
-        GlobalInfo.version = cachedPacket.version;
+        SyncVersion(cachedPacket);
     }
 
     /// <summary>
@@ -455,7 +404,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
             state = stateHelper.GetState(),
             version = version,
         };
-
 
         string data = JsonTool.Serializable(packet);
 
@@ -506,12 +454,10 @@ public class IMChannelAgent : NetworkChannelAgentBase
         lock (asynLock)
             opsQueue.Clear();
         opsReceive.Clear();
-        _pendingStateSync = false;
         CurrentStateToSync = null;
         cachedPacket = null;
-        stateHelper.Clear(true);
+        stateHelper.Clear();
         IsStartSync = false;
-        IsSyncCachedState = false;
         IsSyncState = false;
         if (!waitResponse)
             IsWaitingResponse = false;

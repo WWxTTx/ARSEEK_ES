@@ -211,7 +211,7 @@ public class BehaveCenter : BehaveBase
     {
         base.Execute(callback);
 
-        if (ctrlGO = null)
+        if (ctrlGO == null)
         {
             callback?.Invoke();
             return;
@@ -2133,7 +2133,10 @@ public class BehaveCameraFollow : BehaveBase
         PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
         //重连执行缓存状态无步骤目标时厂家还没有加载，但是执行了操作步骤
         if (playerController == null)
+        {
+            callback?.Invoke();
             return;
+        }
 
         if (ctrlGO == null)
         {
