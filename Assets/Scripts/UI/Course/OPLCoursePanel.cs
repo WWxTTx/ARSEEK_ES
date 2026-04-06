@@ -607,6 +607,8 @@ public class OPLCoursePanel : HoverHintPanel
         RequestManager.Instance.GetEncyclopedia(encyclopediaId, (encyclopedia, answer) =>
         {
             GlobalInfo.currentWiki = encyclopedia;
+            // 预加载语音数据（LoadData内部会判断是否为培训模式）
+            SpeechManager.Instance.LoadData();
             if (GlobalInfo.currentWiki == null)
                 return;
             GlobalInfo.hasRole = false;

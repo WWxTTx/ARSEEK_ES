@@ -397,11 +397,6 @@ public class PlayerController : MonoBase
         cameraRotateFollow.ChangeEndValue(followPoint.eulerAngles);
     }
 
-    /// <summary>
-    /// 是否屏蔽用户输入（移动/旋转/缩放），但保持组件启用以支持导航
-    /// </summary>
-    public bool BlockUserInput { get; set; }
-
     private void LateUpdate()
     {
         if (GlobalInfo.ShowPopup || rotateJoystick == null)
@@ -418,7 +413,7 @@ public class PlayerController : MonoBase
                 EndNavigation(targetPoint);
             }
         }
-        else if (!BlockUserInput)
+        else
         {
             Zoom();
             Rotate();

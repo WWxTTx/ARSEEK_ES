@@ -326,8 +326,6 @@ public class UISmallSceneModule : UIModuleBase
             {
                 case ModelState.Unselect:
                     modelOperation_Highlight = modelOperation_Focused = modelOperation_Select = null;
-                    if (playerController)
-                        playerController.BlockUserInput = false;
                     EnableCameraControl(true);
                     SetSelect(false);
                     ModelManager.Instance.AdaptModelRestrict();
@@ -347,22 +345,10 @@ public class UISmallSceneModule : UIModuleBase
                     EnableCameraControl(true);
                     break;
                 case ModelState.Select:
-                    if (playerController)
-                        playerController.BlockUserInput = false;
                     SetSelect(true);
                     break;
                 case ModelState.Operating:
-                    // 保持 playerController 启用以支持导航行为，仅屏蔽用户输入
-                    if (playerController)
-                    {
-                        playerController.BlockUserInput = true;
-                    }
-                    else
-                    {
-                        CameraMove.enabled = false;
-                        CameraRotate.enabled = false;
-                        CameraZoom.enabled = false;
-                    }
+                    EnableCameraControl(false);
                     break;
                 case ModelState.Operated:
                     modelOperation_Highlight = modelOperation_Focused;
