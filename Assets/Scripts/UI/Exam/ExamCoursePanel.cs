@@ -1332,7 +1332,17 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 break;
             case (ushort)RoomChannelEvent.LeaveRoom:
                 ExamScreenRecording.Instance.StopRecordMovie();
-                ExitRoom();
+                if (inExam)
+                {
+                    //被踢出时正在考核中，通知房主退出并清理
+                    inExam = false;
+                    NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
+                    StartCoroutine(_Quit());
+                }
+                else
+                {
+                    ExitRoom();
+                }
                 break;
             case (ushort)RoomChannelEvent.RoomInfo:
                 Title.text = (msg as MsgBrodcastOperate).GetData<MsgString>().arg;

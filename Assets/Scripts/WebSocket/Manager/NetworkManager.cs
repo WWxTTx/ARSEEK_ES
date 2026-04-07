@@ -259,16 +259,15 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                 }
                 break;
             case EVICT://kickedMsg
-                //RTM收到消息，主动关闭其他连接
+                //被踢出时，先尝试发送leave消息，确保服务器能广播member_out给其他成员
+                SendLeaveMessage();
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("知道了", new PopupButtonData(() =>
                 {
-                    CloseAllConnection();
                     EnsureLeaveRoom(string.Empty);
                 }, true));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "你已被移出房间", popupDic, () =>
                 {
-                    CloseAllConnection();
                     EnsureLeaveRoom(string.Empty);
                 }));
                 break;

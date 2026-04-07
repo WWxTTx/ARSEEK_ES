@@ -735,7 +735,11 @@ public class ExamPanel : HoverHintPanel
             {
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("取消", new PopupButtonData(null));
-                popupDic.Add("移出", new PopupButtonData(() => NetworkManager.Instance.KickOutUser(info.Id), true));
+                popupDic.Add("移出", new PopupButtonData(() =>
+                {
+                    NetworkManager.Instance.KickOutUser(info.Id);
+                    OnOtherLeave(info.Id, info.Nickname);
+                }, true));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", $"将<color=#F6533F>{info.Nickname}</color>移出考核?", popupDic));
             });
         }
