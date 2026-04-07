@@ -293,7 +293,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 {
                     msgId = (ushort)SmallFlowModuleEvent.Contact,
                     arg = new Tuple<string, string, string, string>(GlobalInfo.account.userNo, GlobalInfo.account.nickname, value/*smallFlowCtrl.IsOnOperation()*/ , GlobalInfo.ServerTimeFormat)
-                }, true);
+                });
             }
         });
 

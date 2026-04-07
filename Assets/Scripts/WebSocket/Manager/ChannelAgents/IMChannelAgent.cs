@@ -173,7 +173,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         //执行状态同步消息
         //等待百科状态同步完成再执行后续操作
-        while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
+        while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
 
@@ -188,22 +188,29 @@ public class IMChannelAgent : NetworkChannelAgentBase
             currentOp = stateHelper.DequeueStateOp();
             TryExecuteCurrentOp();
         }
+
         //完成状态同步
         if (IsStartSync && IsSyncState && stateHelper.ReceivedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f && !IsSyncBaikeState)
         {
             UIManager.Instance.CloseUI<LoadingPanel>();
             IsSyncState = false;
-            GlobalInfo.uiAnimRatio = 1f;
-            GlobalInfo.playTimeRatio = 1f;
-
             //请求同步相机
             NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
             //确保交互状态恢复
             FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
         }
 
+        //缓存完成就可以开始同步
+        if(stateHelper.ReceivedStateOpCount == 0)
+        {
+            GlobalInfo.uiAnimRatio = 1f;
+            GlobalInfo.playTimeRatio = 1f;
+            if(!IsStartSync)
+                IsStartSync = true;
+        }
+
         //执行单条操作同步消息
-        while (IsStartSync && !IsSyncState && ReceivedOpCount > 0 && deltaTime > 0.01f && ModelManager.Instance.CameraControl && !GlobalInfo.waitExam)
+        while (IsStartSync && !IsSyncState && ReceivedOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
 

@@ -948,7 +948,7 @@ public class UISmallSceneModule : UIModuleBase
                 //}
             }
 
-            ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.ClickObj, modelOperation_Select.GetComponent<ModelInfo>().ID, null, null), true);
+            ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.ClickObj, modelOperation_Select.GetComponent<ModelInfo>().ID, null, null));
         }
     }
 
@@ -1195,7 +1195,7 @@ public class UISmallSceneModule : UIModuleBase
                             {
                                 data.optionName = opName;
                                 correctOp = correctOp && (free || opName.Equals(uiopName));
-                                ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, correctOp), true);
+                                ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, correctOp));
                             });
                             return;
                         }
@@ -1205,7 +1205,7 @@ public class UISmallSceneModule : UIModuleBase
                     break;
             }
         }
-        ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, correctOp), true);
+        ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, correctOp));
     }
 
     /// <summary>
@@ -1638,7 +1638,7 @@ public class UISmallSceneModule : UIModuleBase
 
                     if(GlobalInfo.isExam)
                     {
-                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName);
+                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, null, GlobalInfo.courseMode == CourseMode.Exam ? false : !self);
                     }
                     else
                     {

@@ -956,11 +956,9 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="userName">操作人姓名</param>
     /// <param name="callback"></param>
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
-    public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, Action<bool> callback = null, bool dummy = true)
+    public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
     {
-        //TODO 操作执行过程中暂停操作同步==>切换百科等操作无法执行
         NetworkManager.Instance.IsIMSync = false;
-
 
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
         bool isOnOperation = IsOnOperation(data.optionName, data.operation.ID);
@@ -1345,23 +1343,24 @@ public class SmallFlowCtrl : MonoBase
         callback?.Invoke(null);
     }
 
-    // 需要在 dummy 模式下跳过的行为类型（相机和移动相关）
+    // 需要在 dummy 模式下 同步过程中跳过的行为类型 相机和移动和表现 
     private static readonly HashSet<BehaveType> DummySkipBehaveTypes = new HashSet<BehaveType>
     {
         BehaveType.CameraFollow,    // 相机跟随
-        BehaveType.ObserveRotate,   // 围绕观察  
-        BehaveType.Focus,           // 聚焦  
+        BehaveType.ObserveRotate,   // 围绕观察
+        BehaveType.Focus,           // 聚焦
         BehaveType. Observe,        // 观察
 
         BehaveType.PlayerNavigation,// 角色寻路
-        BehaveType.CustomScript,    // 自定义脚本  
-        BehaveType.Thermometring,   // 测量温度  
+        BehaveType.CustomScript,    // 自定义脚本
+        BehaveType.Thermometring,   // 测量温度
     };
+
+    // 需要在 dummy 模式下 联动同步过程中跳过的行为类型（相机和移动相关）
     private static readonly HashSet<BehaveType> DummySkipBehaveTypes_link = new HashSet<BehaveType>
     {
         BehaveType.CameraFollow,    // 相机跟随
         BehaveType.PlayerNavigation,// 角色寻路
-        BehaveType.CustomScript,    // 自定义脚本  
     };
 
     private bool IsDummySkipBehavior(BehaveType behaveType, bool link)
@@ -1471,7 +1470,7 @@ public class SmallFlowCtrl : MonoBase
         }
 
         // dummy 模式下跳过相机和移动相关操作
-        if (dummy && IsDummySkipOperation(actions[index].operation, actions[index].optionName, true))
+        if (dummy && IsDummySkipOperation(actions[index].operation, actions[index].optionName, false))
         {
             RunAction(actions, callBack, ++index, dummy);
             return;

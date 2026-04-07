@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace UnityFramework.Runtime
@@ -1389,6 +1389,10 @@ namespace UnityFramework.Runtime
             /// 考核学员列表
             /// </summary>
             public List<ExamRecordMember> examinee;
+            /// <summary>
+            /// 考核房间
+            /// </summary>
+            public string uuid;
         }
 
         public class ExamRecordMember

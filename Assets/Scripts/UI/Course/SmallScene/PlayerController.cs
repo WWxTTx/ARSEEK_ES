@@ -397,25 +397,6 @@ public class PlayerController : MonoBase
         cameraRotateFollow.ChangeEndValue(followPoint.eulerAngles);
     }
 
-    /// <summary>
-    /// 重置相机跟随 tween 的起始值为相机当前位置，确保跟随从当前位置开始
-    /// </summary>
-    public void ResetAndPlayCameraFollow()
-    {
-        Transform followPoint = isFirstPerson ? firstCameraFollowPoint : cameraFollowPoint;
-        // 先暂停
-        cameraPositionFollow.Pause();
-        cameraRotateFollow.Pause();
-        // 重置起始值为相机当前位置
-        cameraPositionFollow.ChangeStartValue(mainCamera.position);
-        cameraRotateFollow.ChangeStartValue(mainCamera.eulerAngles);
-        cameraPositionFollow.ChangeEndValue(followPoint.position);
-        cameraRotateFollow.ChangeEndValue(followPoint.eulerAngles);
-        // 使用 Restart 从新的起始值重新开始 tween
-        cameraPositionFollow.Restart();
-        cameraRotateFollow.Restart();
-    }
-
     private void LateUpdate()
     {
         if (GlobalInfo.ShowPopup || rotateJoystick == null)

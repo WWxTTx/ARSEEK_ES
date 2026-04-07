@@ -275,7 +275,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
     #region 同步通道相关接口
     /// <summary>
-    /// 是否正在同步操作
+    /// 是否同步操作的总开关 打开才会同步
     /// </summary>
     public bool IsIMSync
     {

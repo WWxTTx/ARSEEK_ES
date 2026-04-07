@@ -136,8 +136,10 @@ public class ExamPanel : HoverHintPanel
                                     {
                                         examineeId = value.Id,
                                         examineeNo = value.UserNo,
-                                        examineeName = value.Nickname
-                                    }).ToList()
+                                        examineeName = value.Nickname,
+
+                                    }).ToList(),
+                                    uuid = GlobalInfo.roomInfo.Uuid
                                 }, () =>
                                 {
                                     //取得考核成绩列表，记录提交情况
