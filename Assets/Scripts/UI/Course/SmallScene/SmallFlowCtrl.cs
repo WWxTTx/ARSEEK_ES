@@ -1177,11 +1177,9 @@ public class SmallFlowCtrl : MonoBase
         else if (hasguide)
         {
             // 导航：恢复相机跟随
-            PauseCameraFollow(false);
+            ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().ToLast();
             guideBehave.Execute(() =>
             {
-                // 导航完成：暂停相机跟随
-                PauseCameraFollow();
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
             });
         }
@@ -1448,27 +1446,6 @@ public class SmallFlowCtrl : MonoBase
         }
     }
 
-    /// <summary>
-    /// 暂停/恢复相机跟随，防止行为完成后相机被拉回角色位置
-    /// 行为组执行期间统一暂停，仅导航行为临时恢复，CompleteExecute 统一释放
-    /// </summary>
-    private void PauseCameraFollow(bool pause = true)
-    {
-        PlayerController pc = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-        if (pc != null)
-        {
-            if (pause)
-            {
-                pc.CameraFollowTween?.Pause();
-                pc.CameraRotateTween?.Pause();
-            }
-            else
-            {
-                pc.CameraFollowTween?.Play();
-                pc.CameraRotateTween?.Play();
-            }
-        }
-    }
 
     /// <summary>
     /// 协程版等待在联机时会出错
