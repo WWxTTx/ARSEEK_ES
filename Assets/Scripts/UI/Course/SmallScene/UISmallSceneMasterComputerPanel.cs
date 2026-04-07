@@ -119,20 +119,17 @@ public class UISmallSceneMasterComputerPanel : MonoBase
     /// </summary>
     private void OnOverButtonClick()
     {
-        if (SpeechManager.Instance.IsAudioPlaying)
-            return;
-
         // 隐藏图纸面板
         HideView();
         Over.gameObject.SetActive(false);
         ShowTool();
-
 
         // 结束当前步骤进入下一步
         SmallFlowCtrl flowCtrl = ModelManager.Instance?.modelGo?.GetComponent<SmallFlowCtrl>();
         if (flowCtrl != null)
         {
             SpeechManager.Instance.PlayImmediate(flowCtrl.CurrentStep().ID, 0, TipType.StepComplete);
+            flowCtrl.RecordCurrentStepOperations();
             flowCtrl.Next();
         }
     }

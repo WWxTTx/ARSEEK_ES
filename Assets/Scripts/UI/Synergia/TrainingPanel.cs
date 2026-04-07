@@ -6,6 +6,7 @@ using UnityEngine.Events;
 using DG.Tweening;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.ServiceRequestData;
+using static UnityFramework.Runtime.RequestData;
 
 /// <summary>
 /// 协同房间列表界面
@@ -63,7 +64,7 @@ public class TrainingPanel : UIPanelBase
     /// <summary>
     /// 房间集合items
     /// </summary>
-    private List<RectTransform> currentItems = new List<RectTransform>();
+    private Dictionary<Transform, RoomInfoModel> currentItems = new Dictionary<Transform, RoomInfoModel>();
     /// <summary>
     /// 房间列表数据
     /// </summary>
@@ -85,6 +86,8 @@ public class TrainingPanel : UIPanelBase
     /// </summary>
     private bool first = true;
 
+    protected ResourcesDownloader downloader;
+
     private const string ellipsisTextMask = "...";
     private string[] roomType = new string[]
     {
@@ -101,6 +104,8 @@ public class TrainingPanel : UIPanelBase
         GlobalInfo.CursorLockMode = CursorLockMode.None;
 
         base.Open(uiData);
+
+        downloader = transform.AutoComponent<ResourcesDownloader>();
 
         AddMsg(new ushort[]
         {
@@ -157,11 +162,23 @@ public class TrainingPanel : UIPanelBase
     /// </summary>
     public override void Show(UIData uiData = null)
     {
-        base.Show();
+        RequestManager.Instance.GetCourseABPackageList((courseABData) =>
+        {
+            GlobalInfo.SaveCourseABInfo(courseABData);
 
-        RefreshRoomList();
-        RoomTabTime = 0;
-        isAutoRefresh = true;
+            base.Show();
+            RefreshRoomList();
+            RoomTabTime = 0;
+            isAutoRefresh = true;
+        }, (msg) =>
+        {
+            Log.Error($"获取课程AB包失败！原因为：{msg}");
+
+            base.Show();
+            RefreshRoomList();
+            RoomTabTime = 0;
+            isAutoRefresh = true;
+        });
     }
 
     public override void Previous()
@@ -192,9 +209,26 @@ public class TrainingPanel : UIPanelBase
 
     private void Exit()
     {
-        searchKeyword = string.Empty;
-        UIManager.Instance.CloseUI<TrainingPanel>();
-        UIManager.Instance.OpenUI<HomePagePanel>();
+        if (ResourcesDownloader.DownloadingCount > 0)
+        {
+            var popupDic = new Dictionary<string, PopupButtonData>();
+            {
+                popupDic.Add("否", new PopupButtonData(null));
+                popupDic.Add("是", new PopupButtonData(() =>
+                {
+                    searchKeyword = string.Empty;
+                    UIManager.Instance.CloseUI<TrainingPanel>();
+                    UIManager.Instance.OpenUI<HomePagePanel>();
+                }, true));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "离开会中断资源下载，确认要离开吗？", popupDic, null, false));
+            }
+        }
+        else
+        {
+            searchKeyword = string.Empty;
+            UIManager.Instance.CloseUI<TrainingPanel>();
+            UIManager.Instance.OpenUI<HomePagePanel>();
+        }
     }
 
     /// <summary>
@@ -273,6 +307,9 @@ public class TrainingPanel : UIPanelBase
     /// <param name="rooms"></param>
     private void UpdateRoomItems(List<RoomInfoModel> rooms)
     {
+        if (ResourcesDownloader.DownloadingCount > 0)
+            return;
+
         roomInfos.Clear();
 
         if (rooms != null)
@@ -300,6 +337,10 @@ public class TrainingPanel : UIPanelBase
         rooms = FilterRoomList(rooms);
 
         LiveScrollView.content.RefreshItemsView(rooms, SetLiveItemInfo);
+
+        #region 资源预加载
+        downloader.UpdateCourseResourcesState(currentItems, OnItemStateUpdate, OnItemActive);
+        #endregion
     }
 
     /// <summary>
@@ -400,9 +441,86 @@ public class TrainingPanel : UIPanelBase
 
         Button btn = tf.GetComponentInChildren<Button>();
         RectTransform btnTf = btn.GetComponent<RectTransform>();
-        currentItems.Add(btnTf);
+        currentItems.Add(tf, info);
         btn.onClick.RemoveAllListeners();
         btn.onClick.AddListener(() => RoomItemBtnClick(info.Uuid));
+    }
+
+    /// <summary>
+    /// 更新课程item状态显示
+    /// </summary>
+    /// <param name="item"></param>
+    /// <param name="result"></param>
+    /// <param name="roomInfo"></param>
+    /// <param name="data"></param>
+    private void OnItemStateUpdate(Transform item, int result, RoomInfoModel roomInfo, List<CourseABPackage> data)
+    {
+        Button UpdateBtn = item.GetComponentByChildName<Button>("Update");
+        Transform DownloadTrans = item.FindChildByName("Download");
+        Text DownloadText = DownloadTrans.GetComponentInChildren<Text>();
+
+        if (result == 0 || GlobalInfo.account.id == roomInfo.creatorId)
+        {
+            UpdateBtn.gameObject.SetActive(false);
+            DownloadTrans.gameObject.SetActive(false);
+        }
+        else
+        {
+            switch (result)
+            {
+                case 1:
+                    UpdateBtn.GetComponentInChildren<Text>().text = "下载";
+                    break;
+                case 2:
+                    UpdateBtn.GetComponentInChildren<Text>().text = "更新";
+                    break;
+                case 3:
+                    UpdateBtn.GetComponentInChildren<Text>().text = "继续下载";
+                    break;
+            }
+
+            UpdateBtn.onClick.RemoveAllListeners();
+            UpdateBtn.onClick.AddListener(() =>
+            {
+                if (GlobalInfo.isOffLine)
+                {
+                    ToolManager.PleaseOnline();
+                    return;
+                }
+
+                downloader.UpdateDownloadingCount(roomInfo.CourseId);
+
+                DownloadText.text = "下载中 0%";
+                DownloadTrans.gameObject.SetActive(true);
+                UpdateBtn.gameObject.SetActive(false);
+
+                var downloadBackGround = DownloadTrans.GetChild(0);
+                {
+                    downloadBackGround.localScale = Vector3.zero;
+                    DownloadText.SetAlpha(0);
+
+                    DOTween.Sequence()
+                    .Append(downloadBackGround.DOScale(Vector3.one, 0.2f))
+                    .AppendInterval(0.1f)
+                    .Append(DownloadText.DOFade(1, 0.3f));
+                }
+
+                downloader.AddABPackTask(roomInfo.CourseId, data, DownloadText, DownloadTrans, UpdateBtn, null);
+            });
+
+            DownloadTrans.gameObject.SetActive(false);
+            UpdateBtn.gameObject.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// 修改item可交互状态
+    /// </summary>
+    /// <param name="item"></param>
+    private void OnItemActive(Transform item)
+    {
+        Button Resources = item.GetComponentByChildName<Button>("Resources");
+        Resources.GetComponent<Image>().raycastTarget = true;
     }
 
     /// <summary>
@@ -413,6 +531,18 @@ public class TrainingPanel : UIPanelBase
     {
         if (joiningRoom) return;
         if (!roomInfos.ContainsKey(uuid)) return;
+
+        //检查课程资源是否已下载（房主无需检查）
+        if (roomInfos[uuid].CourseId > 0 &&
+            roomInfos[uuid].creatorId != GlobalInfo.account.id &&
+            downloader.CourseNeedUpdate.Contains(roomInfos[uuid].CourseId))
+        {
+            if (ResourcesDownloader.DownloadingCount > 0)
+                UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("资源正在下载中，请等待下载完成"));
+            else
+                UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("请先下载课程资源"));
+            return;
+        }
 
         joiningRoom = true;
         //加入前获取最新房间信息

@@ -747,10 +747,6 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         {
                             smallSceneModule.ShowHint(string.Format("最低频率49.92，最高频率51.95，超调量：0.08%，调节时间：9.56秒"), 1);
                         }
-                    });
-
-                    DOVirtual.DelayedCall(12f, () =>
-                    {
                         if (TextDic["主用"].text == "A机")
                         {
                             TextDic["r最低频率"].text = "49.91";
@@ -765,6 +761,10 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                             TextDic["r超调量"].text = "0.08";
                             TextDic["r调节时间"].text = "9.56";
                         }
+                    });
+
+                    DOVirtual.DelayedCall(12f, () =>
+                    {
                         foreach (var item in graphs)
                         {
                             item.progress = 1;

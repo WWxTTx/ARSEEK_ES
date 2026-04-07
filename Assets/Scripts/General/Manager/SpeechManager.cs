@@ -413,6 +413,9 @@ public class SpeechManager : Singleton<SpeechManager>
     public void PlayImmediate(string stepId, int index, TipType tipType)
     {
         GlobalInfo.UpdateSpeechMode();
+        if (!SpeechMode)
+            return;
+
         // 等待 StepSpeechData 初始化
         if (LoadData())
         {

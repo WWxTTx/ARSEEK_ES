@@ -1847,6 +1847,24 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 记录当前步骤所有操作（上位机查看完成时调用）
+    /// </summary>
+    public void RecordCurrentStepOperations()
+    {
+        if (nowFlowStep == null || nowFlowStep.ops == null)
+            return;
+
+        foreach (var opData in nowFlowStep.ops)
+        {
+            if (opData.operation == null)
+                continue;
+
+            OperationBase op = opData.operation.operations.Find(o => o.name.Equals(opData.optionName));
+            SendOperatingRecordMsg(opData, op, GlobalInfo.account.id.ToString(), GlobalInfo.account.nickname);
+        }
+    }
+
+    /// <summary>
     /// 发送操作记录消息
     /// </summary>
     /// <param name="data">操作数据</param>
