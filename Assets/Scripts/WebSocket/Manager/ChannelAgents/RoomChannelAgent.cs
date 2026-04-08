@@ -97,6 +97,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                         OtherJoinRoom(int.Parse(jObject[NetworkManager.PAYLOAD]["member"]["id"].ToString()), jObject[NetworkManager.PAYLOAD]["member"]["nickName"].ToString());
                         break;
                     case NetworkManager.MEMBER_OUT:
+                    case NetworkManager.MEMBER_evict:
                         //成员离开房间消息
                         OtherLeaveRoom(int.Parse(jObject[NetworkManager.PAYLOAD]["member"]["id"].ToString()), jObject[NetworkManager.PAYLOAD]["member"]["nickName"].ToString());
                         break;
