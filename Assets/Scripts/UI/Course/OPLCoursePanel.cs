@@ -802,7 +802,8 @@ public class OPLCoursePanel : HoverHintPanel
                     else
                         GlobalInfo.hasRole = encyclopediaOperation.hasRole;
 
-                    UIManager.Instance.OpenModuleUI<UISmallSceneModule>(this, BaikeModulePoint, new SmallSceneData(encyclopediaOperation.flows));
+                    UIModuleBase mdoe = UIManager.Instance.OpenModuleUI<UISmallSceneModule>(this, BaikeModulePoint, new SmallSceneData(encyclopediaOperation.flows));
+                    mdoe.transform.SetAsFirstSibling();
                     break;
                 case (int)PediaType.Animation:
                     GlobalInfo.currentBaikeType = BaikeType.Anime;
