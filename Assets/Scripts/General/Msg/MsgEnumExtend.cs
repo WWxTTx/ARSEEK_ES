@@ -404,7 +404,7 @@ public enum SmallFlowModuleEvent
     /// <summary>
     /// LCU_mlfsjs 按钮事件同步
     /// </summary>
-    SynchronizationLcu,                    // ID:138
+    SynchronizationLcu,                    // ID:141
     Max,                                   // ID:140
 }
 

@@ -292,7 +292,10 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
 
     public void StartFlow()
     {
-        SetImageRaycast(false);
+        SmallFlowCtrl.Wait140 = true;
+        
+        if(smallSceneModule.ModelState != ModelState.OtherOperating)
+            SetImageRaycast(false);
         currentStepIndex = 0;
         SetTip();
     }
@@ -331,6 +334,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             SetTip();
             if (currentStepIndex >= steps.Count)
             {
+                SmallFlowCtrl.Wait140 = false;
                 callback?.Invoke();
                 endEvent?.Invoke();
                 DOVirtual.DelayedCall(2, () =>

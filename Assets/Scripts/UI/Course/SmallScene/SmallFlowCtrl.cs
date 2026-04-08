@@ -958,6 +958,7 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
     public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
     {
+        Wait140 = false;
         NetworkManager.Instance.IsIMSync = false;
 
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
@@ -1024,6 +1025,7 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
     {
+        Wait140 = false;
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
@@ -1039,11 +1041,12 @@ public class SmallFlowCtrl : MonoBase
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
                     SmallStep1 smallStep = nowFlowStep;
+                    SendOperatingRecordMsg(data, op, userNo, userName);
+
 
                     // 先构建联动操作列表，判断是否需要等待联动完成
                     List<OpLinkage> opLinkages = new List<OpLinkage>();
                     SmallOp1 smallOp1 = null;
-
                     for (int i = 0; i < smallStep.ops.Count; i++)
                     {
                         if (data.operation.ID == smallStep.ops[i].operation.ID && smallStep.ops[i].optionName == data.optionName)
@@ -1066,10 +1069,6 @@ public class SmallFlowCtrl : MonoBase
                             opLinkages.Add(opLinkage);
                         }
                     }
-
-
-                    //记录
-                    SendOperatingRecordMsg(data, op, userNo, userName);
 
                     SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
                     if (opLinkages.Count != 0)
@@ -1352,8 +1351,8 @@ public class SmallFlowCtrl : MonoBase
         BehaveType. Observe,        // 观察
 
         BehaveType.PlayerNavigation,// 角色寻路
-        BehaveType.CustomScript,    // 自定义脚本
         BehaveType.Thermometring,   // 测量温度
+        //BehaveType.CustomScript,    // 自定义脚本
     };
 
     // 需要在 dummy 模式下 联动同步过程中跳过的行为类型（相机和移动相关）
@@ -1787,34 +1786,46 @@ public class SmallFlowCtrl : MonoBase
         }
     }
 
+
+    //如果是协同模式，队友在操作有步骤的自定义，那就不能进入下一步，等待140[UI按钮操作]消息去执行下一步
+    public static bool Wait140 = false;
     /// <summary>
     /// 下一步
     /// </summary>
     public void Next()
     {
-        isAutoPlay = true; // 自动播放模式
-        if (index_NowFlow <= flows.Length - 1)
+        if (Wait140)
+            return;
+
+        //延时是为了避免步骤结束和新的步骤开始竞态问题
+        DOVirtual.DelayedCall(0.1f, () =>
         {
-            if (index_NowStep < nowFlowSteps.Count - 1)
+            isAutoPlay = true; // 自动播放模式
+            if (index_NowFlow <= flows.Length - 1)
             {
-                index_NowStep += 1;
-                FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
-            }
-            else
-            {
-                if (index_NowFlow + 1 > flows.Length - 1)
+                if (index_NowStep < nowFlowSteps.Count - 1)
                 {
-                    Debug.Log("已完成所有任务");
+                    index_NowStep += 1;
+                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                 }
                 else
                 {
-                    index_NowFlow += 1;
-                    index_NowStep = 0;
-                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
+                    if (index_NowFlow + 1 > flows.Length - 1)
+                    {
+                        Debug.Log("已完成所有任务");
+                    }
+                    else
+                    {
+                        index_NowFlow += 1;
+                        index_NowStep = 0;
+                        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
+                    }
                 }
             }
-        }
-        DOVirtual.DelayedCall(0.1f, () =>
+        });
+
+        //延时是为了等同步完全确认了当前步骤序号才刷新提示
+        DOVirtual.DelayedCall(0.2f, () =>
         {
             FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
         });

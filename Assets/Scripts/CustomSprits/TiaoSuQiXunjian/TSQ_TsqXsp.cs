@@ -1416,7 +1416,10 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
     public void StartFlow()
     {
-        SetImageRaycast(false);
+        SmallFlowCtrl.Wait140 = true;
+
+        if (smallSceneModule.ModelState != ModelState.OtherOperating)
+            SetImageRaycast(false);
         currentStepIndex = 0;
         SetTip();
     }
@@ -1453,6 +1456,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             SetTip();
             if (currentStepIndex >= steps.Count)
             {
+                SmallFlowCtrl.Wait140 = false;
                 if (callback != null)
                 {
                     callback.Invoke();
