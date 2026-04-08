@@ -103,7 +103,7 @@ public class TSQ_Dydzcl : MonoBehaviour, IBaseBehaviour
                     A.SetActive(false);
                     B.SetActive(false);
                     Number.text = "";
-                    smallSceneModule.ModelState = ModelState.Operated;
+                    smallSceneModule.ModelState = ModelState.Unselect;;
                     callback?.Invoke();
                 });
             });

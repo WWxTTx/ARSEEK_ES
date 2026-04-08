@@ -598,7 +598,7 @@ public class LC_Zlqzz : MonoBehaviour, IBaseBehaviour
     {
         DOVirtual.DelayedCall(2, () => {
             OnExext();
-            smallSceneModule.ModelState = ModelState.Operated;
+            smallSceneModule.ModelState = ModelState.Unselect;;
             callback?.Invoke();
         });
     }

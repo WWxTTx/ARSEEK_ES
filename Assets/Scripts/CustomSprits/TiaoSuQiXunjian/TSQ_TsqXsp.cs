@@ -155,7 +155,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(3, () =>
                     {
                         Othercallback?.Invoke();
-                        smallSceneModule.ModelState = ModelState.Operated;
+                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 };
                 break;
@@ -188,7 +188,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     {
                         Monitor(false);
                         Othercallback?.Invoke();
-                        smallSceneModule.ModelState = ModelState.Operated;
+                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 };
                 break;
@@ -226,7 +226,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         {
                             Monitor(false);
                             Othercallback?.Invoke();
-                            smallSceneModule.ModelState = ModelState.Operated;
+                            smallSceneModule.ModelState = ModelState.Unselect;
                         });
                     });
                 });
@@ -291,7 +291,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         {
                             Monitor(false);
                             Othercallback?.Invoke();
-                            smallSceneModule.ModelState = ModelState.Operated;
+                            smallSceneModule.ModelState = ModelState.Unselect;
                         });
                     });
                 });
@@ -370,7 +370,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         {
                             Monitor(false);
                             Othercallback?.Invoke();
-                            smallSceneModule.ModelState = ModelState.Operated;
+                            smallSceneModule.ModelState = ModelState.Unselect;
                         });
                     });
                 });
@@ -430,7 +430,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(2, () =>
                     {
                         Othercallback?.Invoke();
-                        smallSceneModule.ModelState = ModelState.Operated;
+                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 }
                 break;
@@ -528,7 +528,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(24, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Operated;
+                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 };
                 break;
@@ -545,7 +545,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(4, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Operated;
+                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 };
                 break;
@@ -602,7 +602,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(14, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Operated;
+                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 };
                 break;
@@ -652,7 +652,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 }
                 else
                 {
-                    string[] flow6 = { "r频率增", "r跟踪频给", "r试验开始" };
+                    string[] flow6 = { "r频率减", "r跟踪频给", "r试验开始" };
                     steps = flow6.ToList();
                 }
                 StartFlow();
@@ -774,7 +774,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         DOVirtual.DelayedCall(2, () =>
                         {
                             Othercallback.Invoke();
-                            smallSceneModule.ModelState = ModelState.Operated;
+                            smallSceneModule.ModelState = ModelState.Unselect;
                         });
                     });
                 };
@@ -919,7 +919,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(14, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Operated;
+                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 };
 
@@ -953,7 +953,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             {
                 Settip(TextDic["齿盘测频"], false);
                 Settip(TextDic["机组转速"], false);
-                smallSceneModule.ModelState = ModelState.Operated;
+                smallSceneModule.ModelState = ModelState.Unselect;
                 Othercallback.Invoke();
             });
         });
@@ -975,7 +975,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 Settip(TextDic["残压测频"], false);
                 Settip(TextDic["机组转速"], false);
                 Othercallback?.Invoke();
-                smallSceneModule.ModelState = ModelState.Operated;
+                smallSceneModule.ModelState = ModelState.Unselect;
             });
         });
     }
@@ -1315,13 +1315,13 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 break;
             case "切到A":
                 TextDic["主用"].text = "A机";
-                UIButtons[0].gameObject.SetActive(false);
-                UIButtons[1].gameObject.SetActive(true);
+                UIButtons[1].gameObject.SetActive(false);
+                UIButtons[2].gameObject.SetActive(true);
                 break;
             case "切到B":
                 TextDic["主用"].text = "B机";
-                UIButtons[1].gameObject.SetActive(false);
-                UIButtons[0].gameObject.SetActive(true);
+                UIButtons[2].gameObject.SetActive(false);
+                UIButtons[1].gameObject.SetActive(true);
                 break;
             case "功率及水头反馈整定":
                 TextDic["主标题"].text = "功率及水头反馈整定";
@@ -1467,7 +1467,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(2, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Operated;
+                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 }
             }
