@@ -22,10 +22,6 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         });
     }
 
-    protected override void InitComponents()
-    {
-        // 消息注册已移至 Awake
-    }
 
     public override void ProcessEvent(MsgBase msg)
     {

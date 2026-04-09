@@ -5,14 +5,43 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using UnityFramework.Runtime;
 
 /// <summary>
 /// 励磁柜整流桥装置
 /// </summary>
-public class LC_Zlqzz : MonoBehaviour, IBaseBehaviour
+public class LC_Zlqzz : MonoBase, IBaseBehaviour
 {
     bool IBaseBehaviour.UseCallback(int step) => false;
     public Type GetStatusEnumType() => typeof(AvailableStatus);
+
+    // 在 Awake 中提前注册消息，避免 Start 时序晚于消息到达
+    protected virtual void Awake()
+    {
+        AddMsg(new ushort[] {
+            (ushort)SmallFlowModuleEvent.SynchronizationZlqzz
+        });
+
+        Init();
+    }
+
+
+    public override void ProcessEvent(MsgBase msg)
+    {
+        base.ProcessEvent(msg);
+        if (msg.msgId == (ushort)SmallFlowModuleEvent.SynchronizationZlqzz)
+        {
+            MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
+            if (brodcastMsg != null && brodcastMsg.senderId != GlobalInfo.account.id)
+            {
+                MsgString msgString = brodcastMsg.GetData<MsgString>();
+                if (msgString != null)
+                {
+                    ExecuteButtonEvent(msgString.arg);
+                }
+            }
+        }
+    }
     [SerializeField]
     public enum AvailableStatus
     {
@@ -34,7 +63,7 @@ public class LC_Zlqzz : MonoBehaviour, IBaseBehaviour
     }
 
     MenuNode root;
-    private void Awake()
+    private void Init()
     {
         // 创建菜单结构
         root = new MenuNode()
@@ -306,16 +335,26 @@ public class LC_Zlqzz : MonoBehaviour, IBaseBehaviour
     }
 
     /// <summary>
-    /// 使用设备网格名称作为按钮触发器
+    /// 按钮事件入口 - 本地点击时调用
     /// </summary>
-    /// <param name="eventname"></param>
-    void ButenEvent(string eventname)
+    public void ButenEvent(string eventname)
+    {
+        // 本地执行
+        ExecuteButtonEvent(eventname);
+        // 发送广播消息给其他用户
+        ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, eventname), true);
+    }
+
+    /// <summary>
+    /// 执行按钮事件的实际逻辑
+    /// </summary>
+    private void ExecuteButtonEvent(string eventname)
     {
         switch (eventname)
-        { 
+        {
             case "up":
                 ChangeSlect(-1);
-                break; 
+                break;
             case "down":
                 ChangeSlect(1);
                 break;

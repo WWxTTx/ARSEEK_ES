@@ -325,11 +325,14 @@ public class IMChannelAgent : NetworkChannelAgentBase
                         cachedPacket = packet;
 
                         //具有操作权限就需要检测步骤序号重连 单人考核除外 使用各自的操作记录来恢复
-                        if (GlobalInfo.IsOperator() && GlobalInfo.courseMode != CourseMode.Exam)
+                        if (GlobalInfo.IsOperator())
                         {
                             //中途加入或本地为旧版本
                             if (GlobalInfo.version < version - 1)
                             {
+                                if (!GlobalInfo.SetFanelstate)
+                                    GlobalInfo.SetFanelstate = true;
+
                                 SyncVersion(packet);
                             }
                             else
