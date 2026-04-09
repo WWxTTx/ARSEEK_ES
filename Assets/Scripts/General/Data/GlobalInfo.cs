@@ -95,7 +95,10 @@ public class GlobalInfo
     /// </summary>
     public const string courseVoice = "CourseVoice";
     #endregion
-
+    /// <summary>
+    /// 标志位，用于每次触发断线重连，只准设置一次最终状态
+    /// </summary>
+    public static bool SetFanelstate = true;
     #region 课程模式
     /// <summary>
     /// 当前课程模式
@@ -497,10 +500,6 @@ public class GlobalInfo
     /// </summary>
     public static int roomListRefreshTime = 10;
 
-    /// <summary>
-    /// 是否直播
-    /// </summary>
-    public static bool isLive = false;
     /// <summary>
     /// 当前房间信息
     /// </summary>

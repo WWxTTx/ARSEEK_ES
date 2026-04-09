@@ -1009,7 +1009,6 @@ public class UISmallSceneToolModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.SelectFlow:
             case (ushort)SmallFlowModuleEvent.SelectStep:
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
-                RefreshTip();
                 interactable = true;
                 break;
             case (ushort)SmallFlowModuleEvent.StartExecute:
@@ -1021,6 +1020,7 @@ public class UISmallSceneToolModule : UIModuleBase
                 //interactable = !(msg as MsgBool).arg1;
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteStep:
+                RefreshTip();
                 interactable = true;
                 break;
             case (ushort)SmallFlowModuleEvent.OperatingRecordClear:

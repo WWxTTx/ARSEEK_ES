@@ -827,7 +827,7 @@ public class OPLCoursePanel : HoverHintPanel
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
             //请求同步相机
             NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
-            //同步百科状态
+            //同步百科和状态
             NetworkManager.Instance.SyncBaikeState();
         });
     }

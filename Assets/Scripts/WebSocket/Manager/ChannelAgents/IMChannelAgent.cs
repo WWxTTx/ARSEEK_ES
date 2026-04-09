@@ -230,6 +230,14 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (currentOp == null)
             return;
 
+        if (currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect)
+        {
+            if (GlobalInfo.SetFanelstate)
+                GlobalInfo.SetFanelstate = false;
+            else
+                return;
+        }
+
         Log.Debug($"{(IsSyncState ? stateLog : opLog)} {JsonTool.Serializable(currentOp)}");
         try
         {
@@ -316,7 +324,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
                     {
                         cachedPacket = packet;
 
-                        if (GlobalInfo.IsOperator())
+                        //具有操作权限就需要检测步骤序号重连 单人考核除外 使用各自的操作记录来恢复
+                        if (GlobalInfo.IsOperator() && GlobalInfo.courseMode != CourseMode.Exam)
                         {
                             //中途加入或本地为旧版本
                             if (GlobalInfo.version < version - 1)
@@ -354,7 +363,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
-        GlobalInfo.isLive = true;
         //确保进入课程模块后再进行消息同步
         IsStartSync = UIManager.Instance.IsOpen<ExamPanel>() || UIManager.Instance.IsOpen<ExamCoursePanel>() || UIManager.Instance.IsOpen<OPLSynCoursePanel>();/*true;*/
         IsSyncBaikeState = true;
@@ -473,5 +481,14 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (!waitResponse)
             IsWaitingResponse = false;
         GlobalInfo.controllerIds.Clear();
+    }
+
+    /// <summary>
+    /// 仅清空待重放的状态消息队列，保留状态追踪数据
+    /// 用于重连后跳过stateOps重放（baikeState已包含完整状态）
+    /// </summary>
+    public void ClearStateReceive()
+    {
+        stateHelper.ClearStateReceive();
     }
 }

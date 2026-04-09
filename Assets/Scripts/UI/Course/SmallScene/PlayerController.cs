@@ -541,8 +541,8 @@ public class PlayerController : MonoBase
                 ModelFollowTween.ChangeEndValue(transform.position);
                 ModelRotateTween.ChangeStartValue(transform.eulerAngles);
                 ModelRotateTween.ChangeEndValue(transform.eulerAngles);
-                ModelFollowTween.Play();
-                ModelRotateTween.Play();
+                ModelFollowTween.Restart();
+                ModelRotateTween.Restart();
                 break;
         }
     }

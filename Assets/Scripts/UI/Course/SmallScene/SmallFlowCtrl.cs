@@ -1797,38 +1797,30 @@ public class SmallFlowCtrl : MonoBase
         if (Wait140)
             return;
 
-        //延时是为了避免步骤结束和新的步骤开始竞态问题
-        DOVirtual.DelayedCall(0.1f, () =>
+        isAutoPlay = true; // 语音自动播放 用于与步骤流程中的提示区别
+        if (index_NowFlow <= flows.Length - 1)
         {
-            isAutoPlay = true; // 自动播放模式
-            if (index_NowFlow <= flows.Length - 1)
+            if (index_NowStep < nowFlowSteps.Count - 1)
             {
-                if (index_NowStep < nowFlowSteps.Count - 1)
+                index_NowStep += 1;
+                FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
+            }
+            else
+            {
+                if (index_NowFlow + 1 > flows.Length - 1)
                 {
-                    index_NowStep += 1;
-                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
+                    Debug.Log("已完成所有任务");
                 }
                 else
                 {
-                    if (index_NowFlow + 1 > flows.Length - 1)
-                    {
-                        Debug.Log("已完成所有任务");
-                    }
-                    else
-                    {
-                        index_NowFlow += 1;
-                        index_NowStep = 0;
-                        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
-                    }
+                    index_NowFlow += 1;
+                    index_NowStep = 0;
+                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
                 }
             }
-        });
+        }
 
-        //延时是为了等同步完全确认了当前步骤序号才刷新提示
-        DOVirtual.DelayedCall(0.2f, () =>
-        {
-            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-        });
+        ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
     }
 
     /// <summary>

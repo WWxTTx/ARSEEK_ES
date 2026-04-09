@@ -1,9 +1,10 @@
+using DG.Tweening;
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.Events;
-using DG.Tweening;
+using UnityEngine.UI;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
 
@@ -306,7 +307,7 @@ public class UISmallSceneFlowModule : UIModuleBase
                     return; 
                 }
                 MsgHierarchy msgHierarchy = (MsgHierarchy)msg;
-                TreeViewItem item = mTreeView.GetTreeItemById(viewItemIds[msgHierarchy.uuid]);
+                TreeViewItem item = msgHierarchy.item;
                 if (item == null)
                     return;
                 if (item.ParentTreeItem == null)
@@ -427,38 +428,6 @@ public class UISmallSceneFlowModule : UIModuleBase
     /// <returns>是否成功选中</returns>
     public bool TrySelectNode(int flowIndex, int stepIndex)
     {
-        if (viewItemIds == null || viewItemIds.Count == 0)
-        {
-            Log.Warning("viewItemIds 未初始化，无法选择步骤节点");
-            return false;
-        }
-
-        if (smallFlowCtrl == null || smallFlowCtrl.flows == null)
-        {
-            Log.Warning("smallFlowCtrl 或 flows 未初始化，无法选择步骤节点");
-            return false;
-        }
-
-        if (flowIndex < 0 || flowIndex >= smallFlowCtrl.flows.Length)
-        {
-            Log.Warning($"flowIndex {flowIndex} 超出范围 [0, {smallFlowCtrl.flows.Length})，无法选择步骤节点");
-            return false;
-        }
-
-        string flowId = smallFlowCtrl.flows[flowIndex].ID;
-        if (!viewItemIds.ContainsKey(flowId))
-        {
-            Log.Warning($"flowId {flowId} 不在 viewItemIds 中，无法选择步骤节点");
-            return false;
-        }
-
-        TreeViewItem flowItem = mTreeView.GetTreeItemById(viewItemIds[flowId]);
-        if (flowItem == null)
-        {
-            Log.Warning($"flowItem for flowId {flowId} 为 null，无法选择步骤节点");
-            return false;
-        }
-
         var steps = smallFlowCtrl.flows[flowIndex].steps;
         if (steps == null || stepIndex < 0 || stepIndex >= steps.Count)
         {
@@ -481,7 +450,12 @@ public class UISmallSceneFlowModule : UIModuleBase
         }
 
         mTreeView.ExpandParent(stepItem);
+        Debug.Log("正在执行重置最终步骤" + flowIndex + "  " + stepIndex);
         OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
+        DOVirtual.DelayedCall(0,()=>{
+
+            FormMsgManager.Instance.SendMsg(new MsgHierarchy((ushort)HierarchyEvent.Click, GlobalInfo.account.id, GlobalInfo.roomInfo.Uuid, stepItem));
+        });
         return true;
     }
 

@@ -1,13 +1,16 @@
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
+using Newtonsoft.Json.Linq;
+using RenderHeads.Media.AVProMovieCapture;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityFramework.Runtime;
-using static UnityFramework.Runtime.ServiceRequestData;
-using Newtonsoft.Json.Linq;
-using RenderHeads.Media.AVProMovieCapture;
 using UnityEngine.EventSystems;
+using UnityFramework.Runtime;
+using static UnityFramework.Runtime.RequestData;
+using static UnityFramework.Runtime.ServiceRequestData;
 
 /// <summary>
 /// 协同各通道相关接口
@@ -341,9 +344,12 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             return;
         }
         IsIMSyncBaikeState = true;
+        UIManager.Instance.OpenUI<LoadingPanel>();
         StartCoroutine(_syncBaikeStateCo(currentState));
     }
 
+    int step = 0;
+    int inde = 0;
     private IEnumerator _syncBaikeStateCo(IMState currentState)
     {
         BaikeState currentBaikeState = currentState.baikeState;
@@ -390,52 +396,63 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             IsIMSyncBaikeState = true;
         }
 
+        //多次重放的消息，为空的可能会覆盖正确的
+        SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentBaikeState.data);
+        if (step != smallSceneBaikeState.flowIndex && smallSceneBaikeState.flowIndex !=0)
+            step = smallSceneBaikeState.flowIndex;
+        if (step != smallSceneBaikeState.stepIndex && smallSceneBaikeState.stepIndex != 0)
+            inde = smallSceneBaikeState.stepIndex;
+
         switch (GlobalInfo.currentBaikeType)
         {
             case BaikeType.SmallScene:
             default:
-                SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentBaikeState.data);
-                if (smallSceneBaikeState != null && model)
+                if (smallSceneBaikeState != null && model && !GlobalInfo.SetFanelstate && (step > 0 || inde > 0))
                 {
-                    SmallFlowCtrl smallFlowCtrl = model.GetComponentInChildren<SmallFlowCtrl>(true);
-                    if (smallFlowCtrl != null)
-                        smallFlowCtrl.SetFinalState(smallSceneBaikeState.modelStates, smallSceneBaikeState.flowIndex, smallSceneBaikeState.stepIndex);
+                    DOVirtual.DelayedCall(5, () =>
+                    {
+                        GlobalInfo.SetFanelstate = true;
+                    });
 
                     UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
-                    if(historyModule != null)
+                    if (historyModule != null)
                     {
                         historyModule.UpdateOpRecordList(smallSceneBaikeState.operations);
                     }
 
-                    // 等待 UISmallSceneFlowModule 初始化完成后同步步骤
-                    yield return StartCoroutine(WaitAndSelectNode(smallSceneBaikeState.flowIndex, smallSceneBaikeState.stepIndex));
+                    // 等待 UISmallSceneFlowModule 初始化完成
+                    // （场景重建时 InitTreeView 会发送 SelectFlow(0) 覆盖步骤，
+                    //   所以只等待初始化，不提前选中步骤）
+                    yield return StartCoroutine(WaitForFlowModule());
 
-                    UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
-                    if (smallSceneModule != null)
-                    {
-                        smallSceneModule.ResetUIState();
-                    }
+                    // 最终修正：确保步骤和流程面板一致
+                    UISmallSceneFlowModule finalFlowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>();
+                    if (finalFlowModule != null)
+                        finalFlowModule.TrySelectNode(step, inde);
                 }
                 break;
         }
 
         yield return new WaitForFixedUpdate();
-
-        if (!IsIMSyncState)
-            UIManager.Instance.CloseUI<LoadingPanel>();
         IsIMSync = true;
         IsIMSyncBaikeState = false;
         //完成百科状态同步后，清空待同步状态，避免切换百科后重复同步
         mIMChannelAgent.CurrentStateToSync = null;
+        //清空 stateOps 重放队列 — baikeState 已包含完整最终状态，无需重放
+        // 避免考核模式下 CompleteStep 等消息覆盖流程面板选中步骤
+        mIMChannelAgent.ClearStateReceive();
+
+
+        yield return new WaitForEndOfFrame();
+        UIManager.Instance.CloseUI<LoadingPanel>();
     }
 
     /// <summary>
-    /// 等待 UISmallSceneFlowModule 初始化完成并选中指定步骤
+    /// 等待 UISmallSceneFlowModule 初始化完成（不选中步骤）
+    /// 用于重连恢复：只等待初始化完成，避免 InitTreeView 的 SelectFlow(0) 覆盖步骤
     /// </summary>
-    /// <param name="flowIndex">任务索引</param>
-    /// <param name="stepIndex">步骤索引</param>
     /// <returns></returns>
-    private IEnumerator WaitAndSelectNode(int flowIndex, int stepIndex)
+    private IEnumerator WaitForFlowModule()
     {
         float timeout = 3f;
         float elapsed = 0f;
@@ -454,10 +471,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         if (flowModule == null || flowModule.viewItemIds == null || flowModule.viewItemIds.Count == 0)
         {
             Log.Warning("UISmallSceneFlowModule 未初始化，跳过步骤同步");
-            yield break;
         }
-
-        flowModule.TrySelectNode(flowIndex, stepIndex);
     }
 
     /// <summary>

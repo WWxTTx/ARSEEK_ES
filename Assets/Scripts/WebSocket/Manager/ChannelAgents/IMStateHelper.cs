@@ -128,17 +128,9 @@ public partial class IMStateHelper
                 {
                     smallSceneBaikeState.flowIndex = smallFlowCtrl.index_NowFlow;
                     smallSceneBaikeState.stepIndex = smallFlowCtrl.index_NowStep;
-                    smallSceneBaikeState.modelStates = smallFlowCtrl.GetModelStates();
-                    //现在的执行全是单个操作一个步骤 不再需要保存一个步骤中做完了哪些
-                    //smallSceneBaikeState.successOpDatas = smallFlowCtrl.successOPs.Select(o => new SuccessOpData()
-                    //{
-                    //    id = o.operation.GetComponent<ModelInfo>().ID,
-                    //    optionName = o.optionName,
-                    //    propId = o.prop?.ID
-                    //}).ToList();
+                    Debug.Log("执行记录操作" + smallFlowCtrl.index_NowFlow + "  " + smallFlowCtrl.index_NowStep);
                 }
-
-                UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
+                //UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
                 //if (smallSceneModule != null)
                 //    smallSceneBaikeState.simSystemState = smallSceneModule.simuSystem?.GetSystemState();
 
@@ -528,6 +520,15 @@ public partial class IMStateHelper
             userOpsLineSend[userId].Clear();
             userOpsLineSend.Remove(userId);
         }
+    }
+
+    /// <summary>
+    /// 仅清空待重放的状态消息队列，保留状态追踪数据
+    /// 用于重连后跳过stateOps重放（baikeState已包含完整状态）
+    /// </summary>
+    public void ClearStateReceive()
+    {
+        stateReceive.Clear();
     }
 
     /// <summary>
