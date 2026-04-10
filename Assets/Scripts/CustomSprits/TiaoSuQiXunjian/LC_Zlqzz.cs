@@ -202,19 +202,20 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
 
     void IBaseBehaviour.Execute(int step, UnityAction callback)
     {
-        if(smallSceneModule == null)
+        OnExext();
+        if (smallSceneModule == null)
         {
             smallSceneModule = FindObjectOfType<UISmallSceneModule>().GetComponent<UISmallSceneModule>();
         }
         this.callback = callback;
 
-        availableStatus = (AvailableStatus)step;
+        AvailableStatus newStatus = (AvailableStatus)step;
+        availableStatus = newStatus;
         GuideTip();
     }
 
     void IBaseBehaviour.SetFinalState()
     {
-
     }
 
     /// <summary>
@@ -511,6 +512,10 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
     /// </summary>
     void TryFindEvent()
     {
+        if (smallSceneModule == null)
+        {
+            smallSceneModule = FindObjectOfType<UISmallSceneModule>().GetComponent<UISmallSceneModule>();
+        }
         switch (availableStatus)
         {
             case AvailableStatus.启动双风机:

@@ -752,10 +752,7 @@ public class UISmallSceneToolModule : UIModuleBase
                             if (modelOperation.GetOperations().TryGetValue(modeName, out OperationBase OperationBase))
                             {
                                 modelOperation.currentState = modeName;
-                                smallFlowCtrl.Execute(OperationBase.behaveBases, 0, OperationBase.behaveBases.Count, () =>
-                                {
-                                    RefreshTip();
-                                });
+                                smallFlowCtrl.Execute(OperationBase.behaveBases, 0, OperationBase.behaveBases.Count,null);
                             }
 
                             //选中高亮提示模式，关闭高亮提示
@@ -871,7 +868,7 @@ public class UISmallSceneToolModule : UIModuleBase
     /// </summary>
     private void RefreshTip()
     {
-        if (!GlobalInfo.EnableFlow || smallFlowCtrl.nowFlowStep == null || GlobalInfo.isExam)
+        if (smallFlowCtrl.nowFlowStep == null || GlobalInfo.isExam)
         {
             StopHighlight();
             return;
@@ -1009,7 +1006,9 @@ public class UISmallSceneToolModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.SelectFlow:
             case (ushort)SmallFlowModuleEvent.SelectStep:
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
-                interactable = true;
+            case (ushort)SmallFlowModuleEvent.CompleteStep:
+                interactable = true; 
+                RefreshTip();
                 break;
             case (ushort)SmallFlowModuleEvent.StartExecute:
             case (ushort)SmallFlowModuleEvent.OperatingRecordInput:
@@ -1018,10 +1017,6 @@ public class UISmallSceneToolModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.ShowUIOperation:
                 //todo 显示UI操作不禁用工具栏(聚焦操作对象自动显示OpUI)
                 //interactable = !(msg as MsgBool).arg1;
-                break;
-            case (ushort)SmallFlowModuleEvent.CompleteStep:
-                RefreshTip();
-                interactable = true;
                 break;
             case (ushort)SmallFlowModuleEvent.OperatingRecordClear:
                 MsgIntInt msgIntInt = msg as MsgIntInt;

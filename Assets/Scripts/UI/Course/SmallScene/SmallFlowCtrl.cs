@@ -956,7 +956,7 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="userName">操作人姓名</param>
     /// <param name="callback"></param>
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
-    public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
+    public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, bool dummy = false)
     {
         Wait140 = false;
         NetworkManager.Instance.IsIMSync = false;
@@ -980,25 +980,24 @@ public class SmallFlowCtrl : MonoBase
                     {
                         SendOperatingRecordMsg(data, op, userNo, userName, string.Empty);
                     }
-
-                    callback?.Invoke(true);
+                    // 先构建联动操作列表，判断是否需要等待联动完成
+                    List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
                     //考核模式下 如果执行的步骤正确，就调用步骤结束
-                    if(isOnOperation)
+                    if (opLinkages.Count != 0)
                     {
-                        Next();
+                        ExecuteFlowLinkOperation(opLinkages, () =>
+                        {
+                            Next();
+                        }, 0, true);
                     }
                     else
                     {
-                        DOVirtual.DelayedCall(0.2f, () =>
-                        {
-                            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-                        });
+                        Next();
                     }
                 }, 0, dummy);
             }
             else
             {
-                callback?.Invoke(true);
                 if (isOnOperation)
                 {
                     Next();
@@ -1040,35 +1039,10 @@ public class SmallFlowCtrl : MonoBase
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
-                    SmallStep1 smallStep = nowFlowStep;
                     SendOperatingRecordMsg(data, op, userNo, userName);
 
-
                     // 先构建联动操作列表，判断是否需要等待联动完成
-                    List<OpLinkage> opLinkages = new List<OpLinkage>();
-                    SmallOp1 smallOp1 = null;
-                    for (int i = 0; i < smallStep.ops.Count; i++)
-                    {
-                        if (data.operation.ID == smallStep.ops[i].operation.ID && smallStep.ops[i].optionName == data.optionName)
-                        {
-                            smallOp1 = smallStep.ops[i];
-                        }
-                    }
-
-                    if (smallOp1 != null)
-                    {
-                        for (int i = 0; i < smallOp1.actions.Count; i++)
-                        {
-                            OpLinkage opLinkage = new OpLinkage();
-                            opLinkage.operation = smallOp1.actions[i].operation;
-                            opLinkage.optionName = smallOp1.actions[i].optionName;
-                            opLinkage.useCallback = smallOp1.actions[i].useCallback;
-#if UNITY_EDITOR
-                            opLinkage.state = smallOp1.actions[i].state;
-#endif
-                            opLinkages.Add(opLinkage);
-                        }
-                    }
+                    List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
 
                     SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
                     if (opLinkages.Count != 0)
@@ -1101,6 +1075,44 @@ public class SmallFlowCtrl : MonoBase
         }, dummy);
     }
 
+    /// <summary>
+    /// 查找操作中指定类型的行为
+    /// </summary>
+    /// <typeparam name="T">行为类型</typeparam>
+    /// <param name="operation">操作对象</param>
+    /// <param name="optionName">操作名称</param>
+    /// <param name="found">是否找到</param>
+    /// <param name="behave">找到的行为实例</param>
+    private void FindBehave<T>(ModelOperation operation, string optionName, ref bool found, ref T behave) where T : BehaveBase
+    {
+        foreach (var op in operation.operations)
+        {
+            if (op.name.Equals(optionName))
+            {
+                if (op.behaveBases != null)
+                {
+                    foreach (var b in op.behaveBases)
+                    {
+                        if (b is T t)
+                        {
+                            found = true;
+                            behave = t;
+                            return;
+                        }
+                    }
+                }
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 执行联动操作流程
+    /// </summary>
+    /// <param name="opLinkages">联动操作列表</param>
+    /// <param name="callback">完成回调</param>
+    /// <param name="index">当前执行索引</param>
+    /// <param name="dummy">是否为非本人操作（跳过相机和移动表现）</param>
     private void ExecuteFlowLinkOperation(List<OpLinkage> opLinkages, Action callback, int index = 0, bool dummy = false)
     {
         if (opLinkages.Count == index)
@@ -1124,44 +1136,9 @@ public class SmallFlowCtrl : MonoBase
 
         bool hasguide = false;
         BehavePlayerNavigation guideBehave = null;
-        foreach (var operation in op.operation.operations)
-        {
-            if (operation.name.Equals(op.optionName))
-            {
-                if (operation.behaveBases != null)
-                {
-                    foreach (var behave in operation.behaveBases)
-                    {
-                        if (behave is BehavePopup popup)
-                        {
-                            hasPopup = true;
-                            popupBehave = popup;
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-        }
-        foreach (var operation in op.operation.operations)
-        {
-            if (operation.name.Equals(op.optionName))
-            {
-                if (operation.behaveBases != null)
-                {
-                    foreach (var behave in operation.behaveBases)
-                    {
-                        if (behave is BehavePlayerNavigation guide)
-                        {
-                            hasguide = true;
-                            guideBehave = guide;
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-        }
+
+        FindBehave(op.operation, op.optionName, ref hasPopup, ref popupBehave);
+        FindBehave(op.operation, op.optionName, ref hasguide, ref guideBehave);
 
         if (hasPopup)
         {
@@ -1175,7 +1152,7 @@ public class SmallFlowCtrl : MonoBase
         {
             if(GlobalInfo.courseMode == CourseMode.Training)
             {
-                // 导航：恢复相机跟随
+                // 导航：恢复相机跟随 培训模式需要走到下一个位置才能开始下一步语音
                 ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().ToLast();
                 guideBehave.Execute(() =>
                 {
@@ -1225,6 +1202,41 @@ public class SmallFlowCtrl : MonoBase
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
             }
         }
+    }
+
+    /// <summary>
+    /// 构建联动操作列表
+    /// </summary>
+    /// <param name="smallStep">当前步骤</param>
+    /// <param name="data">操作数据</param>
+    /// <returns>联动操作列表</returns>
+    private List<OpLinkage> BuildLinkageOperations(SmallStep1 smallStep, SmallOp1 data)
+    {
+        List<OpLinkage> opLinkages = new List<OpLinkage>();
+        SmallOp1 smallOp1 = null;
+        for (int i = 0; i < smallStep.ops.Count; i++)
+        {
+            if (data.operation.ID == smallStep.ops[i].operation.ID && smallStep.ops[i].optionName == data.optionName)
+            {
+                smallOp1 = smallStep.ops[i];
+            }
+        }
+
+        if (smallOp1 != null)
+        {
+            for (int i = 0; i < smallOp1.actions.Count; i++)
+            {
+                OpLinkage opLinkage = new OpLinkage();
+                opLinkage.operation = smallOp1.actions[i].operation;
+                opLinkage.optionName = smallOp1.actions[i].optionName;
+                opLinkage.useCallback = smallOp1.actions[i].useCallback;
+#if UNITY_EDITOR
+                opLinkage.state = smallOp1.actions[i].state;
+#endif
+                opLinkages.Add(opLinkage);
+            }
+        }
+        return opLinkages;
     }
 
     /// <summary>
@@ -1360,13 +1372,11 @@ public class SmallFlowCtrl : MonoBase
 
         BehaveType.PlayerNavigation,// 角色寻路
         BehaveType.Thermometring,   // 测量温度
-        //BehaveType.CustomScript,    // 自定义脚本
     };
 
     // 需要在 dummy 模式下 联动同步过程中跳过的行为类型（相机和移动相关）
     private static readonly HashSet<BehaveType> DummySkipBehaveTypes_link = new HashSet<BehaveType>
     {
-        BehaveType.CameraFollow,    // 相机跟随
         BehaveType.PlayerNavigation,// 角色寻路
     };
 
@@ -1393,15 +1403,15 @@ public class SmallFlowCtrl : MonoBase
         {
             if (op.name.Equals(optionName) && op.behaveBases != null && op.behaveBases.Count > 0)
             {
-                // 检查是否所有行为都是需要跳过的类型
+                // 检查是否所有行为包含需要跳过的类型
                 foreach (var behave in op.behaveBases)
                 {
-                    if (!IsDummySkipBehavior(behave.behaveType, link))
+                    if (IsDummySkipBehavior(behave.behaveType, link))
                     {
-                        return false;
+                        return true;
                     }
                 }
-                return true;
+                return false;
             }
         }
         return false;
@@ -1446,23 +1456,6 @@ public class SmallFlowCtrl : MonoBase
                 Execute(behaveBases, ++index, max, onComplete, dummy);
             }
         }
-        else
-        {
-            WaitAudioEnd(onComplete).Forget();
-        }
-    }
-
-
-    /// <summary>
-    /// 协程版等待在联机时会出错
-    /// </summary>
-    /// <param name="onComplete"></param>
-    /// <returns></returns>
-    private async UniTaskVoid WaitAudioEnd(UnityAction onComplete)
-    {
-        await UniTask.Delay(1);
-        await UniTask.WaitUntil(() => !SpeechManager.Instance.IsAudioPlaying);
-        onComplete?.Invoke();
     }
 
     /// <summary>

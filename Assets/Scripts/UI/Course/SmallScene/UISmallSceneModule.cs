@@ -1643,7 +1643,7 @@ public class UISmallSceneModule : UIModuleBase
 
                     if(GlobalInfo.isExam)
                     {
-                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, null, GlobalInfo.courseMode == CourseMode.Exam ? false : !self);
+                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, GlobalInfo.courseMode == CourseMode.Exam ? false : !self);
                     }
                     else
                     {

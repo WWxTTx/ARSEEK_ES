@@ -123,7 +123,7 @@ namespace UnityFramework.Runtime
             if (abs.ContainsKey(path) && abs[path] != null)
             {
                 Log.Warning("ab包已加载:" + path);
-                callback?.Invoke(1, abs[path]);
+                callback?.Invoke(1, null);
                 yield break;
             }
 
@@ -304,6 +304,10 @@ namespace UnityFramework.Runtime
                         callback?.Invoke(1f, assets);
                     }
                 }
+            }
+            else
+            {
+                callback?.Invoke(-1, null);
             }
         }
         /// <summary>
