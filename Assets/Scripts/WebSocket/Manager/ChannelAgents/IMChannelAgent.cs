@@ -179,9 +179,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
             GlobalInfo.SetFanelstate = true;
             if (GlobalInfo.playTimeRatio > 0)
             {
-                GlobalInfo.uiAnimRatio = 0f;
-                GlobalInfo.playTimeRatio = 0f;
                 IsSyncState = true;
+                IsSyncState = false;
                 UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
             }
 
@@ -189,24 +188,14 @@ public class IMChannelAgent : NetworkChannelAgentBase
             TryExecuteCurrentOp();
         }
 
-        //完成状态同步
-        if (IsStartSync && IsSyncState && stateHelper.ReceivedStateOpCount == 0 && GlobalInfo.playTimeRatio < 1f && !IsSyncBaikeState)
-        {
-            UIManager.Instance.CloseUI<LoadingPanel>();
-            IsSyncState = false;
-            //请求同步相机
-            NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
-            //确保交互状态恢复
-            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-        }
-
         //缓存完成就可以开始同步
         if(stateHelper.ReceivedStateOpCount == 0)
         {
-            GlobalInfo.uiAnimRatio = 1f;
-            GlobalInfo.playTimeRatio = 1f;
             if(!IsStartSync)
+            {
                 IsStartSync = true;
+                UIManager.Instance.CloseUI<LoadingPanel>();
+            }
         }
 
         //执行单条操作同步消息

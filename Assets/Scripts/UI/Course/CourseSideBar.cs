@@ -414,7 +414,7 @@ public class CourseSideBar : MonoBase
             case (ushort)CoursePanelEvent.OperationListBtn:
                 OperationListTog.gameObject.SetActive(true);//!GlobalInfo.IsExamMode()
                 HistoryTog.gameObject.SetActive(true);
-                KnowledgeTog.gameObject.SetActive(!GlobalInfo.IsExamMode());
+                KnowledgeTog.gameObject.SetActive(false);// !GlobalInfo.IsExamMode()
 #if UNITY_ANDROID || UNITY_IOS
                 //SplitLine.gameObject.SetActive(true);
                 if (!EnableVerticalLayout)

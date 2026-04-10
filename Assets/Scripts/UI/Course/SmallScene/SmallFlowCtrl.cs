@@ -990,10 +990,6 @@ public class SmallFlowCtrl : MonoBase
                             Next();
                         }, 0, true);
                     }
-                    else
-                    {
-                        Next();
-                    }
                 }, 0, dummy);
             }
             else
