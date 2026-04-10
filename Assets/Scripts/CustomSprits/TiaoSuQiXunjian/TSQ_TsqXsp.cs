@@ -1616,23 +1616,37 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     public Transform zlTextParent;
     public Transform bjTextParent;
     public GameObject tempText;
+    Dictionary<string, GameObject> tempConmand = new Dictionary<string, GameObject>();
+    Dictionary<string, GameObject> tempErro = new Dictionary<string, GameObject>();
     public void AddConmandEvent(string t)
     {
-        foreach (Transform item in zlTextParent) 
+        if(tempConmand.ContainsKey(t))
         {
-            Destroy(item.gameObject);
+            return;
         }
+        else
+            foreach (var item in tempConmand.Values)
+            {
+                Destroy(item);
+            }
         Text temp = Instantiate(tempText, zlTextParent).GetComponent<Text>();
         temp.text = t;
+        tempConmand.Add(t, temp.gameObject);
     }
     public void AddErroEvent(string t)
     {
-        foreach (Transform item in bjTextParent)
+        if (tempErro.ContainsKey(t))
         {
-            Destroy(item.gameObject);
+            return;
         }
-        Text temp = Instantiate(tempText, bjTextParent).GetComponent<Text>();
+        else
+            foreach (var item in tempErro.Values)
+            {
+                Destroy(item);
+            }
+        Text temp = Instantiate(tempText, zlTextParent).GetComponent<Text>();
         temp.text = t;
+        tempErro.Add(t, temp.gameObject);
     }
 
     /// <summary>

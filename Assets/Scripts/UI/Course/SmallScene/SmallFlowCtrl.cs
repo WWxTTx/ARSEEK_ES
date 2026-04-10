@@ -1456,6 +1456,8 @@ public class SmallFlowCtrl : MonoBase
                 Execute(behaveBases, ++index, max, onComplete, dummy);
             }
         }
+        else
+            onComplete.Invoke();
     }
 
     /// <summary>
