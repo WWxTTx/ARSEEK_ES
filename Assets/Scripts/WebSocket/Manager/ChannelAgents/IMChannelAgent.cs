@@ -176,7 +176,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
-
+            GlobalInfo.SetFanelstate = true;
             if (GlobalInfo.playTimeRatio > 0)
             {
                 GlobalInfo.uiAnimRatio = 0f;
@@ -330,9 +330,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
                             //中途加入或本地为旧版本
                             if (GlobalInfo.version < version - 1)
                             {
-                                if (!GlobalInfo.SetFanelstate)
-                                    GlobalInfo.SetFanelstate = true;
-
                                 SyncVersion(packet);
                             }
                             else

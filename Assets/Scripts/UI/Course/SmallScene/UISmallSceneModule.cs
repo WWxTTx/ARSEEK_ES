@@ -1437,7 +1437,12 @@ public class UISmallSceneModule : UIModuleBase
         if (playerController)
         {
             playerController.enabled = enabled;
-            playerController.ToLast();
+            // 只有在启用且没有外部 DOTween 控制相机时才重建跟随 tween
+            // 禁用时不需要调用 ToLast()，因为外部动画（如 BehaveObserve）会接管相机
+            if (enabled && !ModelManager.Instance.CameraDotween)
+            {
+                playerController.ToLast();
+            }
         }
         else
         {

@@ -1173,12 +1173,20 @@ public class SmallFlowCtrl : MonoBase
         }
         else if (hasguide)
         {
-            // 导航：恢复相机跟随
-            ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().ToLast();
-            guideBehave.Execute(() =>
+            if(GlobalInfo.courseMode == CourseMode.Training)
             {
+                // 导航：恢复相机跟随
+                ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().ToLast();
+                guideBehave.Execute(() =>
+                {
+                    ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+                });
+            }
+            else
+            {
+                guideBehave.Execute();
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
-            });
+            }
         }
         else
         {

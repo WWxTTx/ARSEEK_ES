@@ -151,7 +151,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
         if (logout)
             ToolManager.GoToLogin();
         else
+        {
+            GlobalInfo.SetFanelstate = true;
             UIManager.Instance.OpenUI<ExamTrainingPanel>();
+        }
     }
 
     public override void Previous()

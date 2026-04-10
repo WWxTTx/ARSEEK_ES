@@ -558,7 +558,10 @@ public class OPLSynCoursePanel : OPLCoursePanel
         if (logout)
             ToolManager.GoToLogin();
         else
+        {
             UIManager.Instance.OpenUI<TrainingPanel>();
+            GlobalInfo.SetFanelstate = true;
+        }
     }
 
     public override void Previous()
