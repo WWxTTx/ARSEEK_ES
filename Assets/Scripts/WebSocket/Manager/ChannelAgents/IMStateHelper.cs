@@ -15,6 +15,15 @@ public partial class IMStateHelper
     public int ReceivedStateOpCount { get { return stateReceive.Count; } }
 
     /// <summary>
+    /// 获取待处理的缓存状态操作数量
+    /// </summary>
+    public int ReceivedCachedStateOpCount { get { return cachedStateReceive.Count; } }
+
+    /// <summary>
+    /// 待处理的缓存状态操作队列
+    /// </summary>
+    private Queue<MsgBrodcastOperate> cachedStateReceive = new Queue<MsgBrodcastOperate>();
+    /// <summary>
     /// 待处理的状态操作队列
     /// </summary>
     private Queue<MsgBrodcastOperate> stateReceive = new Queue<MsgBrodcastOperate>();
@@ -46,12 +55,12 @@ public partial class IMStateHelper
     /// 获取全局状态，用于封装IMPacket
     /// </summary>
     /// <returns></returns>
-    public IMState GetState()
+    public IMState GetState(int step = 0,int flow = 0)
     {
         return new IMState
         {
             stateOps = GetStateList(),
-            baikeState = GetBaikeState()
+            baikeState = GetBaikeState(step, flow)
         };
     }
 
@@ -88,7 +97,7 @@ public partial class IMStateHelper
     /// 获取当前百科状态
     /// </summary>
     /// <returns></returns>
-    private BaikeState GetBaikeState()
+    private BaikeState GetBaikeState(int step = 0, int flow = 0)
     {
         BaikeState baikeState = new BaikeState
         {
@@ -97,39 +106,59 @@ public partial class IMStateHelper
 
         switch (GlobalInfo.currentBaikeType)
         {
-            //case BaikeType.Dismantling:
-            //    DismantlingBaikeState dismantlingBaikeState = new DismantlingBaikeState();
+            case BaikeType.Dismantling:
+                DismantlingBaikeState dismantlingBaikeState = new DismantlingBaikeState();
 
-            //    DismantlingController dismantlingController = ModelManager.Instance.modelRoot.GetComponentInChildren<DismantlingController>(true);
-            //    if (dismantlingController)
-            //    {
-            //        dismantlingBaikeState.foldCtrl = dismantlingController.latestFoldableModel?.name;
-            //    }
+                DismantlingController dismantlingController = ModelManager.Instance.modelRoot.GetComponentInChildren<DismantlingController>(true);
+                if (dismantlingController)
+                {
+                    dismantlingBaikeState.foldCtrl = dismantlingController.latestFoldableModel?.name;
+                }
 
-            //    SelectionModel selectionModel = ModelManager.Instance.modelRoot.GetComponentInChildren<SelectionModel>(true);
-            //    if (selectionModel)
-            //    {
-            //        dismantlingBaikeState.selectModels = new Dictionary<string, int>();
-            //        foreach (KeyValuePair<GameObject, int> um in selectionModel.userSelectModels)
-            //        {
-            //            dismantlingBaikeState.selectModels.Add(um.Key.name, um.Value);
-            //        }
-            //    }
+                SelectionModel selectionModel = ModelManager.Instance.modelRoot.GetComponentInChildren<SelectionModel>(true);
+                if (selectionModel)
+                {
+                    dismantlingBaikeState.selectModels = new Dictionary<string, int>();
+                    foreach (KeyValuePair<GameObject, int> um in selectionModel.userSelectModels)
+                    {
+                        dismantlingBaikeState.selectModels.Add(um.Key.name, um.Value);
+                    }
+                }
 
-            //    baikeState.data = JsonTool.Serializable(dismantlingBaikeState);
-            //    break;
-            //目前仅制作了模拟场景这一种
+                baikeState.data = JsonTool.Serializable(dismantlingBaikeState);
+                break;
             case BaikeType.SmallScene:
-            default:
                 SmallSceneBaikeState smallSceneBaikeState = new SmallSceneBaikeState();
 
                 SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelRoot.GetComponentInChildren<SmallFlowCtrl>(true);
                 if(smallFlowCtrl != null)
                 {
-                    smallSceneBaikeState.flowIndex = smallFlowCtrl.index_NowFlow;
-                    smallSceneBaikeState.stepIndex = smallFlowCtrl.index_NowStep;
-                    Debug.Log("执行记录操作" + smallFlowCtrl.index_NowFlow + "  " + smallFlowCtrl.index_NowStep);
+                    if(flow != 0)
+                    {
+                        smallSceneBaikeState.flowIndex = flow;
+                    }
+                    else
+                        smallSceneBaikeState.flowIndex = smallFlowCtrl.index_NowFlow;
+
+                    if (step != 0)
+                    {
+                        smallSceneBaikeState.stepIndex = step;
+                    }
+                    else
+                    {
+                        smallSceneBaikeState.stepIndex = smallFlowCtrl.index_NowStep;
+                    }
+
+                    Debug.Log("执行状态添加 flowIndex" + smallSceneBaikeState.flowIndex + " stepIndex" + smallSceneBaikeState.stepIndex);
+                    //smallSceneBaikeState.modelStates = smallFlowCtrl.GetModelStates();
+                    //smallSceneBaikeState.successOpDatas = smallFlowCtrl.successOPs.Select(o => new SuccessOpData()
+                    //{
+                    //    id = o.operation.GetComponent<ModelInfo>().ID,
+                    //    optionName = o.optionName,
+                    //    propId = o.prop?.ID
+                    //}).ToList();
                 }
+
                 //UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
                 //if (smallSceneModule != null)
                 //    smallSceneBaikeState.simSystemState = smallSceneModule.simuSystem?.GetSystemState();
@@ -139,6 +168,8 @@ public partial class IMStateHelper
                     smallSceneBaikeState.operations = historyModule.OpRecordList;
 
                 baikeState.data = JsonTool.Serializable(smallSceneBaikeState);
+                break;
+            default:
                 break;
         }
         return baikeState;
@@ -153,11 +184,12 @@ public partial class IMStateHelper
     {
         Clear();
 
-        List<MsgBrodcastOperate> states = packet.state.stateOps;
-        for (int i = 0; i < states.Count; i++)
-        {
-            EnqueueStateOp(states[i]);
-        }
+        //过程数据不再同步
+        //List<MsgBrodcastOperate> states = packet.state.stateOps;
+        //for (int i = 0; i < states.Count; i++)
+        //{
+        //    EnqueueStateOp(states[i]);
+        //}
 
         EnqueueStateOp(packet.data);
     }
@@ -187,6 +219,47 @@ public partial class IMStateHelper
     }
 
     /// <summary>
+    /// 同步缓存操作版本,将操作列表添加到待处理队列并更新本地操作状态
+    /// </summary>
+    /// <param name="msg"></param>
+    public void UpdateCachedStateVersion(IMPacket packet)
+    {
+        cachedStateReceive.Clear();
+
+        List<MsgBrodcastOperate> states = packet.state.stateOps;
+        for (int i = 0; i < states.Count; i++)
+        {
+            EnqueueCachedStateOp(states[i]);
+        }
+
+        EnqueueCachedStateOp(packet.data);
+    }
+
+    /// <summary>
+    /// 添加缓存状态消息并更新列表
+    /// </summary>
+    /// <param name="msg"></param>
+    private void EnqueueCachedStateOp(MsgBrodcastOperate msg)
+    {
+        if (msg == null)
+            return;
+
+        cachedStateReceive.Enqueue(msg);
+        UpdateState(msg);
+    }
+
+    /// <summary>
+    /// 获取待同步的缓存状态消息
+    /// </summary>
+    /// <param name="msg"></param>
+    public MsgBrodcastOperate DequeueCachedStateOp()
+    {
+        if (cachedStateReceive.Count == 0)
+            return null;
+        return cachedStateReceive.Dequeue();
+    }
+
+    /// <summary>
     /// 更新全局状态操作消息列表
     /// </summary>
     /// <param name="msg"></param>
@@ -197,24 +270,22 @@ public partial class IMStateHelper
 
         ushort id = msg.msgId;
 
-
         //切换课程或切换百科 清除状态
-        if (!GlobalInfo.IsExamMode() && MsgTruncate.IndexOf(id) > -1)
+        if (!GlobalInfo.isExam && MsgTruncate.IndexOf(id) > -1)
         {
             TruncateStateList(MsgTruncateIndependent);
         }
         //结束考核 清除状态
-        if (GlobalInfo.IsExamMode() && MsgTruncateExam.IndexOf(id) > -1)
+        if (GlobalInfo.isExam && MsgTruncateExam.IndexOf(id) > -1)
         {
             TruncateStateList(MsgTruncateIndependentExam);
         }
-        if (GlobalInfo.IsExamMode() && MsgTruncateExamGroup.IndexOf(id) > -1)
+        if (GlobalInfo.isExam && MsgTruncateExamGroup.IndexOf(id) > -1)
         {
             TruncateStateList(MsgTruncateIndependentExamGroup);
         }
 
         MsgStateType msgType = GetMsgType(id);
-
         switch (msgType)
         {
             case MsgStateType.Default:
@@ -245,7 +316,6 @@ public partial class IMStateHelper
             default:
                 break;
         }
-
     }
 
     /// <summary>
@@ -255,9 +325,9 @@ public partial class IMStateHelper
     /// <returns></returns>
     private MsgStateType GetMsgType(ushort msgId)
     {
-        if (!GlobalInfo.IsExamMode() && MsgTypeMap.ContainsKey(msgId))
+        if (!GlobalInfo.isExam && MsgTypeMap.ContainsKey(msgId))
             return MsgTypeMap[msgId];
-        if (GlobalInfo.IsExamMode() && MsgTypeMapExam.ContainsKey(msgId))
+        if (GlobalInfo.isExam && MsgTypeMapExam.ContainsKey(msgId))
             return MsgTypeMapExam[msgId];
         return MsgStateType.NoneState;
     }
@@ -523,18 +593,9 @@ public partial class IMStateHelper
     }
 
     /// <summary>
-    /// 仅清空待重放的状态消息队列，保留状态追踪数据
-    /// 用于重连后跳过stateOps重放（baikeState已包含完整状态）
-    /// </summary>
-    public void ClearStateReceive()
-    {
-        stateReceive.Clear();
-    }
-
-    /// <summary>
     /// 清空状态
     /// </summary>
-    public void Clear()
+    public void Clear(bool clearCache = false)
     {
         stateReceive.Clear();
         filterState.Clear();
@@ -543,5 +604,7 @@ public partial class IMStateHelper
         userOpsLineSend.Clear();
         opsSend.Clear();
         stateSend.Clear();
+        if (clearCache)
+            cachedStateReceive.Clear();
     }
 }

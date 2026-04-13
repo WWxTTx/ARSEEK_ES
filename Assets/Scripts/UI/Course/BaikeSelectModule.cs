@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
@@ -164,7 +164,8 @@ public class BaikeSelectModule : UIModuleBase
                 {
                     if (isOn)
                     {
-                        ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, info.id), true);
+                        FormMsgManager.Instance.SendMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, info.id));
+                        //ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, info.id), true);
                     }
                 });
 

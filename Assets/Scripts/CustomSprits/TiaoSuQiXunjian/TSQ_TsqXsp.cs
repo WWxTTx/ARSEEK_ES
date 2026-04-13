@@ -1161,7 +1161,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         TryToNext(eventname);
         ExecuteButtonEvent(eventname);
         // 发送广播消息给其他用户
-        ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationTsq, eventname), true);
+        if (callback != null)
+            ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationTsq, eventname), true);
     }
 
     /// <summary>

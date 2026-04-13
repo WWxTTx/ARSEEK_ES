@@ -176,11 +176,10 @@ public class IMChannelAgent : NetworkChannelAgentBase
         while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
-            GlobalInfo.SetFanelstate = true;
+            GlobalInfo.SetFanelstate = false;
             if (GlobalInfo.playTimeRatio > 0)
             {
                 IsSyncState = true;
-                IsSyncState = false;
                 UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
             }
 
@@ -194,6 +193,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             if(!IsStartSync)
             {
                 IsStartSync = true;
+                IsSyncState = false;
                 UIManager.Instance.CloseUI<LoadingPanel>();
             }
         }
@@ -219,14 +219,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (currentOp == null)
             return;
 
-        if (currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect)
-        {
-            if (GlobalInfo.SetFanelstate)
-                GlobalInfo.SetFanelstate = false;
-            else
-                return;
-        }
-
         Log.Debug($"{(IsSyncState ? stateLog : opLog)} {JsonTool.Serializable(currentOp)}");
         try
         {
@@ -234,7 +226,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
                 return;
 
             if (currentOp.msgId == (ushort)CoursePanelEvent.SwitchResource
-                || currentOp.msgId == (ushort)BaikeSelectModuleEvent.BaikeSelect
                 || currentOp.msgId == (ushort)ExamPanelEvent.Start)
             {
                 IsStartSync = false;
@@ -406,15 +397,38 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         int version = GlobalInfo.version + 1;
 
-        IMPacket packet = new IMPacket
+        //如果是跳步骤，那执行开始就将最终状态设置为选择步骤
+        int step = 0;
+        int flow = 0;
+        if(msg.msgId == (int)SmallFlowModuleEvent.SelectStep)
         {
-            data = msg,
-            state = stateHelper.GetState(),
-            version = version,
-        };
+            MsgStringTuple<int, int, string> msgStringTuple = msg.GetData<MsgStringTuple<int, int, string>>();
+            flow = (msgStringTuple.arg2.Item1);
+            step = (msgStringTuple.arg2.Item2);
+        }
+
+        //只有跳步骤和步骤结束发状态消息，否则只发msg
+        IMPacket packet;
+        if (msg.msgId == (int)SmallFlowModuleEvent.SelectStep|| msg.msgId == (int)SmallFlowModuleEvent.StepEnd)
+        {
+            packet = new IMPacket
+            {
+                data = msg,
+                state = stateHelper.GetState(step, flow),
+                version = version,
+            };
+        }
+        else
+        {
+            packet = new IMPacket
+            {
+                data = msg,
+                version = version,
+            };
+        }
+
 
         string data = JsonTool.Serializable(packet);
-
         JObject jObject = new JObject
         {
             [NetworkManager.TYPE] = NetworkManager.OPERATION,
@@ -470,14 +484,5 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (!waitResponse)
             IsWaitingResponse = false;
         GlobalInfo.controllerIds.Clear();
-    }
-
-    /// <summary>
-    /// 仅清空待重放的状态消息队列，保留状态追踪数据
-    /// 用于重连后跳过stateOps重放（baikeState已包含完整状态）
-    /// </summary>
-    public void ClearStateReceive()
-    {
-        stateHelper.ClearStateReceive();
     }
 }

@@ -308,11 +308,7 @@ public class OPLCoursePanel : HoverHintPanel
                 {
                     CourseSideBar.SetBaikePage();
                     //加载第一个百科
-                    ToolManager.SendBroadcastMsg(new MsgInt()
-                    {
-                        msgId = (ushort)BaikeSelectModuleEvent.BaikeSelect,
-                        arg = GlobalInfo.currentWikiList?[0]?.id ?? 0
-                    });
+                    FormMsgManager.Instance.SendMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, GlobalInfo.currentWikiList?[0]?.id ?? 0));
                 }
             });
         }
@@ -424,7 +420,9 @@ public class OPLCoursePanel : HoverHintPanel
 
     protected virtual void OnBaikeSelectEventReceived(MsgBase msg)
     {
-        int baikeId = ((MsgBrodcastOperate)msg).GetData<MsgInt>().arg;
+        //现在没有房间内百科选择，可以不用全局消息
+        //int baikeId = ((MsgBrodcastOperate)msg).GetData<MsgInt>().arg;
+        int baikeId = ((MsgInt)msg).arg;
         OnBaikeChanged(baikeId);
         encyclopediaModelLoaded = false;
         this.WaitTime(0.1f, () => LoadEncyclopedia(baikeId));

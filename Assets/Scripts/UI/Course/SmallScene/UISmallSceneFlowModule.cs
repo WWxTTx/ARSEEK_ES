@@ -312,21 +312,29 @@ public class UISmallSceneFlowModule : UIModuleBase
                     return;
                 if (item.ParentTreeItem == null)
                 {
-                    if (GlobalInfo.EnableFlow)
-                    {
-                        ToolManager.SendBroadcastMsg(new MsgStringInt((ushort)SmallFlowModuleEvent.SelectFlow, msgHierarchy.uuid, item.transform.GetSiblingIndex()), true);
-                    }
+                    ToolManager.SendBroadcastMsg(new MsgStringInt((ushort)SmallFlowModuleEvent.SelectFlow, msgHierarchy.uuid, item.transform.GetSiblingIndex()));
                 }
                 else
                 {
-                    if (GlobalInfo.EnableFlow)
+                    if (!GlobalInfo.isExam)
                     {
-                        ToolManager.SendBroadcastMsg(new MsgStringTuple<int, int, string>()
+                        MsgStringTuple<int, int, string> cmsg = new MsgStringTuple<int, int, string>()
                         {
                             msgId = (ushort)SmallFlowModuleEvent.SelectStep,
                             arg1 = msgHierarchy.uuid,
                             arg2 = new Tuple<int, int, string>(item.ParentTreeItem.transform.GetSiblingIndex(), item.transform.GetSiblingIndex(), string.Empty)
-                        }, true);
+                        };
+
+                        //同步期间非房主不转发
+                        if(!GlobalInfo.IsHomeowner() && !GlobalInfo.SetFanelstate)
+                        {
+                            MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(cmsg.msgId, JsonTool.Serializable(cmsg));
+                            FormMsgManager.Instance.SendMsg(msgBrodcastOperate);
+                        }
+                        else
+                        {
+                            ToolManager.SendBroadcastMsg(cmsg);
+                        }
                     }
                     else
                     {
@@ -401,46 +409,18 @@ public class UISmallSceneFlowModule : UIModuleBase
         }
     }
 
-    /// <summary>
-    /// 状态同步
-    /// </summary>
-    /// <param name="flowIndex"></param>
-    /// <param name="stepIndex"></param>
-    public void SelectNode(int flowIndex, int stepIndex)
-    {
-        TreeViewItem flowItem = mTreeView.GetTreeItemById(viewItemIds[smallFlowCtrl.flows[flowIndex].ID]);
-        if (flowItem == null)
-            return;
-        string stepUID = smallFlowCtrl.flows[flowIndex].steps[stepIndex].ID;
-        TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[stepUID]);
-        if (stepItem == null)
-            return;
-        mTreeView.ExpandParent(stepItem);
-        OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
-    }
 
     /// <summary>
     /// 安全地选中步骤节点（带边界检查）
     /// 用于协同状态同步
     /// </summary>
-    /// <param name="flowIndex">任务索引</param>
-    /// <param name="stepIndex">步骤索引</param>
+    /// <param name="step">任务索引</param>
+    /// <param name="flow">步骤索引</param>
     /// <returns>是否成功选中</returns>
-    public bool TrySelectNode(int flowIndex, int stepIndex)
+    public bool TrySelectNode(int flow, int step)
     {
-        var steps = smallFlowCtrl.flows[flowIndex].steps;
-        if (steps == null || stepIndex < 0 || stepIndex >= steps.Count)
-        {
-            Log.Warning($"stepIndex {stepIndex} 超出范围，无法选择步骤节点");
-            return false;
-        }
-
-        string stepUID = steps[stepIndex].ID;
-        if (!viewItemIds.ContainsKey(stepUID))
-        {
-            Log.Warning($"stepUID {stepUID} 不在 viewItemIds 中，无法选择步骤节点");
-            return false;
-        }
+        var steps = smallFlowCtrl.flows[flow].steps;
+        string stepUID = steps[step].ID;
 
         TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[stepUID]);
         if (stepItem == null)
@@ -450,10 +430,9 @@ public class UISmallSceneFlowModule : UIModuleBase
         }
 
         mTreeView.ExpandParent(stepItem);
-        Debug.Log("正在执行重置最终步骤" + flowIndex + "  " + stepIndex);
+        Debug.Log("正在执行重置最终步骤" + flow + "  " + step);
         OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
         DOVirtual.DelayedCall(0,()=>{
-
             FormMsgManager.Instance.SendMsg(new MsgHierarchy((ushort)HierarchyEvent.Click, GlobalInfo.account.id, GlobalInfo.roomInfo.Uuid, stepItem));
         });
         return true;

@@ -315,17 +315,22 @@ public class OPLSynCoursePanel : OPLCoursePanel
             CourseSideBar.SetBaikePage();
 
             //直播房主画面 分享画面
-            if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && GlobalInfo.IsMainScreen())
+            if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && GlobalInfo.IsMainScreen())
                 NetworkManager.Instance.EnableLocalVideo(true);
             
             if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
             {
-                //只有房主可以发送百科消息
-                if(GlobalInfo.IsHomeowner())
+
+                if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && !GlobalInfo.IsMainScreen())
+                {
+
+                }
+                else
                 {
                     CourseSideBar.SetBaikePage();
                     Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
-                    ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id), true);
+                    //现在没有房间内百科选择，可以不用全局消息
+                    FormMsgManager.Instance.SendMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id));
                 }
             }
 
@@ -465,9 +470,11 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 // 断线重连时取消弹窗和语音
                 UIManager.Instance.CloseUI<PopupPanel>();
                 SpeechManager.Instance.StopSpeech();
-                ClearBaikeModules(true);
-                ModelManager.Instance.DestroyModels(true);
-                ModelManager.Instance.DestroyScripts(true);
+
+                //因为现在一个房间对应一种百科，没有切换了，所以可以不删除
+                //ClearBaikeModules(true);
+                //ModelManager.Instance.DestroyModels(true);
+                //ModelManager.Instance.DestroyScripts(true);
                 videoPacketUrl = string.Empty;
                 GlobalInfo.CursorLockMode = CursorLockMode.None;
                 break;

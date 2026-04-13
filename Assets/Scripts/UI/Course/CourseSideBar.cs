@@ -141,24 +141,24 @@ public class CourseSideBar : MonoBase
             }
         });
 
-        Prev.onClick.AddListener(() =>
-        {
-            active = true;
-            if (BaikeSelectModule.CurrentBaikeIndex == 0)
-                return;
+        //Prev.onClick.AddListener(() =>
+        //{
+        //    active = true;
+        //    if (BaikeSelectModule.CurrentBaikeIndex == 0)
+        //        return;
 
-            Encyclopedia prevPedia = GlobalInfo.currentWikiList[--BaikeSelectModule.CurrentBaikeIndex];
-            ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, prevPedia.id), true);
-        });
-        Next.onClick.AddListener(() =>
-        {
-            active = true;
-            if (BaikeSelectModule.CurrentBaikeIndex == GlobalInfo.currentWikiList.Count - 1)
-                return;
+        //    Encyclopedia prevPedia = GlobalInfo.currentWikiList[--BaikeSelectModule.CurrentBaikeIndex];
+        //    ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, prevPedia.id), true);
+        //});
+        //Next.onClick.AddListener(() =>
+        //{
+        //    active = true;
+        //    if (BaikeSelectModule.CurrentBaikeIndex == GlobalInfo.currentWikiList.Count - 1)
+        //        return;
 
-            Encyclopedia nextPedia = GlobalInfo.currentWikiList[++BaikeSelectModule.CurrentBaikeIndex];
-            ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, nextPedia.id), true);
-        });
+        //    Encyclopedia nextPedia = GlobalInfo.currentWikiList[++BaikeSelectModule.CurrentBaikeIndex];
+        //    ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, nextPedia.id), true);
+        //});
 
         if (HierarchyTog)
         {

@@ -349,7 +349,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     }
 
     int step = 0;
-    int inde = 0;
+    int flow = 0;
     private IEnumerator _syncBaikeStateCo(IMState currentState)
     {
         BaikeState currentBaikeState = currentState.baikeState;
@@ -398,21 +398,18 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
         //多次重放的消息，为空的可能会覆盖正确的
         SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentBaikeState.data);
-        if (step != smallSceneBaikeState.flowIndex && smallSceneBaikeState.flowIndex !=0)
-            step = smallSceneBaikeState.flowIndex;
+        if (flow != smallSceneBaikeState.flowIndex && smallSceneBaikeState.flowIndex !=0)
+            flow = smallSceneBaikeState.flowIndex;
         if (step != smallSceneBaikeState.stepIndex && smallSceneBaikeState.stepIndex != 0)
-            inde = smallSceneBaikeState.stepIndex;
+             step = smallSceneBaikeState.stepIndex;
 
         switch (GlobalInfo.currentBaikeType)
         {
             case BaikeType.SmallScene:
             default:
-                if (smallSceneBaikeState != null && model && !GlobalInfo.SetFanelstate && (step > 0 || inde > 0))
+                if (smallSceneBaikeState != null && model && !GlobalInfo.SetFanelstate && (step > 0 || flow > 0))
                 {
-                    DOVirtual.DelayedCall(5, () =>
-                    {
-                        GlobalInfo.SetFanelstate = true;
-                    });
+                    GlobalInfo.SetFanelstate = true;
 
                     UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
                     if (historyModule != null)
@@ -428,7 +425,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                     // 最终修正：确保步骤和流程面板一致
                     UISmallSceneFlowModule finalFlowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>();
                     if (finalFlowModule != null)
-                        finalFlowModule.TrySelectNode(step, inde);
+                        finalFlowModule.TrySelectNode(flow, step);
                 }
                 break;
         }
@@ -440,7 +437,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         mIMChannelAgent.CurrentStateToSync = null;
         //清空 stateOps 重放队列 — baikeState 已包含完整最终状态，无需重放
         // 避免考核模式下 CompleteStep 等消息覆盖流程面板选中步骤
-        mIMChannelAgent.ClearStateReceive();
+        mIMChannelAgent.Clear();
 
 
         yield return new WaitForEndOfFrame();

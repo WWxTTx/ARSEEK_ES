@@ -241,7 +241,8 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         TryToNext(eventname);
         ExecuteButtonEvent(eventname);
         // 发送广播消息给其他用户
-        ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationLcu, eventname), true);
+        if (callback != null)
+            ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationLcu, eventname), true);
     }
 
     /// <summary>
@@ -336,6 +337,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             {
                 SmallFlowCtrl.Wait140 = false;
                 callback?.Invoke();
+                callback = null;
                 endEvent?.Invoke();
                 DOVirtual.DelayedCall(2, () =>
                 {

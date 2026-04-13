@@ -343,7 +343,8 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         // 本地执行
         ExecuteButtonEvent(eventname);
         // 发送广播消息给其他用户
-        ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, eventname), true);
+        if (callback != null)
+            ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, eventname), true);
     }
 
     /// <summary>
@@ -644,6 +645,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
             OnExext();
             smallSceneModule.ModelState = ModelState.Unselect;;
             callback?.Invoke();
+            callback = null;
         });
     }
 

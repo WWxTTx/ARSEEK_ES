@@ -1819,7 +1819,12 @@ public class SmallFlowCtrl : MonoBase
             }
         }
 
-        ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+            //空消息 仅用于服务器记录当前步骤完成
+            ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.StepEnd));
+        });
     }
 
     /// <summary>

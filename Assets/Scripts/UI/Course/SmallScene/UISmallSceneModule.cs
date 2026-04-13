@@ -1605,7 +1605,7 @@ public class UISmallSceneModule : UIModuleBase
                     TryExecuteOp(modelOperation, sender);
                     // 考核模式 操作就获得操作权限 没有正确判断
                 }
-                    AcquireOperatePermission(sender, modelOperation);
+                AcquireOperatePermission(sender, modelOperation);
                 break;
             //case (ushort)SmallFlowModuleEvent.Look2D:
             //    MsgOperation2D msgOperation2D = (msg as MsgBrodcastOperate).GetData<MsgOperation2D>();
