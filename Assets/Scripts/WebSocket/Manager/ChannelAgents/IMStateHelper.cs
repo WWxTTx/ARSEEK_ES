@@ -149,7 +149,7 @@ public partial class IMStateHelper
                         smallSceneBaikeState.stepIndex = smallFlowCtrl.index_NowStep;
                     }
 
-                    Debug.Log("执行状态添加 flowIndex" + smallSceneBaikeState.flowIndex + " stepIndex" + smallSceneBaikeState.stepIndex);
+                    Log.Debug("执行状态添加 flowIndex" + smallSceneBaikeState.flowIndex + " stepIndex" + smallSceneBaikeState.stepIndex);
                     //smallSceneBaikeState.modelStates = smallFlowCtrl.GetModelStates();
                     //smallSceneBaikeState.successOpDatas = smallFlowCtrl.successOPs.Select(o => new SuccessOpData()
                     //{

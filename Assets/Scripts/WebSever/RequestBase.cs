@@ -219,7 +219,7 @@ namespace UnityFramework.Runtime
                    "x-client-version:" + Application.version,
                    "x-device:" + ApiData.DeviceID,
                    "Content-Type:" + contentType);
-                Debug.Log(log);
+                Log.Debug(log);
 
                 yield return request.SendWebRequest();
 

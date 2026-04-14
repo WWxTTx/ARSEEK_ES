@@ -20,11 +20,11 @@ public class SpeechManager : Singleton<SpeechManager>
         {
             PlayerPrefs.SetInt(GlobalInfo.courseVoice, 1);
             GlobalInfo.UpdateSpeechMode();
-            Debug.Log("语音模式" + SpeechMode);
+            Log.Debug("语音模式" + SpeechMode);
         }
         else
         {
-            Debug.Log("语音未进" + PlayerPrefs.GetInt(GlobalInfo.courseVoice));
+            Log.Debug("语音未进" + PlayerPrefs.GetInt(GlobalInfo.courseVoice));
         }
     }
 

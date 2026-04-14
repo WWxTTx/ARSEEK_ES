@@ -592,7 +592,7 @@ public class SmallFlowCtrl : MonoBase
         SmallOp1 data = nowFlowStep.ops.Find(value => value.operation.ID.Equals(optionName));
         if (data == null)
         {
-            Debug.Log($"当前正确操作不是{optionName}");
+            Log.Debug($"当前正确操作不是{optionName}");
             return false;
         }
 
@@ -616,7 +616,7 @@ public class SmallFlowCtrl : MonoBase
         SmallOp1 data = nowFlowStep.ops.Find(value => value.operation.ID.Equals(id) && value.optionName.Equals(optionName));
         if (data == null)
         {
-            Debug.Log($"当前正确操作不是{optionName}");
+            Log.Debug($"当前正确操作不是{optionName}");
             return false;
         }
 
@@ -637,7 +637,7 @@ public class SmallFlowCtrl : MonoBase
         SmallOp1 data = nowFlowStep.ops.Find(value => value.optionName.Equals(inputFlag));
         if (data == null)
         {
-            Debug.Log("当前正确操作不是输入文本");
+            Log.Debug("当前正确操作不是输入文本");
             return string.Empty;
         }
 
@@ -665,20 +665,20 @@ public class SmallFlowCtrl : MonoBase
         {
             if (index_NowStep < 0 || nowFlowSteps == null || index_NowStep >= nowFlowSteps.Count)
             {
-                Debug.Log("当前步骤数越界，无正确操作");
+                Log.Debug("当前步骤数越界，无正确操作");
                 return false;
             }
             //判断是否是正确操作物体
             data = nowFlowStep.ops.Find(value => value.operation == operation);
             if (data == null)
             {
-                Debug.Log($"操作对象错误 当前对象为{operation.name}", operation);
+                Log.Debug($"操作对象错误 当前对象为{operation.name}", operation);
                 return false;
             }
             //判断是否选择正确道具
             if (data.prop != prop)
             {
-                Debug.Log($"使用道具错误 当前道具为{(prop?.name ?? "空")} 正确道具为{(data.prop?.name ?? "空")}", prop);
+                Log.Debug($"使用道具错误 当前道具为{(prop?.name ?? "空")} 正确道具为{(data.prop?.name ?? "空")}", prop);
                 return false;
             }
 
@@ -693,10 +693,10 @@ public class SmallFlowCtrl : MonoBase
                     { Debug.LogError("道具未配置modelInfo"); return false; }
 
                     if (!conditions[i].operation.currentState.Equals(conditions[i].optionName))
-                    { Debug.Log($"道具模式错误 当前道具模式为{conditions[i].operation.currentState} 正确模式为{conditions[i].optionName}"); return false; }
+                    { Log.Debug($"道具模式错误 当前道具模式为{conditions[i].operation.currentState} 正确模式为{conditions[i].optionName}"); return false; }
                 }
             }
-            Debug.Log(operation.name + "-" + "，是正确操作");
+            Log.Debug(operation.name + "-" + "，是正确操作");
             return true;
         }
         else
@@ -964,7 +964,7 @@ public class SmallFlowCtrl : MonoBase
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
         bool isOnOperation = IsOnOperation(data.optionName, data.operation.ID);
 
-        Debug.Log("调试 当前需要执行:" + nowFlowStep.ID + " 执行结果： " + isOnOperation);
+        Log.Debug("调试 当前需要执行:" + nowFlowStep.ID + " 执行结果： " + isOnOperation);
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
         ExecuteOperation(data.operation, data.optionName, data.prop, (op) =>
@@ -1037,7 +1037,7 @@ public class SmallFlowCtrl : MonoBase
             if (op != null)
             {
                 ModelOperationEventManager.Publish(new ModelStateEvent(modelInfoId, data.optionName));
-                Debug.Log("操作和执行完成！");
+                Log.Debug("操作和执行完成！");
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
@@ -1323,7 +1323,7 @@ public class SmallFlowCtrl : MonoBase
                 RemoveHint(operation);
                 Remove2DHint(operation);
 
-                //Debug.Log(operation.name + "-执行行为-" + optionName);
+                //Log.Debug(operation.name + "-执行行为-" + optionName);
                 cache.Add(info.ID, optionName);
 
                 Execute(op.behaveBases, 0, op.behaveBases.Count, () =>
@@ -1343,7 +1343,7 @@ public class SmallFlowCtrl : MonoBase
                             operation.currentState = optionName;
                         }
 
-                        Debug.Log(operation.name + "-" + optionName + "操作执行完成");
+                        Log.Debug(operation.name + "-" + optionName + "操作执行完成");
                         CheckKeywords(operation, optionName, false);
                         callback?.Invoke(op);
                     }
@@ -1806,7 +1806,7 @@ public class SmallFlowCtrl : MonoBase
             {
                 if (index_NowFlow + 1 > flows.Length - 1)
                 {
-                    Debug.Log("已完成所有任务");
+                    Log.Debug("已完成所有任务");
                 }
                 else
                 {

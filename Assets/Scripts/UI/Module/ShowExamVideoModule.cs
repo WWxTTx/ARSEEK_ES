@@ -282,7 +282,7 @@ public class ShowExamVideoModule : UIModuleBase
         if (progressBar_slider != null && ShowVideo.isPlaying)
         {
             //更新显示时间
-            //Debug.Log(ShowVideo.length);
+            //Log.Debug(ShowVideo.length);
             totalDuration_text.text = "/" + ToTimeFormat(rawVideoLength);
             totalDuration_text.GetComponentByChildName<Text>("Now").text = ToTimeFormat(ShowVideo.time);
 

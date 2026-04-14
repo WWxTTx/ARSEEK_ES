@@ -532,10 +532,10 @@ public class UISmallSceneModule : UIModuleBase
         //TODO 编辑文本替换缓存并把所有任务和步骤数据转化字符串
         RequestManager.Instance.ChangeStepNodeName(GlobalInfo.currentWiki.id, JsonTool.Serializable(encyclopediaModel.flows), () =>
         {
-            Debug.Log("任务和步骤文本保存成功");
+            Log.Debug("任务和步骤文本保存成功");
         }, (code, msg) =>
         {
-            Debug.Log("任务和步骤文本保存失败，原因：" + msg);
+            Log.Debug("任务和步骤文本保存失败，原因：" + msg);
         });
     }
 
@@ -1539,7 +1539,7 @@ public class UISmallSceneModule : UIModuleBase
                 smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1);
                 smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2);
 
-                Debug.Log("状态调试 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
+                Log.Debug("状态调试 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
                 break;
             case (ushort)SmallFlowModuleEvent.Guide:
@@ -1627,7 +1627,7 @@ public class UISmallSceneModule : UIModuleBase
                 int userIdOp = ((MsgBrodcastOperate)msg).senderId;
                 MsgOperation msgOp = ((MsgBrodcastOperate)msg).GetData<MsgOperation>();
                 {
-                    Debug.Log($"状态调试 Operate收到消息 - senderId:{userIdOp}, modelOperation:{msgOp.modelOperation}, operationName:{msgOp.operationName}, 当前用户:{GlobalInfo.account.id}");
+                    Log.Debug($"状态调试 Operate收到消息 - senderId:{userIdOp}, modelOperation:{msgOp.modelOperation}, operationName:{msgOp.operationName}, 当前用户:{GlobalInfo.account.id}");
 
                     SmallOp1 data = new SmallOp1();
                     data.operation = smallFlowCtrl.GetModelOperation(msgOp.modelOperation);

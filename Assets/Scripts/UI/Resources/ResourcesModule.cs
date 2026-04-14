@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -482,7 +482,7 @@ public class ResourcesModule : UIModuleBase
         });
 
         //还原记录的状态d
-        Debug.Log("测试");
+        Log.Debug("测试");
         if (moduleData != null)
         {
             CurrentCategory = moduleData.category;
@@ -491,7 +491,7 @@ public class ResourcesModule : UIModuleBase
         if (string.IsNullOrEmpty(CurrentCategory))
             CurrentCategory = categories[0];
 
-        Debug.Log("测试1");
+        Log.Debug("测试1");
         CategoryFilter.SetValueWithoutNotify(categories.IndexOf(CurrentCategory));
     }
 #endif

@@ -403,10 +403,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     private bool inExam;
     /// <summary>
-    /// 是否已经提交成绩
-    /// </summary>
-    private bool inSubmit = false;
-    /// <summary>
     /// 考核结束时间
     /// </summary>
     private DateTime endTime;
@@ -485,12 +481,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="showResult"></param>
     private void Submit(Action callBack = null, bool showResult = true)
     {
-        if (inSubmit)
-        {
-            Log.Warning("重复提交");
-            return;
-        }
-        inSubmit = true;
         SubmitExamRecord(true, true, (submitSuccess) =>
         {
             if (submitSuccess)
@@ -499,7 +489,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Submit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Submit, examId))));
             }
             callBack?.Invoke();
-            inSubmit = false;
             inExam = false;
         });
     }
@@ -788,7 +777,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
         },
          (errorCode, errorMsg) =>
          {
-             inSubmit = false;
              Log.Error($"考核{examId} 百科:{baikeId} 考核记录提交失败：{errorMsg}");
              //TODO待完善异常处理
              if (showToast)
@@ -823,7 +811,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
         },
         (errorCode, errorMsg) =>
         {
-            inSubmit = false;
             Log.Error($"考核{examId} 百科:{baikeId} 考核记录提交失败：{errorMsg}");
             //TODO待完善异常处理
             if (showToast)
@@ -900,7 +887,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             UIManager.Instance.CloseUI<LoadingPanel>();
             this.FindChildByName("WaitHint").gameObject.SetActive(false);
             inExam = true;
-            inSubmit = false;
             RequestManager.Instance.GetExamination(msgExamStartData.examId, (examination) =>
             {
                 GlobalInfo.SaveExaminationInfo(examination);
@@ -1103,7 +1089,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             time.text = $"考核倒计时：{remainingTime.ToString(@"hh\:mm\:ss")}";
             remainingSeconds = (int)remainingTime.TotalSeconds;
             //停止计时
-            if (inSubmit)
+            if (!inExam)
                 yield break;
             yield return wait;
         }
@@ -1148,7 +1134,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="stopExamId"></param>
     private void OnExamStop(int stopExamId)
     {
-        if (!inExam || stopExamId != examId || inSubmit || selfSumbit)
+        if (!inExam || stopExamId != examId || selfSumbit)
             return;
         if (inExam)
         {
@@ -1304,7 +1290,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 }
                 break;
             case (ushort)RoomChannelEvent.OtherJoin:
-                if (inExam && !inSubmit)
+                if (inExam)
                 {
                     int joinedUser = ((MsgIntString)msg).arg1;
                     if (joinedUser == GlobalInfo.roomInfo.creatorId)

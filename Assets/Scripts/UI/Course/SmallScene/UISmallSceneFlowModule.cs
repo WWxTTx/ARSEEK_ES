@@ -430,7 +430,7 @@ public class UISmallSceneFlowModule : UIModuleBase
         }
 
         mTreeView.ExpandParent(stepItem);
-        Debug.Log("正在执行重置最终步骤" + flow + "  " + step);
+        Log.Debug("正在执行重置最终步骤" + flow + "  " + step);
         OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
         DOVirtual.DelayedCall(0,()=>{
             FormMsgManager.Instance.SendMsg(new MsgHierarchy((ushort)HierarchyEvent.Click, GlobalInfo.account.id, GlobalInfo.roomInfo.Uuid, stepItem));

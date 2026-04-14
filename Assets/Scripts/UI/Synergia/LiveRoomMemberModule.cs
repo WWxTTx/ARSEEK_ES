@@ -222,7 +222,7 @@ public class LiveRoomMemberModule : UIModuleBase
     /// <param name="newJoinedName"></param>
     private void OnOtherJoin(int newJoinedId, string newJoinedName)
     {
-        Debug.Log($"[协同调试] OnOtherJoin被调用 | newJoinedId:{newJoinedId} | newJoinedName:{newJoinedName} | 当前用户ID:{GlobalInfo.account?.id} | IsHomeowner:{GlobalInfo.IsHomeowner()} | RoomType:{GlobalInfo.roomInfo?.RoomType}");
+        Log.Debug($"[协同调试] OnOtherJoin被调用 | newJoinedId:{newJoinedId} | newJoinedName:{newJoinedName} | 当前用户ID:{GlobalInfo.account?.id} | IsHomeowner:{GlobalInfo.IsHomeowner()} | RoomType:{GlobalInfo.roomInfo?.RoomType}");
 
         if (newJoinedId == GlobalInfo.roomInfo.creatorId)
         {
@@ -233,7 +233,7 @@ public class LiveRoomMemberModule : UIModuleBase
         {
             if (GlobalInfo.account.id == newJoinedId)
             {
-                Debug.Log($"[协同调试] 成员断线重连 | IsOperator:{GlobalInfo.IsOperator()}");
+                Log.Debug($"[协同调试] 成员断线重连 | IsOperator:{GlobalInfo.IsOperator()}");
                 // Operator 重连的同步由 RoomChannelAgent.UpdateRoomMembers 触发
                 // 非 Operator 重连需打开遮罩
                 if (!GlobalInfo.IsOperator())
@@ -250,12 +250,12 @@ public class LiveRoomMemberModule : UIModuleBase
                     //todo 有成员加入房间时，房主异常离线的情况?
                     if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Synergia)
                     {
-                        Debug.Log($"[协同调试] 房主给新成员分配操作权限 | newJoinedId:{newJoinedId} | newJoinedName:{newJoinedName}");
+                        Log.Debug($"[协同调试] 房主给新成员分配操作权限 | newJoinedId:{newJoinedId} | newJoinedName:{newJoinedName}");
                         NetworkManager.Instance.SetUserControl(newJoinedId, true);
                     }
                     else
                     {
-                        Debug.Log($"[协同调试] 非协同房间，不分配权限 | RoomType:{GlobalInfo.roomInfo.RoomType}");
+                        Log.Debug($"[协同调试] 非协同房间，不分配权限 | RoomType:{GlobalInfo.roomInfo.RoomType}");
                     }
                     UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo(string.Format("{0}加入房间", newJoinedName)));
                 }
@@ -346,13 +346,13 @@ public class LiveRoomMemberModule : UIModuleBase
     private void OnControllerUpdate(int id, bool isControl)
     {
         Log.Debug("成员权限变更回调:" + id + "--" + isControl);
-        Debug.Log($"[协同调试] OnControllerUpdate | userId:{id} | isControl:{isControl} | 当前用户ID:{GlobalInfo.account?.id}");
+        Log.Debug($"[协同调试] OnControllerUpdate | userId:{id} | isControl:{isControl} | 当前用户ID:{GlobalInfo.account?.id}");
 
         if (GlobalInfo.account.id == id)
         {
             if (isControl)
             {
-                Debug.Log($"[协同调试] 当前用户获得操作权限 | RoomType:{GlobalInfo.roomInfo?.RoomType}");
+                Log.Debug($"[协同调试] 当前用户获得操作权限 | RoomType:{GlobalInfo.roomInfo?.RoomType}");
 
                 // YG: 改成手动加载百科
                 //GlobalInfo.BaikeLoading = true;

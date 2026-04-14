@@ -276,7 +276,7 @@ namespace UnityFramework.Runtime
             }
             catch
             {
-                Debug.Log("加载失败，可能是重复调用");
+                Log.Debug("加载失败，可能是重复调用");
             }
             
             if (request != null)

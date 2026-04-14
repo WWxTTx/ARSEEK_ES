@@ -1714,7 +1714,7 @@ public class BehaveObserve : BehaveDotween
                 }
                 waitTime = Mathf.Max(stayTime, audioLength);
                 sequence.AppendInterval(waitTime);
-                Debug.Log("等待时间" +  waitTime);
+                Log.Debug("等待时间" +  waitTime);
 
                 if (playerController == null)
                 {

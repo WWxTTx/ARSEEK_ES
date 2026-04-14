@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityFramework.Runtime;
 
 namespace BestHTTP.Logger
 {
@@ -34,7 +35,7 @@ namespace BestHTTP.Logger
             {
                 try
                 {
-                    UnityEngine.Debug.Log(string.Format(FormatVerbose, division, verb));
+                    Log.Debug(string.Format(FormatVerbose, division, verb));
                 }
                 catch
                 { }
@@ -47,7 +48,7 @@ namespace BestHTTP.Logger
             {
                 try
                 {
-                    UnityEngine.Debug.Log(string.Format(FormatInfo, division, info));
+                    Log.Debug(string.Format(FormatInfo, division, info));
                 }
                 catch
                 { }

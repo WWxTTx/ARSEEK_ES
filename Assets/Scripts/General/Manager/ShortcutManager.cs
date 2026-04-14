@@ -146,7 +146,7 @@ public class ShortcutManager : Singleton<ShortcutManager>
                 }
             }
 
-            Debug.Log($"创建快捷键Json");
+            Log.Debug($"创建快捷键Json");
             RegistrationShortcutKey();
             SaveShortcutKey();
         }

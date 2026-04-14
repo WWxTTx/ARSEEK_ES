@@ -1,9 +1,11 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using UnityFramework.Runtime;
+
 /// <summary>
 /// 自定义的编辑器窗口，脚本需放置在Editor文件夹下
 /// </summary>
@@ -113,13 +115,13 @@ public class ScenePackWindow : EditorWindow
         if (GUILayout.Button("开始打包", GUILayout.Width(150f), GUILayout.Height(40f)))
         {
             ClearConsole();
-            Debug.Log("assetsBundlePath:" + assetsBundlePath);
+            Log.Debug("assetsBundlePath:" + assetsBundlePath);
             FormTool.OpenFolderDialog("请选择保存路径", assetsBundlePath, (path) =>
             {
                 assetsBundlePath = path;
                 string savePath = path + "/" + abName + "/";
 
-                Debug.Log("当前打包的场景路径:" + savePath);
+                Log.Debug("当前打包的场景路径:" + savePath);
 
                 //创建保存地址文件夹
                 string saveDir = Path.GetDirectoryName(savePath);
@@ -192,7 +194,7 @@ public class ScenePackWindow : EditorWindow
         //打开一个通知栏
         string showText = "场景：" + abName + " 打包完成,总共耗时:" + (DateTime.Now - startTime).Seconds + " 秒";
         ShowNotification(new GUIContent(showText));
-        Debug.Log(showText);
+        Log.Debug(showText);
 
         try
         {
@@ -214,7 +216,7 @@ public class ScenePackWindow : EditorWindow
     void PackAB(string abDir, string abName, string[] assetPaths, BuildTarget abPlatform)
     {
         DateTime beginTime = DateTime.Now;
-        Debug.Log(abPlatform + "开始打包,Time:" + beginTime);
+        Log.Debug(abPlatform + "开始打包,Time:" + beginTime);
 
         switch (abPlatform)
         {
@@ -240,7 +242,7 @@ public class ScenePackWindow : EditorWindow
         abbi[0].assetNames = assetPaths;
         BuildPipeline.BuildAssetBundles(abDir, abbi, BuildAssetBundleOptions.ChunkBasedCompression, abPlatform);
 
-        Debug.Log(abPlatform + "打包完成,耗时: " + (DateTime.Now - beginTime).Seconds + " 秒");
+        Log.Debug(abPlatform + "打包完成,耗时: " + (DateTime.Now - beginTime).Seconds + " 秒");
     }
 
     private void ExportABJsonParams(string dirPath, string abName)

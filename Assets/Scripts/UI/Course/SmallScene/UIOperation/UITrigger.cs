@@ -29,7 +29,7 @@ public class UITrigger : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
         if (eventData.button == PointerEventData.InputButton.Left)
         {
-            //Debug.Log("鼠标左键按下");
+            //Log.Debug("榧犳爣宸﹂敭鎸変笅");
             if (uiOperation)
                 uiOperation.isSelect = true;
         }
@@ -37,6 +37,6 @@ public class UITrigger : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        //Debug.Log("鼠标抬起");
+        //Log.Debug("榧犳爣鎶捣");
     }
 }

@@ -9,12 +9,12 @@ using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
 
 /// <summary>
-/// ×ÊÁÏ¿âÄ£¿é_¿Î¼şÉÏ´«
+/// èµ„æ–™åº“æ¨¡å—_è¯¾ä»¶ä¸Šä¼ 
 /// </summary>
 public partial class LinkDatabaseModule : UIModuleBase
 {
     /// <summary>
-    /// ÏŞÖÆÎÄ¼ş´óĞ¡
+    /// é™åˆ¶æ–‡ä»¶å¤§å°
     /// </summary>
     private const long MAX_UPLOAD_SIZE = 200 * 1024 * 1024;
 
@@ -33,7 +33,7 @@ public partial class LinkDatabaseModule : UIModuleBase
 
     private System.Object countLock = new System.Object();
     /// <summary>
-    /// ÕıÔÚÉÏ´«ÎÄ¼şÊı
+    /// æ­£åœ¨ä¸Šä¼ æ–‡ä»¶æ•°
     /// </summary>
     private int uploadingCount;
     public int UploadingCount
@@ -42,12 +42,12 @@ public partial class LinkDatabaseModule : UIModuleBase
         set
         {
             uploadingCount = value;
-            Total.text = $"ÓĞ{uploadingCount}¸öÎÄ¼şÕıÔÚÉÏ´«";
+            Total.text = $"æœ‰{uploadingCount}ä¸ªæ–‡ä»¶æ­£åœ¨ä¸Šä¼ ";
         }
     }
 
     /// <summary>
-    /// ³õÊ¼»¯ÉÏ´«Ïà¹ØUI
+    /// åˆå§‹åŒ–ä¸Šä¼ ç›¸å…³UI
     /// </summary>
     private void InitUploadUIEvents()
     {
@@ -66,7 +66,7 @@ public partial class LinkDatabaseModule : UIModuleBase
     }
 
     /// <summary>
-    /// ´ò¿ªÎÄ¼şÑ¡Ôñ¶Ô»°¿ò
+    /// æ‰“å¼€æ–‡ä»¶é€‰æ‹©å¯¹è¯æ¡†
     /// </summary>
     private void ShowFileSelector()
     {
@@ -74,18 +74,18 @@ public partial class LinkDatabaseModule : UIModuleBase
         {
             if (uploadingCount >= 5)
             {
-                UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("Ò»´ÎÖ»ÄÜÉÏ´«Îå¸öÎÄ¼ş"));
+                UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("ä¸€æ¬¡åªèƒ½ä¸Šä¼ äº”ä¸ªæ–‡ä»¶"));
                 return;
             }
         }
 
-        FormTool.OpenFileDialog("Ñ¡ÔñÎÄ¼ş", Application.persistentDataPath, (string[] paths) =>
+        FormTool.OpenFileDialog("é€‰æ‹©æ–‡ä»¶", Application.persistentDataPath, (string[] paths) =>
         {
             lock (countLock)
             {
                 if (paths.Length + uploadingCount > 5)
                 {
-                    UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("Ò»´ÎÖ»ÄÜÉÏ´«Îå¸öÎÄ¼ş"));
+                    UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("ä¸€æ¬¡åªèƒ½ä¸Šä¼ äº”ä¸ªæ–‡ä»¶"));
                     return;
                 }
             }
@@ -93,7 +93,7 @@ public partial class LinkDatabaseModule : UIModuleBase
             List<string> pathsToUpload = paths.Select(p => p).Where(p => Path.GetFileNameWithoutExtension(p).Length < 20 && FileTool.GetFileLength(p) < MAX_UPLOAD_SIZE).ToList();
             if(pathsToUpload.Count < paths.Length)
             {
-                UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("ÎÄ¼şÃû²»ÄÜ³¬¹ı20×Ö·û£»ÎÄ¼ş´óĞ¡²»ÄÜ³¬¹ı200M"));
+                UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("æ–‡ä»¶åä¸èƒ½è¶…è¿‡20å­—ç¬¦ï¼›æ–‡ä»¶å¤§å°ä¸èƒ½è¶…è¿‡200M"));
             }
             if (pathsToUpload.Count == 0)
                 return;
@@ -112,7 +112,7 @@ public partial class LinkDatabaseModule : UIModuleBase
 
                     item.GetComponentByChildName<Text>("Name").EllipsisText(fileName, ellipsisTextMask);
 
-                    #region È¡Ïû\ÔİÍ£ÉÏ´«ÈÎÎñ
+                    #region å–æ¶ˆ\æš‚åœä¸Šä¼ ä»»åŠ¡
                     item.GetComponentByChildName<Button>("Cancel").onClick.AddListener(() =>
                     {
                         StorageManager.Instance.CancelTask(path);
@@ -156,11 +156,11 @@ public partial class LinkDatabaseModule : UIModuleBase
                         OnFileUploadFailed(item);
                     }       
                 });
-                //×Ô¶¯µ¯³öÉÏ´«½ø¶ÈÃæ°å
+                //è‡ªåŠ¨å¼¹å‡ºä¸Šä¼ è¿›åº¦é¢æ¿
                 ShowUploadingPanel();
             }, errorMessage =>
             {
-                Log.Error("STS»ñÈ¡Ê§°Ü:" + errorMessage);
+                Log.Error("STSè·å–å¤±è´¥:" + errorMessage);
             });
 
         }, fileType);
@@ -174,11 +174,11 @@ public partial class LinkDatabaseModule : UIModuleBase
         }
         bool lastFile = item.parent.childCount <= 2;
         Destroy(item.gameObject);
-        //todo Êı¾İ¿âÓĞÏŞÖÆ:fileName 50£¬filePath 200
+        //todo æ•°æ®åº“æœ‰é™åˆ¶:fileName 50ï¼ŒfilePath 200
         RequestManager.Instance.AddCoursewareResource(fileName, savePath, () =>
         {
-            Debug.Log($"ĞÂÔö×ÊÔ´ĞÅÏ¢³É¹¦");
-            //todo ÉÏ´«³É¹¦£¬¸üĞÂÁĞ±í
+            Log.Debug($"æ–°å¢èµ„æºä¿¡æ¯æˆåŠŸ");
+            //todo ä¸Šä¼ æˆåŠŸï¼Œæ›´æ–°åˆ—è¡¨
             if (lastFile)
             {
                 RefreshResources();
@@ -186,7 +186,7 @@ public partial class LinkDatabaseModule : UIModuleBase
         },
            (code, msg) =>
            {
-               Log.Error($"ĞÂÔö¿Î¼ş×ÊÔ´ĞÅÏ¢Ê§°Ü {code} {msg}");
+               Log.Error($"æ–°å¢è¯¾ä»¶èµ„æºä¿¡æ¯å¤±è´¥ {code} {msg}");
            });
     }
 
@@ -197,7 +197,7 @@ public partial class LinkDatabaseModule : UIModuleBase
             UploadingCount--;
         }
         Destroy(item.gameObject);
-        UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("ÎÄ¼şÉÏ´«Ê§°Ü"));
+        UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("æ–‡ä»¶ä¸Šä¼ å¤±è´¥"));
     }
 
     private void ShowUploadingPanel()

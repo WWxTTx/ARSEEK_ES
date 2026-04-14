@@ -46,7 +46,7 @@ public class HighlightEffectManager : MonoBehaviour
                 visibility = visibility ?? Visibility.Normal,
                 constantWidth = constantWidth
             });
-            //Debug.Log($"{component.name} 物体高亮 权重({priority})", component);
+            //Log.Debug($"{component.name} 物体高亮 权重({priority})", component);
         }
         else
         {
@@ -57,7 +57,7 @@ public class HighlightEffectManager : MonoBehaviour
                 visibility = visibility ?? Visibility.Normal,
                 constantWidth = constantWidth
             };
-            //Debug.Log($"{component.name }物体高亮 权重({priority})覆盖", component);
+            //Log.Debug($"{component.name }物体高亮 权重({priority})覆盖", component);
         }
 
         UpdateHighlight(component);

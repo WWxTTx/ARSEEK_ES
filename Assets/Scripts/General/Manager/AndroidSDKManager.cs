@@ -1,4 +1,4 @@
-﻿using UnityFramework.Runtime;
+using UnityFramework.Runtime;
 using UnityEngine;
 
 public class AndroidSDKManager : Singleton<AndroidSDKManager>
@@ -19,13 +19,13 @@ public class AndroidSDKManager : Singleton<AndroidSDKManager>
             androidClass = new AndroidJavaClass("com.KHTF.ARIM.MainActivity");
             androidInstance = androidClass.GetStatic<AndroidJavaObject>("instance");
             Name = name;
-            Debug.Log(Name + "初始化完毕！");
+            Log.Debug(Name + "初始化完毕！");
         }
     }
 
     public void AndroidOpenAlbum(MessageCallBack callBack)
     {
-        Debug.Log("开启相册！");
+        Log.Debug("开启相册！");
         androidInstance.Call("SetCallBack", Name, "GetCallBack");
         androidInstance.Call("OpenAlbum");
 
@@ -44,7 +44,7 @@ public class AndroidSDKManager : Singleton<AndroidSDKManager>
 
     public void AndroidInstallAPK(string path)
     {
-        Debug.Log("开始安装！");
+        Log.Debug("开始安装！");
         androidInstance.Call("SetCallBack", Name, "GetCallBack");
         androidInstance.Call("InstallAPK", path);
     }
@@ -69,7 +69,7 @@ public class AndroidSDKManager : Singleton<AndroidSDKManager>
 
     public void GetCallBack(string callBack)
     {
-        Debug.Log("Android端回传:" + callBack);
+        Log.Debug("Android端回传:" + callBack);
         GetPhotoPath?.Invoke(callBack);
     }
 

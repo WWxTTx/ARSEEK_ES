@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Windows.Forms;
 using UnityEngine;
+using UnityFramework.Runtime;
 
 /// <summary>
 /// 选择文件夹或文件弹窗
@@ -19,7 +20,7 @@ public class FormTool
     /// <param name="callback">完成选择后触发回调</param>
     public static void OpenFolderDialog(string title, string defaultPath, Action<string> callback)
     {
-        Debug.Log("title:" + title + "; defaultPath:" + defaultPath);
+        Log.Debug("title:" + title + "; defaultPath:" + defaultPath);
         FolderBrowserDialog dialog = new FolderBrowserDialog();
         dialog.Description = title;
         dialog.SelectedPath = defaultPath.Replace("/", "\\");  //默认打开路径
@@ -27,7 +28,7 @@ public class FormTool
         if (dialog.ShowDialog() == DialogResult.OK)
         {
             defaultPath = dialog.SelectedPath.Trim();
-            Debug.Log("folderPath:" + defaultPath);
+            Log.Debug("folderPath:" + defaultPath);
             callback?.Invoke(defaultPath);
         }
     }
@@ -39,7 +40,7 @@ public class FormTool
     /// <param name="callback">完成选择后触发回调</param>
     public static void OpenFileDialog(string title, string defaultPath, Action<string> callback, FileType fileType = FileType.All)
     {
-        Debug.Log("title:" + title + "; defaultPath:" + defaultPath);
+        Log.Debug("title:" + title + "; defaultPath:" + defaultPath);
         OpenFileDialog dialog = new OpenFileDialog();
         dialog.Title = title;
         dialog.InitialDirectory = defaultPath.Replace("/", "\\").Replace(":", ":\\");//默认打开路径
@@ -48,7 +49,7 @@ public class FormTool
         if (dialog.ShowDialog() == DialogResult.OK)
         {
             defaultPath = dialog.FileName;
-            Debug.Log("FilePath:" + defaultPath);
+            Log.Debug("FilePath:" + defaultPath);
             callback?.Invoke(defaultPath);
         }
     }
@@ -60,7 +61,7 @@ public class FormTool
     /// <param name="callback">完成选择后触发回调</param>
     public static void OpenFileDialog(string title, string defaultPath, Action<string[]> callback, FileType fileType = FileType.All)
     {
-        Debug.Log("title:" + title + "; defaultPath:" + defaultPath);
+        Log.Debug("title:" + title + "; defaultPath:" + defaultPath);
         OpenFileDialog dialog = new OpenFileDialog();
         dialog.Title = title;
         dialog.InitialDirectory = defaultPath.Replace("/", "\\").Replace(":", ":\\");//默认打开路径
@@ -70,10 +71,10 @@ public class FormTool
         if (dialog.ShowDialog() == DialogResult.OK)
         {
             defaultPath = Path.GetDirectoryName(dialog.FileNames[0]);
-            Debug.Log("FilePath:" + defaultPath);
+            Log.Debug("FilePath:" + defaultPath);
             for (int i = 0; i < dialog.FileNames.Length; i++)
             {
-                Debug.Log("SelectFilePath:" + dialog.FileNames[i]);
+                Log.Debug("SelectFilePath:" + dialog.FileNames[i]);
             }
             callback?.Invoke(dialog.FileNames);
         }

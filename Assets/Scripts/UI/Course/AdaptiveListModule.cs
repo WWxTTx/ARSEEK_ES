@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
@@ -202,7 +202,7 @@ public class AdaptiveListModule : UIModuleBase
                     string textStr = (item.GetSiblingIndex() + 1).ToString() + ".";
                     if (str.Length >= textStr.Length && str.Substring(0, textStr.Length) == textStr) 
                     {
-                        Debug.Log(str);
+                        Log.Debug(str);
                         str = str.Substring(textStr.Length, str.Length - textStr.Length);
                     }
 
