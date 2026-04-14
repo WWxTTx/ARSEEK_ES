@@ -439,7 +439,7 @@ public class SmallFlowCtrl : MonoBase
             case PropType.Calibrator:
             case PropType.Animation:
             default:
-                Debug.LogWarning($"存在未处理道具：{modelInfo.Name}");
+                Log.Warning($"存在未处理道具：{modelInfo.Name}");
                 break;
         }
     }
@@ -452,13 +452,13 @@ public class SmallFlowCtrl : MonoBase
     {
         ModelOperation op = modelInfo.GetComponent<ModelOperation>();
         if (op == null)
-            Debug.LogWarning($"存在未配置ModelOperation道具：{modelInfo.Name}");
+            Log.Warning($"存在未配置ModelOperation道具：{modelInfo.Name}");
         else
         {
             if (toolIDs.ContainsKey(modelInfo.ID))
-                Debug.LogWarning($"存在重复UUID:{modelInfo.ID};背包道具：{toolIDs[modelInfo.ID].gameObject.name}-{modelInfo.gameObject.name}");
+                Log.Warning($"存在重复UUID:{modelInfo.ID};背包道具：{toolIDs[modelInfo.ID].gameObject.name}-{modelInfo.gameObject.name}");
             if (operationIDs.ContainsKey(modelInfo.ID))
-                Debug.LogWarning($"存在重复UUID:{modelInfo.ID};操作道具：{operationIDs[modelInfo.ID].gameObject.name}-{modelInfo.gameObject.name}");
+                Log.Warning($"存在重复UUID:{modelInfo.ID};操作道具：{operationIDs[modelInfo.ID].gameObject.name}-{modelInfo.gameObject.name}");
             else
             {
                 operationIDs.Add(modelInfo.ID, op);
@@ -490,13 +490,13 @@ public class SmallFlowCtrl : MonoBase
     {
         ModelOperation op_BP = modelInfo.GetComponent<ModelOperation>();
         if (op_BP == null)
-            Debug.LogWarning($"存在未配置ModelOperation背包道具：{modelInfo.Name}");
+            Log.Warning($"存在未配置ModelOperation背包道具：{modelInfo.Name}");
         else
         {
             if (operationIDs.ContainsKey(modelInfo.ID))
-                Debug.LogWarning($"存在重复UUID:{modelInfo.ID};操作道具：{operationIDs[modelInfo.ID].gameObject.name}-{modelInfo.gameObject.name}");
+                Log.Warning($"存在重复UUID:{modelInfo.ID};操作道具：{operationIDs[modelInfo.ID].gameObject.name}-{modelInfo.gameObject.name}");
             if (toolIDs.ContainsKey(modelInfo.ID))
-                Debug.LogWarning($"存在重复UUID:{modelInfo.ID};背包道具：{toolIDs[modelInfo.ID].gameObject.name}-{modelInfo.gameObject.name}");
+                Log.Warning($"存在重复UUID:{modelInfo.ID};背包道具：{toolIDs[modelInfo.ID].gameObject.name}-{modelInfo.gameObject.name}");
             else
             {
                 if (modelInfo.PropType == PropType.SafetyTool)
@@ -519,7 +519,7 @@ public class SmallFlowCtrl : MonoBase
     {
         ModelOperation op = modelInfo.GetComponent<ModelOperation>();
         if (op == null)
-            Debug.LogWarning($"存在未配置ModelOperation道具：{modelInfo.Name}");
+            Log.Warning($"存在未配置ModelOperation道具：{modelInfo.Name}");
         else
         {
             operationIDs.Add(modelInfo.ID, op);
@@ -585,7 +585,7 @@ public class SmallFlowCtrl : MonoBase
     {
         if (index_NowStep < 0 || nowFlowSteps == null || index_NowStep >= nowFlowSteps.Count)
         {
-            Debug.LogWarning("当前步骤数越界，无正确操作");
+            Log.Warning("当前步骤数越界，无正确操作");
             return false;
         }
 
@@ -609,7 +609,7 @@ public class SmallFlowCtrl : MonoBase
     {
         if (index_NowStep < 0 || nowFlowSteps == null || index_NowStep >= nowFlowSteps.Count)
         {
-            Debug.LogWarning("当前步骤数越界，无正确操作");
+            Log.Warning("当前步骤数越界，无正确操作");
             return false;
         }
 
@@ -690,7 +690,7 @@ public class SmallFlowCtrl : MonoBase
                 if (conditions[i].operation != null && conditions[i].operation.TryGetComponent(out ModelInfo modelInfo))
                 {
                     if (modelInfo == null)
-                    { Debug.LogError("道具未配置modelInfo"); return false; }
+                    { Log.Error("道具未配置modelInfo"); return false; }
 
                     if (!conditions[i].operation.currentState.Equals(conditions[i].optionName))
                     { Log.Debug($"道具模式错误 当前道具模式为{conditions[i].operation.currentState} 正确模式为{conditions[i].optionName}"); return false; }
@@ -701,7 +701,7 @@ public class SmallFlowCtrl : MonoBase
         }
         else
         {
-            Debug.LogWarning("操作对象为null");
+            Log.Warning("操作对象为null");
             return false;
         }
     }
@@ -761,7 +761,7 @@ public class SmallFlowCtrl : MonoBase
                     if (operation.operation != null)
                         SetFinalState(operation.operation, operation.operation.initState);
                     else
-                        Debug.LogError(step.hint + "    没有配置操作对象    " + operation.optionName);
+                        Log.Error(step.hint + "    没有配置操作对象    " + operation.optionName);
                 }
             }
         }
@@ -837,7 +837,7 @@ public class SmallFlowCtrl : MonoBase
             {
                 if ((f.Key < flowIndex || step.Key < stepIndex) && step.Value != -1)
                 {
-                    //Debug.LogError($"flow {flowIndex} step {stepIndex} 前序视角为 flow {f.Key} step {step.Value} {flows[f.Key].steps[step.Value].hint}, 目标视角{stepView[flowIndex][stepIndex]}");
+                    //Log.Error($"flow {flowIndex} step {stepIndex} 前序视角为 flow {f.Key} step {step.Value} {flows[f.Key].steps[step.Value].hint}, 目标视角{stepView[flowIndex][stepIndex]}");
                     cameraState = flows[f.Key].steps[step.Value].initState.FirstOrDefault(s => s.optionName.Equals(cameraFlag)
                     || s.optionName.Equals(playerFlag));
                     return cameraState;
@@ -1010,7 +1010,7 @@ public class SmallFlowCtrl : MonoBase
             }
             else
             {
-                Debug.LogWarning("执行了TryExecuteOperation未处理的分支");
+                Log.Warning("执行了TryExecuteOperation未处理的分支");
             }
         }, dummy);
     }
@@ -1064,7 +1064,7 @@ public class SmallFlowCtrl : MonoBase
             }
             else
             {
-                Debug.LogWarning("执行了TryExecuteOperation未处理的分支");
+                Log.Warning("执行了TryExecuteOperation未处理的分支");
             }
         }, dummy);
     }
@@ -1253,7 +1253,7 @@ public class SmallFlowCtrl : MonoBase
                 {
                     if (executingOp.Equals(optionName))
                     {
-                        Debug.LogWarning(info.ID + "-" + optionName + "操作正在执行!");
+                        Log.Warning(info.ID + "-" + optionName + "操作正在执行!");
                         callback?.Invoke(null);
                         return;
                     }
@@ -1273,7 +1273,7 @@ public class SmallFlowCtrl : MonoBase
             }
         }
 
-        Debug.LogWarning(operation.name + "-" + optionName + "操作没有配置");
+        Log.Warning(operation.name + "-" + optionName + "操作没有配置");
         callback?.Invoke(null);
     }
 
@@ -1300,7 +1300,7 @@ public class SmallFlowCtrl : MonoBase
                 {
                     if (!group.ToList().Select(op => op.optionName).Contains(group.Key.currentState))
                     {
-                        Debug.LogWarning($"{info.ID}-{optionName}不满足限制条件:  道具:{group.Key.GetComponent<ModelInfo>().ID} 状态：{group.Key.currentState}");//:{op.conditions[j].optionName}
+                        Log.Warning($"{info.ID}-{optionName}不满足限制条件:  道具:{group.Key.GetComponent<ModelInfo>().ID} 状态：{group.Key.currentState}");//:{op.conditions[j].optionName}
                         callback?.Invoke(null);
                         return;
                     }
@@ -1310,7 +1310,7 @@ public class SmallFlowCtrl : MonoBase
                 {
                     if (executingOp.Equals(optionName))
                     {
-                        Debug.LogWarning(info.ID + "-" + optionName + "操作正在执行!");
+                        Log.Warning(info.ID + "-" + optionName + "操作正在执行!");
                         callback?.Invoke(null);
                         return;
                     }
@@ -1352,7 +1352,7 @@ public class SmallFlowCtrl : MonoBase
             }
         }
 
-        Debug.LogWarning(operation.name + "-" + optionName + "操作没有配置");
+        Log.Warning(operation.name + "-" + optionName + "操作没有配置");
         callback?.Invoke(null);
     }
 
@@ -1634,7 +1634,7 @@ public class SmallFlowCtrl : MonoBase
                         {
                             if (!group.ToList().Select(op => op.optionName).Contains(group.Key.currentState))
                             {
-                                Debug.LogWarning($"{group.Key.GetComponent<ModelInfo>().Name}道具当前状态：{group.Key.currentState},不满足限制条件");//:{op.conditions[j].optionName}
+                                Log.Warning($"{group.Key.GetComponent<ModelInfo>().Name}道具当前状态：{group.Key.currentState},不满足限制条件");//:{op.conditions[j].optionName}
                                 return;
                             }
                         }
@@ -1660,7 +1660,7 @@ public class SmallFlowCtrl : MonoBase
                         }
                         catch
                         {
-                            //Debug.LogError(operation.name + "    " + op.behaveBases[k].behaveType + "  该物体没有配置最终状态");
+                            //Log.Error(operation.name + "    " + op.behaveBases[k].behaveType + "  该物体没有配置最终状态");
                         }
                     }
 
@@ -1677,7 +1677,7 @@ public class SmallFlowCtrl : MonoBase
                             }
                             catch
                             {
-                                Debug.LogError(operation.name + "  该物体配置错误");
+                                Log.Error(operation.name + "  该物体配置错误");
                             }
                         }
                     }
