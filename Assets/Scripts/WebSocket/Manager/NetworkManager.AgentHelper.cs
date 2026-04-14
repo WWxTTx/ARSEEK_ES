@@ -423,6 +423,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                     yield return StartCoroutine(WaitForFlowModule());
 
                     // 最终修正：确保步骤和流程面板一致
+                    yield return new WaitForSeconds(0.1f);
                     UISmallSceneFlowModule finalFlowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>();
                     if (finalFlowModule != null)
                         finalFlowModule.TrySelectNode(flow, step);

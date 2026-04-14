@@ -223,8 +223,7 @@ namespace UnityFramework.Runtime
 
                 yield return request.SendWebRequest();
 
-                if (isLoadingOn)
-                    UIManager.Instance.HideUI<LoadingPanel>();
+                UIManager.Instance.HideUI<LoadingPanel>();
                 Response(requestName, request, resultCallBack);
             }
         }

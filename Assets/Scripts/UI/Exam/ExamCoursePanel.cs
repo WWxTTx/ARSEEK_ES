@@ -762,28 +762,28 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
             #region 提交考核附件
             //每次提交 检查是否存在已上传成功但未记录的监控视频
-            List<Accessory> accessoryList = videoDic.Where(v => !v.Value)
-                .Select(v => new Accessory() { encyclopediaId = v.Key.Item1, filePath = v.Key.Item2 }).ToList();
-            RequestManager.Instance.SubmitExamAccessory(examId, accessoryList, () =>
-            {
-                //标记已成功提交的视频
-                foreach (var accessory in accessoryList)
-                {
-                    var video = videoDic.FirstOrDefault(v => v.Key.Item2.Equals(accessory.filePath));
-                    if (videoDic.ContainsKey(video.Key))
-                        videoDic[video.Key] = true;
-                }
+            //List<Accessory> accessoryList = videoDic.Where(v => !v.Value)
+            //    .Select(v => new Accessory() { encyclopediaId = v.Key.Item1, filePath = v.Key.Item2 }).ToList();
+            //RequestManager.Instance.SubmitExamAccessory(examId, accessoryList, () =>
+            //{
+            //    //标记已成功提交的视频
+            //    foreach (var accessory in accessoryList)
+            //    {
+            //        var video = videoDic.FirstOrDefault(v => v.Key.Item2.Equals(accessory.filePath));
+            //        if (videoDic.ContainsKey(video.Key))
+            //            videoDic[video.Key] = true;
+            //    }
 
-                if (showToast)
-                    UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
-                callBack?.Invoke(true);
-            }, (errorCode, errorMsg) =>
-            {
-                Log.Error($"考核{examId} 百科:{baikeId} 考核附件提交失败");
-                if (showToast)
-                    UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
-                callBack?.Invoke(true);
-            });
+            //    if (showToast)
+            //        UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
+            //    callBack?.Invoke(true);
+            //}, (errorCode, errorMsg) =>
+            //{
+            //    Log.Error($"考核{examId} 百科:{baikeId} 考核附件提交失败");
+            //    if (showToast)
+            //        UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
+            //    callBack?.Invoke(true);
+            //});
             #endregion
         },
          (errorCode, errorMsg) =>
@@ -880,8 +880,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             case (ushort)ExamPanelEvent.Stop:
                 OnExamStop((msg as MsgBrodcastOperate).GetData<MsgInt>().arg);
                 break;
-            case (ushort)ExamPanelEvent.Timeout://
-                                                //端计时结束
+            case (ushort)ExamPanelEvent.Timeout:
                 OnHostTimeout((msg as MsgBrodcastOperate).GetData<MsgInt>().arg);
                 break;
             case (ushort)ExamPanelEvent.Submit:
@@ -1179,16 +1178,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
         Submit(() =>
         {
-            //var popupDic = new Dictionary<string, PopupButtonData>();
-            //popupDic.Add("知道了", new PopupButtonData(() =>
-            //{
-            //    var popupDic = new Dictionary<string, PopupButtonData>();
-            //    popupDic.Add("确定", new PopupButtonData(Quit, true));
-            //    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核提交成功，退出房间", popupDic, showCloseBtn: false));
-            //}, true));
-            //UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核时间到，考核结束，系统自动提交", popupDic, showCloseBtn: false));
-
-
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("确定", new PopupButtonData(() =>
             {

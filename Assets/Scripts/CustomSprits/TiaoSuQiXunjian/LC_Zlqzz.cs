@@ -340,8 +340,11 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
     /// </summary>
     public void ButenEvent(string eventname)
     {
-        // 本地执行
-        ExecuteButtonEvent(eventname);
+        // 本地执行 延迟一点，避免导致联机判断标志位错误
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            ExecuteButtonEvent(eventname);
+        });
         // 发送广播消息给其他用户
         if (callback != null)
             ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, eventname), true);

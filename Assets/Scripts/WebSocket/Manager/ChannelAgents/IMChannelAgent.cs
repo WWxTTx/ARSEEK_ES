@@ -188,14 +188,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
 
         //缓存完成就可以开始同步
-        if(stateHelper.ReceivedStateOpCount == 0)
+        if(stateHelper.ReceivedStateOpCount == 0 && IsSyncState)
         {
-            if(!IsStartSync)
-            {
-                IsStartSync = true;
-                IsSyncState = false;
-                UIManager.Instance.CloseUI<LoadingPanel>();
-            }
+            IsStartSync = true;
+            IsSyncState = false;
+            UIManager.Instance.CloseUI<LoadingPanel>();
         }
 
         //执行单条操作同步消息

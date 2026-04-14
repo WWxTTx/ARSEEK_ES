@@ -987,24 +987,30 @@ public class SmallFlowCtrl : MonoBase
                     {
                         ExecuteFlowLinkOperation(opLinkages, () =>
                         {
-                            Next();
+                            if (isOnOperation)
+                                Next();
+                            else
+                                DOVirtual.DelayedCall(0.1f, () =>
+                                {
+                                    FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+                                });
                         }, 0, true);
+                    }
+                    else
+                    {
+                        if (isOnOperation)
+                            Next();
+                        else
+                            DOVirtual.DelayedCall(0.1f, () =>
+                            {
+                                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+                            });
                     }
                 }, 0, dummy);
             }
             else
             {
-                if (isOnOperation)
-                {
-                    Next();
-                }
-                else
-                {
-                    DOVirtual.DelayedCall(0.2f, () =>
-                    {
-                        FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-                    });
-                }
+                Debug.LogWarning("执行了TryExecuteOperation未处理的分支");
             }
         }, dummy);
     }
@@ -1058,15 +1064,7 @@ public class SmallFlowCtrl : MonoBase
             }
             else
             {
-                SendOperatingRecordMsg(data, null, userNo, userName, string.Empty);
-
-                callback?.Invoke(false);
-
-                // 操作失败时也要发送 CompleteExecute 释放控制
-                DOVirtual.DelayedCall(0.2f, () =>
-                {
-                    FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-                });
+                Debug.LogWarning("执行了TryExecuteOperation未处理的分支");
             }
         }, dummy);
     }

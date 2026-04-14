@@ -237,8 +237,11 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
     /// </summary>
     public void ButenEvent(string eventname)
     {
-        // 本地执行
-        TryToNext(eventname);
+        // 本地执行 延迟一点，避免导致联机判断标志位错误
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            TryToNext(eventname);
+        });
         ExecuteButtonEvent(eventname);
         // 发送广播消息给其他用户
         if (callback != null)
