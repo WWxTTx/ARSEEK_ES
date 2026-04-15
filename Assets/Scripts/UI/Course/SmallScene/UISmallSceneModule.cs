@@ -418,7 +418,6 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.SelectTool,
             (ushort)SmallFlowModuleEvent.SelectInput,
             (ushort)SmallFlowModuleEvent.SelectContact,
-            (ushort)SmallFlowModuleEvent.Operate2D,
             (ushort)SmallFlowModuleEvent.FocusChanged,
             (ushort)SmallFlowModuleEvent.ClickObj,
             (ushort)SmallFlowModuleEvent.Look2D,
@@ -482,7 +481,7 @@ public class UISmallSceneModule : UIModuleBase
                 smallFlowCtrl.SetFinalState(smallFlowCtrl.globalPerspective, smallFlowCtrl.globalPerspective.initState);
             //smallFlowCtrl.SwitchToGlobalPerspective();
             //考核 通知模块初始化完成
-            FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
+            //FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
         }
 
         ToolNode = Camera.main.transform.FindChildByName("ToolNode");
@@ -1559,10 +1558,10 @@ public class UISmallSceneModule : UIModuleBase
                 //if ((msg as MsgBool).arg1)
                 //    OnPropChanged(string.Empty);
                 break;
-            case (ushort)SmallFlowModuleEvent.Operate2D:
-                Msg2DOperate msg2DOperate = msg as Msg2DOperate;
-                SelectAndExecute2D(msg2DOperate.operation, msg2DOperate.optionName);
-                break;
+            //case (ushort)SmallFlowModuleEvent.Operate2D:
+            //    Msg2DOperate msg2DOperate = msg as Msg2DOperate;
+            //    SelectAndExecute2D(msg2DOperate.operation, msg2DOperate.optionName);
+            //    break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
                 // 操作完成时释放发送者的操作权限
                 MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
@@ -1835,7 +1834,7 @@ public class UISmallSceneModule : UIModuleBase
     /// 获取对操作对象的操作权
     /// </summary>
     /// <param name="modelOperation"></param>
-    private void AcquireOperatePermission(int userId, ModelOperation modelOperation)
+    public void AcquireOperatePermission(int userId, ModelOperation modelOperation)
     {
         //释放当前占用的操作对象
         ReleaseOperatePermission(userId);

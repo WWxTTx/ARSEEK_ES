@@ -1814,7 +1814,7 @@ public class SmallFlowCtrl : MonoBase
             }
         }
         //服务器记录当前步骤完成
-        ToolManager.SendBroadcastMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
+        ToolManager.SendBroadcastMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowFlow, index_NowStep));
 
         //延迟刷新状态
         DOVirtual.DelayedCall(0.1f, () =>

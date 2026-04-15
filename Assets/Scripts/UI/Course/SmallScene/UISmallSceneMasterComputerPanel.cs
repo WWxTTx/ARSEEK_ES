@@ -38,7 +38,8 @@ public class UISmallSceneMasterComputerPanel : MonoBase
     {
         // 监听步骤选择事件
         AddMsg(new ushort[]{
-            (ushort)SmallFlowModuleEvent.SelectStep
+            (ushort)SmallFlowModuleEvent.SelectStep,
+            (ushort)SmallFlowModuleEvent.CompleteStep
         });
 
         // 从 WindowView 下获取唯一的 ImageViewer
@@ -164,6 +165,7 @@ public class UISmallSceneMasterComputerPanel : MonoBase
         switch (msg.msgId)
         {
             case (ushort)SmallFlowModuleEvent.SelectStep:
+            case (ushort)SmallFlowModuleEvent.CompleteStep:
                 // 步骤切换时关闭工具栏子界面，隐藏Over按钮
                 Over.gameObject.SetActive(false);
                 ShowTool();

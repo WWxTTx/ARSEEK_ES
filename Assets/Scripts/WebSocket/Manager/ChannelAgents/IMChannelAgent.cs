@@ -372,6 +372,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         int version = GlobalInfo.version + 1;
 
+        IMPacket packet;
         //如果是跳步骤，那执行开始就将最终状态设置为选择步骤
         int step = 0;
         int flow = 0;
@@ -380,16 +381,22 @@ public class IMChannelAgent : NetworkChannelAgentBase
             MsgStringTuple<int, int, string> msgStringTuple = msg.GetData<MsgStringTuple<int, int, string>>();
             flow = (msgStringTuple.arg2.Item1);
             step = (msgStringTuple.arg2.Item2);
+            packet = new IMPacket
+            {
+                data = msg,
+                state = stateHelper.GetState(step, flow),
+                version = version,
+            };
         }
-
-        //只有跳步骤和步骤结束发状态消息，否则只发msg
-        IMPacket packet = new IMPacket
+        else
         {
-            data = msg,
-            state = stateHelper.GetState(step, flow),
-            version = version,
-        };
-
+            packet = new IMPacket
+            {
+                data = msg,
+                state = stateHelper.GetState(),
+                version = version,
+            };
+        }
 
         string data = JsonTool.Serializable(packet);
         JObject jObject = new JObject

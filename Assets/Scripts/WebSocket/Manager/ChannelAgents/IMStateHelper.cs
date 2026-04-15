@@ -55,12 +55,20 @@ public partial class IMStateHelper
     /// 获取全局状态，用于封装IMPacket
     /// </summary>
     /// <returns></returns>
-    public IMState GetState(int step = 0,int flow = 0)
+    public IMState GetState(int step,int flow)
     {
         return new IMState
         {
             stateOps = GetStateList(),
             baikeState = GetBaikeState(step, flow)
+        };
+    }
+    public IMState GetState()
+    {
+        return new IMState
+        {
+            stateOps = GetStateList(),
+            baikeState = GetBaikeState()
         };
     }
 
@@ -97,7 +105,7 @@ public partial class IMStateHelper
     /// 获取当前百科状态
     /// </summary>
     /// <returns></returns>
-    private BaikeState GetBaikeState(int step = 0, int flow = 0)
+    private BaikeState GetBaikeState(int step = - 1, int flow = -1)
     {
         BaikeState baikeState = new BaikeState
         {
@@ -133,14 +141,14 @@ public partial class IMStateHelper
                 SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelRoot.GetComponentInChildren<SmallFlowCtrl>(true);
                 if(smallFlowCtrl != null)
                 {
-                    if(flow != 0)
+                    if(flow != -1)
                     {
                         smallSceneBaikeState.flowIndex = flow;
                     }
                     else
                         smallSceneBaikeState.flowIndex = smallFlowCtrl.index_NowFlow;
 
-                    if (step != 0)
+                    if (step != -1)
                     {
                         smallSceneBaikeState.stepIndex = step;
                     }

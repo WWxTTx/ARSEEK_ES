@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
@@ -783,7 +783,6 @@ public class DismantlingController : MonoBehaviour
     {
         FormMsgManager.Instance.SendMsg(new MsgBool((ushort)HierarchyEvent.Interactable, false));
         NetworkManager.Instance.IsIMSync = false;
-        GlobalInfo.playTimeRatio = 0.3f;
 
         mSelectionCtrl.SelectModel(null, GlobalInfo.account.id);
         mSelectionCtrl.ClearSelection();

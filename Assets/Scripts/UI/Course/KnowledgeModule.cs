@@ -863,23 +863,8 @@ public class KnowledgeModule : UIModuleBase
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteStep:
-                if (!(msg is MsgIntInt))//跳步骤时消息不处理
-                    return;
-                if (smallFlowCtrl && smallFlowCtrl.flows != null)
-                {
-                    int nextStepIndex = ((MsgIntInt)msg).arg1 + 1;
-                    if(nextStepIndex < smallFlowCtrl.flows[smallFlowCtrl.index_NowFlow].steps.Count)
-                    {
-                        currentUUID = smallFlowCtrl.flows[smallFlowCtrl.index_NowFlow].steps[nextStepIndex].ID;
-                        RefreshListByUUID();
-                    }
-                    else if(smallFlowCtrl.index_NowFlow < smallFlowCtrl.flows.Length - 1)
-                    {
-                        //切换下一任务的第一个步骤
-                        currentUUID = smallFlowCtrl.flows[smallFlowCtrl.index_NowFlow + 1].steps[0].ID;
-                        RefreshListByUUID();
-                    }
-                }
+                currentUUID = smallFlowCtrl.flows[smallFlowCtrl.index_NowFlow].steps[smallFlowCtrl.index_NowStep].ID;
+                RefreshListByUUID();
                 break;
         }
     }

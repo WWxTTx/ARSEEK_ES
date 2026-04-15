@@ -79,11 +79,11 @@ public class OPLExerciseModule : UIModuleBase
                     break;
             }
 
-            this.WaitTime(0.1f, () =>
-            {
-                //延迟 通知模块开始答题
-                SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
-            });
+            //this.WaitTime(0.1f, () =>
+            //{
+            //    //延迟 通知模块开始答题
+            //    SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
+            //});
         }
     }
 

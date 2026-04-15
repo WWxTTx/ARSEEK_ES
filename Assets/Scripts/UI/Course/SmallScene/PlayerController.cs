@@ -534,15 +534,13 @@ public class PlayerController : MonoBase
             case (ushort)SmallFlowModuleEvent.SelectStep:
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
             case (ushort)SmallFlowModuleEvent.CompleteStep:
-                //agent.enabled = agent.isOnNavMesh;
-                //controller.enabled = !agent.isOnNavMesh;
                 Model.transform.SetParent(transform.parent);
                 ModelFollowTween.ChangeStartValue(transform.position);
                 ModelFollowTween.ChangeEndValue(transform.position);
                 ModelRotateTween.ChangeStartValue(transform.eulerAngles);
                 ModelRotateTween.ChangeEndValue(transform.eulerAngles);
-                ModelFollowTween.Restart();
-                ModelRotateTween.Restart();
+                ModelFollowTween.Play();
+                ModelRotateTween.Play();
                 break;
         }
     }

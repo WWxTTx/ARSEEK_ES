@@ -390,21 +390,16 @@ public class UISmallSceneFlowModule : UIModuleBase
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteStep:
-                if (!(msg is MsgIntInt))//跳步骤时消息不处理
-                    return;
+                MsgIntInt newStepIndex = ((MsgBrodcastOperate)msg).GetData<MsgIntInt>();
+                var steps = smallFlowCtrl.flows[newStepIndex.arg1].steps;
+                string stepUid = steps[newStepIndex.arg2].ID;
 
-                // arg1 是新步骤索引（SmallFlowCtrl.Next() 已自增后发送）
-                int newStepIndex = ((MsgIntInt)msg).arg1;
-                if (smallFlowCtrl.index_NowFlow > smallFlowCtrl.flows.Length - 1 || newStepIndex > smallFlowCtrl.nowFlowSteps.Count - 1)
-                    return;
-
-                // 直接高亮新步骤（不需要 +1，因为 arg1 已经是新步骤索引）
-                TreeViewItem stepitem = mTreeView.GetTreeItemById(viewItemIds[smallFlowCtrl.nowFlowSteps[newStepIndex].ID]);
+                TreeViewItem stepitem = mTreeView.GetTreeItemById(viewItemIds[stepUid]);
                 if (stepitem == null)
                     return;
                 mTreeView.ExpandParent(stepitem);
                 mTreeView.MoveToItem(stepitem);
-                OnItemCustomEvent(stepitem, CustomEvent.ItemClicked, GlobalInfo.account.id, smallFlowCtrl.nowFlowSteps[newStepIndex].ID);
+                OnItemCustomEvent(stepitem, CustomEvent.ItemClicked, ((MsgBrodcastOperate)msg).senderId, stepUid);
                 break;
         }
     }
