@@ -2,6 +2,7 @@ using DG.Tweening;
 using System;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.MPE;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -316,29 +317,28 @@ public class UISmallSceneFlowModule : UIModuleBase
                 }
                 else
                 {
-                    if (!GlobalInfo.isExam)
+                    MsgStringTuple<int, int, string> temp = new MsgStringTuple<int, int, string>()
                     {
-                        MsgStringTuple<int, int, string> cmsg = new MsgStringTuple<int, int, string>()
-                        {
-                            msgId = (ushort)SmallFlowModuleEvent.SelectStep,
-                            arg1 = msgHierarchy.uuid,
-                            arg2 = new Tuple<int, int, string>(item.ParentTreeItem.transform.GetSiblingIndex(), item.transform.GetSiblingIndex(), string.Empty)
-                        };
+                        msgId = (ushort)SmallFlowModuleEvent.SelectStep,
+                        arg1 = msgHierarchy.uuid,
+                        arg2 = new Tuple<int, int, string>(item.ParentTreeItem.transform.GetSiblingIndex(), item.transform.GetSiblingIndex(), string.Empty)
+                    };
 
-                        //同步期间非房主不转发
-                        if(!GlobalInfo.IsHomeowner() && !GlobalInfo.SetFanelstate)
-                        {
-                            MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(cmsg.msgId, JsonTool.Serializable(cmsg));
-                            FormMsgManager.Instance.SendMsg(msgBrodcastOperate);
-                        }
-                        else
-                        {
-                            ToolManager.SendBroadcastMsg(cmsg);
-                        }
+                    if (!GlobalInfo.SetFanelstate)
+                    {
+                        GlobalInfo.SetFanelstate = true;
+                        MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(temp.msgId, JsonTool.Serializable(temp));
+                        SendMsg(msgBrodcastOperate);
+                        return;
+                    }
+
+                    if (GlobalInfo.EnableFlow)
+                    {
+                        ToolManager.SendBroadcastMsg(temp);
                     }
                     else
                     {
-                        SendMsg(new MsgTuple<int, int, string>() 
+                        SendMsg(new MsgTuple<int, int, string>()
                         {
                             msgId = (ushort)SmallFlowModuleEvent.Guide,
                             arg = new Tuple<int, int, string>(item.ParentTreeItem.transform.GetSiblingIndex(), item.transform.GetSiblingIndex(), msgHierarchy.uuid)
@@ -417,7 +417,7 @@ public class UISmallSceneFlowModule : UIModuleBase
     /// <param name="step">任务索引</param>
     /// <param name="flow">步骤索引</param>
     /// <returns>是否成功选中</returns>
-    public bool TrySelectNode(int flow, int step)
+    public void TrySelectNode(int flow, int step)
     {
         var steps = smallFlowCtrl.flows[flow].steps;
         string stepUID = steps[step].ID;
@@ -426,16 +426,12 @@ public class UISmallSceneFlowModule : UIModuleBase
         if (stepItem == null)
         {
             Log.Warning($"stepItem for stepUID {stepUID} 为 null，无法选择步骤节点");
-            return false;
         }
 
         mTreeView.ExpandParent(stepItem);
         Log.Debug("正在执行重置最终步骤" + flow + "  " + step);
         OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
-        DOVirtual.DelayedCall(0,()=>{
-            FormMsgManager.Instance.SendMsg(new MsgHierarchy((ushort)HierarchyEvent.Click, GlobalInfo.account.id, GlobalInfo.roomInfo.Uuid, stepItem));
-        });
-        return true;
+        ProcessEvent(new MsgHierarchy((ushort)HierarchyEvent.Click, GlobalInfo.account.id, GlobalInfo.roomInfo.Uuid, stepItem));
     }
 
     #region 动效

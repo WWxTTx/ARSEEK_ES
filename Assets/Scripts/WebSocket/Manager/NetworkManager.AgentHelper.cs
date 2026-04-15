@@ -5,6 +5,7 @@ using RenderHeads.Media.AVProMovieCapture;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Interop;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -294,7 +295,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// </summary>
     public bool IsIMSyncState
     {
-        get { return mIMChannelAgent.IsSyncState; }
+        get { return GlobalInfo.SetFanelstate; }
     }
 
     /// <summary>
@@ -403,43 +404,55 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         if (step != smallSceneBaikeState.stepIndex && smallSceneBaikeState.stepIndex != 0)
              step = smallSceneBaikeState.stepIndex;
 
-        switch (GlobalInfo.currentBaikeType)
+        //switch (GlobalInfo.currentBaikeType)
+        //{
+        //    case BaikeType.SmallScene:
+        //    default:
+
+        //        break;
+        //}
+        if (smallSceneBaikeState != null && model && !GlobalInfo.SetFanelstate && (step > 0 || flow > 0))
         {
-            case BaikeType.SmallScene:
-            default:
-                if (smallSceneBaikeState != null && model && !GlobalInfo.SetFanelstate && (step > 0 || flow > 0))
+            UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
+            if (historyModule != null)
+            {
+                historyModule.UpdateOpRecordList(smallSceneBaikeState.operations);
+            }
+
+            // 等待 UISmallSceneFlowModule 初始化完成
+            // （场景重建时 InitTreeView 会发送 SelectFlow(0) 覆盖步骤，
+            //   所以只等待初始化，不提前选中步骤）
+            yield return StartCoroutine(WaitForFlowModule());
+
+
+            // 最终修正：确保步骤和流程面板一致
+            UISmallSceneFlowModule finalFlowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>();
+            if (finalFlowModule != null)
+                finalFlowModule.TrySelectNode(flow, step);
+
+            //最后一步是操作
+            DOVirtual.DelayedCall(0.5f, () =>
+            {
+                //且是自己的操作 则再次操作
+                if (mIMChannelAgent.currentOp.msgId == (short)SmallFlowModuleEvent.Operate && mIMChannelAgent.currentOp.senderId == GlobalInfo.account.id)
                 {
-                    GlobalInfo.SetFanelstate = true;
-
-                    UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
-                    if (historyModule != null)
-                    {
-                        historyModule.UpdateOpRecordList(smallSceneBaikeState.operations);
-                    }
-
-                    // 等待 UISmallSceneFlowModule 初始化完成
-                    // （场景重建时 InitTreeView 会发送 SelectFlow(0) 覆盖步骤，
-                    //   所以只等待初始化，不提前选中步骤）
-                    yield return StartCoroutine(WaitForFlowModule());
-
-                    // 最终修正：确保步骤和流程面板一致
-                    yield return new WaitForSeconds(0.1f);
-                    UISmallSceneFlowModule finalFlowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>();
-                    if (finalFlowModule != null)
-                        finalFlowModule.TrySelectNode(flow, step);
+                    FormMsgManager.Instance.SendMsg(mIMChannelAgent.currentOp);
                 }
-                break;
+            });
+
+            // 恢复他人操作权限状态：如果最后一条操作是其他人的Operate，需要阻止刚重连的人操作
+            RestoreOtherUserOperationState();
         }
 
         yield return new WaitForFixedUpdate();
+        //恢复消息执行
+        mIMChannelAgent.IsStartSync = true;
         IsIMSync = true;
         IsIMSyncBaikeState = false;
         //完成百科状态同步后，清空待同步状态，避免切换百科后重复同步
         mIMChannelAgent.CurrentStateToSync = null;
         //清空 stateOps 重放队列 — baikeState 已包含完整最终状态，无需重放
-        // 避免考核模式下 CompleteStep 等消息覆盖流程面板选中步骤
         mIMChannelAgent.Clear();
-
 
         yield return new WaitForEndOfFrame();
         UIManager.Instance.CloseUI<LoadingPanel>();
@@ -481,6 +494,65 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         mIMChannelAgent.ClearUserOps(userId);
     }
     #endregion
+
+    /// <summary>
+    /// 恢复他人操作权限状态：防止重连后userOpModel为空，导致刚重连的人可以在别人操作时进行操作
+    /// 检查currentOp，如果是他人的Operate消息，则恢复对应的操作权限记录
+    /// </summary>
+    private void RestoreOtherUserOperationState()
+    {
+        var currentOp = mIMChannelAgent.currentOp;
+        if (currentOp == null)
+            return;
+
+        // 只处理Operate类型的消息（操作执行中），且必须是他人的操作
+        if (currentOp.msgId != (short)SmallFlowModuleEvent.Operate)
+            return;
+
+        int senderId = currentOp.senderId;
+        if (senderId == GlobalInfo.account.id)
+            return; // 自己的操作不需要恢复，后续会本地触发
+
+        // 获取操作消息数据
+        MsgOperation msgOp = currentOp.GetData<MsgOperation>();
+        if (msgOp == null)
+            return;
+
+        // 获取UISmallSceneModule和SmallFlowCtrl来恢复操作权限
+        UISmallSceneModule uiModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
+        if (uiModule == null)
+        {
+            Log.Warning("RestoreOtherUserOperationState: UISmallSceneModule not found");
+            return;
+        }
+
+        // 获取模型操作对象
+        ModelOperation modelOp = null;
+        if (!string.IsNullOrEmpty(msgOp.modelOperation))
+        {
+            // 尝试从SmallFlowCtrl获取ModelOperation
+            if (ModelManager.Instance.modelGo != null)
+            {
+                SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelGo.GetComponent<SmallFlowCtrl>();
+                if (smallFlowCtrl != null)
+                {
+                    modelOp = smallFlowCtrl.GetModelOperation(msgOp.modelOperation);
+                }
+            }
+        }
+
+        if (modelOp != null)
+        {
+            // 恢复操作权限：将他人操作记录到userOpModel
+            uiModule.AcquireOperatePermission(senderId, modelOp);
+            Log.Debug($"RestoreOtherUserOperationState: 恢复用户 {senderId} 对 {msgOp.modelOperation} 的操作权限记录");
+        }
+        else
+        {
+            // 即使找不到ModelOperation，也记录日志用于调试
+            Log.Warning($"RestoreOtherUserOperationState: 无法找到模型操作对象 {msgOp.modelOperation}，senderId={senderId}");
+        }
+    }
 
     #region 帧同步通道相关接口
     public void SendFrameMsg(MsgBase msg)

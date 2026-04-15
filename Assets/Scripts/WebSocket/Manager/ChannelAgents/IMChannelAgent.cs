@@ -21,21 +21,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public int ReceivedOpCount => opsReceive.Count;
 
     /// <summary>
-    /// 是否开始同步
+    /// 本地同步总开关 关闭期间消息仅接收不处理
     /// </summary>
     public bool IsStartSync
     {
         get { return _isStartSync; }
-        set { Log.Debug("RTI是否开始同步:" + value); _isStartSync = value; }
-    }
-
-    /// <summary>
-    /// 是否正在进行状态同步
-    /// </summary>
-    public bool IsSyncState
-    {
-        get { return _isSyncState; }
-        set { Log.Debug("RTI是否开始状态同步:" + value); _isSyncState = value; }
+        set { _isStartSync = value; }
     }
 
     /// <summary>
@@ -75,7 +66,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// <summary>
     /// 当前广播执行的操作
     /// </summary>
-    private MsgBrodcastOperate currentOp;
+    public MsgBrodcastOperate currentOp;
 
     private readonly System.Object stateLock = new System.Object();
     /// <summary>
@@ -152,9 +143,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// <param name="msg"></param>
     public void SendOperationData(MsgBrodcastOperate msg)
     {
-        if (IsSyncState)
-            return;
-
         lock (asynLock)
         {
             opsQueue.Enqueue(msg);
@@ -173,13 +161,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         //执行状态同步消息
         //等待百科状态同步完成再执行后续操作
-        while (IsStartSync && !IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
+        while (!IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
             GlobalInfo.SetFanelstate = false;
             if (GlobalInfo.playTimeRatio > 0)
             {
-                IsSyncState = true;
                 UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
             }
 
@@ -187,16 +174,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
             TryExecuteCurrentOp();
         }
 
-        //缓存完成就可以开始同步
-        if(stateHelper.ReceivedStateOpCount == 0 && IsSyncState)
-        {
-            IsStartSync = true;
-            IsSyncState = false;
-            UIManager.Instance.CloseUI<LoadingPanel>();
-        }
+        if (!IsStartSync)
+            return;
 
         //执行单条操作同步消息
-        while (IsStartSync && !IsSyncState && ReceivedOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
+        while (ReceivedOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
 
@@ -216,17 +198,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (currentOp == null)
             return;
 
-        Log.Debug($"{(IsSyncState ? stateLog : opLog)} {JsonTool.Serializable(currentOp)}");
+        Log.Debug($"{opLog} {JsonTool.Serializable(currentOp)}");
         try
         {
             if (string.IsNullOrEmpty(currentOp.data))
                 return;
 
-            if (currentOp.msgId == (ushort)CoursePanelEvent.SwitchResource
-                || currentOp.msgId == (ushort)ExamPanelEvent.Start)
-            {
-                IsStartSync = false;
-            }
             FormMsgManager.Instance.SendMsg(currentOp);
         }
         catch (Exception e)
@@ -239,6 +216,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
             Log.Error($"执行消息错误: {e.Message}");
             IsStartSync = false;
+            UIManager.Instance.OpenUI<LoadingPanel>();
             Invoke("Delayed", 2);
             return;
         }
@@ -254,7 +232,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         try
         {
             FormMsgManager.Instance.SendMsg(currentOp);
-            IsStartSync = true;
         }
         catch (Exception e)
         {
@@ -262,9 +239,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
             if (networkManager.IsLeavingRoom)
             {
-                IsStartSync = true;
                 return;
             }
+        }
+        finally
+        {
+            IsStartSync = true;
         }
     }
 
@@ -301,7 +281,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
                     {
                         cachedPacket = packet;
 
-                        //具有操作权限就需要检测步骤序号重连 单人考核除外 使用各自的操作记录来恢复
+                        //具有操作权限就需要检测步骤序号重连
                         if (GlobalInfo.IsOperator())
                         {
                             //中途加入或本地为旧版本
@@ -340,17 +320,15 @@ public class IMChannelAgent : NetworkChannelAgentBase
         //开始进行版本同步前，清除一些状态
         SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
 
-        //确保进入课程模块后再进行消息同步
-        IsStartSync = UIManager.Instance.IsOpen<ExamPanel>() || UIManager.Instance.IsOpen<ExamCoursePanel>() || UIManager.Instance.IsOpen<OPLSynCoursePanel>();/*true;*/
-        IsSyncBaikeState = true;
+        //暂停消息执行
+        IsStartSync = false;
         opsReceive.Clear();
 
         CurrentStateToSync = packet.state;
         stateHelper.UpdateStateVersion(packet);
 
-        NetworkManager.Instance.SyncBaikeState();
-
-        deltaTime = 0;
+        //IsSyncBaikeState = true;
+        //NetworkManager.Instance.SyncBaikeState();
     }
 
     /// <summary>
@@ -405,24 +383,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
 
         //只有跳步骤和步骤结束发状态消息，否则只发msg
-        IMPacket packet;
-        if (msg.msgId == (int)SmallFlowModuleEvent.SelectStep|| msg.msgId == (int)SmallFlowModuleEvent.StepEnd)
+        IMPacket packet = new IMPacket
         {
-            packet = new IMPacket
-            {
-                data = msg,
-                state = stateHelper.GetState(step, flow),
-                version = version,
-            };
-        }
-        else
-        {
-            packet = new IMPacket
-            {
-                data = msg,
-                version = version,
-            };
-        }
+            data = msg,
+            state = stateHelper.GetState(step, flow),
+            version = version,
+        };
 
 
         string data = JsonTool.Serializable(packet);
@@ -476,8 +442,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         CurrentStateToSync = null;
         cachedPacket = null;
         stateHelper.Clear();
-        IsStartSync = false;
-        IsSyncState = false;
         if (!waitResponse)
             IsWaitingResponse = false;
         GlobalInfo.controllerIds.Clear();

@@ -46,6 +46,16 @@ public class ExamPanel : HoverHintPanel
     private bool inStop = false;
 
     /// <summary>
+    /// 当前考核结束时间
+    /// </summary>
+    private DateTime examEndTime;
+
+    /// <summary>
+    /// 已正常退出的成员ID集合（收到Quit通知的成员）
+    /// </summary>
+    private HashSet<int> normalQuitMembers = new HashSet<int>();
+
+    /// <summary>
     /// 当前考核Id
     /// </summary>
     private int activeExamId = -1;
@@ -282,10 +292,18 @@ public class ExamPanel : HoverHintPanel
                 {
                     if (inExam && quitData.GetData<MsgInt>().arg != activeExamId)
                         return;
-                    SetMemberItemState(Content.FindChildByName(quitData.senderId.ToString()), (int)State.Wait);
+                    int quitMemberId = quitData.senderId;
+                    normalQuitMembers.Add(quitMemberId);  // 记录正常退出的成员
+                    SetMemberItemState(Content.FindChildByName(quitMemberId.ToString()), (int)State.Wait);
                 }
                 break;
             case (ushort)ExamPanelEvent.Resume:
+                // 房主异常退出重进时，先恢复UI和标志位
+                if (!inExam && activeExamId != -1)
+                {
+                    OnExamStart();
+                }
+                // 恢复考核倒计时
                 if (countdownCoroutine != null)
                 {
                     StopCoroutine(countdownCoroutine);
@@ -319,6 +337,7 @@ public class ExamPanel : HoverHintPanel
 
         DateTime startTime = GlobalInfo.ServerTime;
         DateTime endTime = startTime.AddMinutes(GlobalInfo.currentCourseInfo.duration).AddSeconds(3);
+        examEndTime = endTime;  // 存储考核结束时间，用于重进成员恢复状态
         ToolManager.SendBroadcastMsg(new MsgExamStart((ushort)ExamPanelEvent.Start, id, startTime, endTime, ExamUtility.Instance.ExamineeRecords),true);
         ToolManager.SendBroadcastMsg(new MsgInt()
         {
@@ -401,6 +420,7 @@ public class ExamPanel : HoverHintPanel
     private void OnExamStart()
     {
         inExam = true;
+        normalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(false);
         this.FindChildByName("InExam").gameObject.SetActive(true);
         foreach (Transform item in Content)
@@ -415,6 +435,7 @@ public class ExamPanel : HoverHintPanel
     private void OnExamStop()
     {
         inExam = false;
+        normalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(true);
         this.FindChildByName("InExam").gameObject.SetActive(false);
     }
@@ -511,6 +532,7 @@ public class ExamPanel : HoverHintPanel
             (ushort)RoomChannelEvent.UpdateMemberList,
             (ushort)RoomChannelEvent.OtherJoin,
             (ushort)RoomChannelEvent.OtherLeave,
+            (ushort)RoomChannelEvent.OtherDisconnect,
             (ushort)RoomChannelEvent.TalkState,
             (ushort)MediaChannelEvent.MicOnAir,
             (ushort)MediaChannelEvent.AddView,
@@ -561,6 +583,10 @@ public class ExamPanel : HoverHintPanel
             case (ushort)RoomChannelEvent.OtherLeave:
                 MsgIntString leavedMember = (MsgIntString)msg;
                 OnOtherLeave(leavedMember.arg1, leavedMember.arg2);
+                break;
+            case (ushort)RoomChannelEvent.OtherDisconnect:
+                MsgIntString disconnectedMember = (MsgIntString)msg;
+                OnOtherDisconnect(disconnectedMember.arg1, disconnectedMember.arg2);
                 break;
             case (ushort)RoomChannelEvent.TalkState:
                 UpdateAllVoiceOffBtn(((MsgBoolBool)msg).arg2);
@@ -863,6 +889,26 @@ public class ExamPanel : HoverHintPanel
         UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{newJoinedName}加入考核"));
         if (GlobalInfo.IsGroupMode())
             NetworkManager.Instance.SetUserColor(newJoinedId);
+
+        // 考核中成员重进时，发送考核数据让其恢复状态
+        if (inExam && newJoinedId != GlobalInfo.roomInfo.creatorId && activeExamId != -1)
+        {
+            // 发送开始考核消息
+            ToolManager.SendBroadcastMsg(new MsgExamStart(
+                (ushort)ExamPanelEvent.Start,
+                activeExamId,
+                GlobalInfo.ServerTime,
+                examEndTime,
+                ExamUtility.Instance.ExamineeRecords
+            ), true);
+
+            // 发送当前百科选择
+            ToolManager.SendBroadcastMsg(new MsgInt()
+            {
+                msgId = (ushort)BaikeSelectModuleEvent.BaikeSelect,
+                arg = GlobalInfo.currentWiki?.id ?? (GlobalInfo.currentWikiList?[0]?.id ?? 0)
+            }, true);
+        }
     }
     /// <summary>
     /// 成员离开房间回调
@@ -874,6 +920,34 @@ public class ExamPanel : HoverHintPanel
         UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{leavedUserName}退出考核"));
         RemoveMember(leavedUserId);
     }
+
+    /// <summary>
+    /// 成员断连回调（可能是异常退出，可能重进）
+    /// </summary>
+    /// <param name="disconnectedUserId"></param>
+    /// <param name="disconnectedUserName"></param>
+    private void OnOtherDisconnect(int disconnectedUserId, string disconnectedUserName)
+    {
+        // 考核中收到断连消息，需要判断是正常Quit还是异常断连
+        if (inExam)
+        {
+            if (normalQuitMembers.Contains(disconnectedUserId))
+            {
+                // 正常Quit后离开，移除成员
+                normalQuitMembers.Remove(disconnectedUserId);
+                UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{disconnectedUserName}退出考核"));
+                RemoveMember(disconnectedUserId);
+            }
+            // else: 异常断连，保留成员在列表中，后续可能重进
+        }
+        else
+        {
+            // 非考核状态，直接移除
+            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{disconnectedUserName}退出考核"));
+            RemoveMember(disconnectedUserId);
+        }
+    }
+
     /// <summary>
     /// 移除成员
     /// </summary>

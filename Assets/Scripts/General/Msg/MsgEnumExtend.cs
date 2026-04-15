@@ -555,7 +555,11 @@ public enum RoomChannelEvent
     /// 房间解散
     /// </summary>
     RoomClose,                            // ID:192
-    Max,                                  // ID:193
+    /// <summary>
+    /// 成员断连（可能异常退出，后续可能重进）
+    /// </summary>
+    OtherDisconnect,                      // ID:193
+    Max,                                  // ID:194
 }
 
 /// <summary>

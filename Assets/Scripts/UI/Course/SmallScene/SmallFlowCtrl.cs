@@ -1037,8 +1037,7 @@ public class SmallFlowCtrl : MonoBase
             if (op != null)
             {
                 ModelOperationEventManager.Publish(new ModelStateEvent(modelInfoId, data.optionName));
-                Log.Debug("操作和执行完成！");
-
+ 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
                     SendOperatingRecordMsg(data, op, userNo, userName);
@@ -1800,7 +1799,6 @@ public class SmallFlowCtrl : MonoBase
             if (index_NowStep < nowFlowSteps.Count - 1)
             {
                 index_NowStep += 1;
-                FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
             }
             else
             {
@@ -1812,16 +1810,16 @@ public class SmallFlowCtrl : MonoBase
                 {
                     index_NowFlow += 1;
                     index_NowStep = 0;
-                    FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
-                }
+                    }
             }
         }
+        //服务器记录当前步骤完成
+        ToolManager.SendBroadcastMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowStep, flows.Take(index_NowFlow).Sum(value => value.steps.Count) + index_NowStep));
 
+        //延迟刷新状态
         DOVirtual.DelayedCall(0.1f, () =>
         {
             FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-            //空消息 仅用于服务器记录当前步骤完成
-            ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.StepEnd));
         });
     }
 

@@ -102,13 +102,13 @@ public partial class IMStateHelper
         ////集成百科 syncbaikestate TODO
         { (ushort)SmallFlowModuleEvent.SelectFlow, MsgStateType.Update },
         { (ushort)SmallFlowModuleEvent.SelectStep, MsgStateType.Update },
+        { (ushort)SmallFlowModuleEvent.Operate, MsgStateType.Update },
 
         //UI同步事件不加入操作历史
         { (ushort)SmallFlowModuleEvent.SynchronizationTsq, MsgStateType.NoneState },
         { (ushort)SmallFlowModuleEvent.SynchronizationLcu, MsgStateType.NoneState },
         { (ushort)SmallFlowModuleEvent.SynchronizationZlqzz, MsgStateType.NoneState },
 
-        //{ (ushort)SmallFlowModuleEvent.Operate, MsgStateType.Default },
         //{ (ushort)SmallFlowModuleEvent.MasterComputerOperate, MsgStateType.Default },
         //{ (ushort)SmallFlowModuleEvent.Input, MsgStateType.Default },
     };
@@ -121,7 +121,7 @@ public partial class IMStateHelper
         //课程、百科切换
         { (ushort)BaikeSelectModuleEvent.BaikeSelect, MsgStateType.Default },
         //集成百科
-        { (ushort)SmallFlowModuleEvent.Operate, MsgStateType.Default },
+        //{ (ushort)SmallFlowModuleEvent.Operate, MsgStateType.Default },
         { (ushort)SmallFlowModuleEvent.MasterComputerOperate, MsgStateType.Default },
         { (ushort)SmallFlowModuleEvent.Input, MsgStateType.Default },
         { (ushort)SmallFlowModuleEvent.Contact, MsgStateType.Default },

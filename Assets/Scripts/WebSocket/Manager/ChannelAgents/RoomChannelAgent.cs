@@ -96,10 +96,13 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                         //成员进入房间消息
                         OtherJoinRoom(int.Parse(jObject[NetworkManager.PAYLOAD]["member"]["id"].ToString()), jObject[NetworkManager.PAYLOAD]["member"]["nickName"].ToString());
                         break;
-                    case NetworkManager.MEMBER_OUT:
                     case NetworkManager.MEMBER_evict:
-                        //成员离开房间消息
-                        OtherLeaveRoom(int.Parse(jObject[NetworkManager.PAYLOAD]["member"]["id"].ToString()), jObject[NetworkManager.PAYLOAD]["member"]["nickName"].ToString());
+                        //成员被踢出房间消息（正常退出）
+                        OtherLeaveRoom(int.Parse(jObject[NetworkManager.PAYLOAD]["member"]["id"].ToString()), jObject[NetworkManager.PAYLOAD]["member"]["nickName"].ToString(), true);
+                        break;
+                    case NetworkManager.MEMBER_OUT:
+                        //成员离开/断连消息（可能是异常退出）
+                        OtherLeaveRoom(int.Parse(jObject[NetworkManager.PAYLOAD]["member"]["id"].ToString()), jObject[NetworkManager.PAYLOAD]["member"]["nickName"].ToString(), false);
                         break;
                     case NetworkManager.SILENT_ALL:
                         //全员禁言消息
@@ -237,7 +240,8 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     /// </summary>
     /// <param name="memberId"></param>
     /// <param name="memberNickName"></param>
-    private void OtherLeaveRoom(int memberId, string memberNickName)
+    /// <param name="isEvict">是否被踢出（正常退出）</param>
+    private void OtherLeaveRoom(int memberId, string memberNickName, bool isEvict)
     {
         if (GlobalInfo.IsHomeowner())
         {
@@ -251,7 +255,11 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             }
         }
 
-        SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherLeave, memberId, memberNickName));
+        // 踢出发送OtherLeave（正常退出），断连发送OtherDisconnect（可能重进）
+        if (isEvict)
+            SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherLeave, memberId, memberNickName));
+        else
+            SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherDisconnect, memberId, memberNickName));
         //networkManager.ClearUserIMState(memberId);
         networkManager.RemoveUserAudio(memberId);
         networkManager.RemoveUserVideo(memberId, false);
