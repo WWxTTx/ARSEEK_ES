@@ -2662,11 +2662,12 @@ public class BehavePopup : BehaveBase
         behaveType = BehaveType.Popup;
     }
 
+    //弹窗默认将确定和关闭事件都加上回调
     public override void Execute(UnityAction callback = null)
     {
         Dictionary<string, PopupButtonData> popupData = new Dictionary<string, PopupButtonData>();
         popupData.Add("确定", new PopupButtonData(callback, true));
-        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", message, popupData));
+        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", message, popupData, callback));
     }
 
     public override void SetInitialState()

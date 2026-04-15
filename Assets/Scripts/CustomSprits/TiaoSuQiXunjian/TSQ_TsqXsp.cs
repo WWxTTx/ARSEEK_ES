@@ -1,5 +1,6 @@
 using DG.Tweening;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,6 +23,9 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         });
     }
 
+    SmallFlowCtrl smallFlowCtrl;
+    SmallFlowCtrl _SmallFlowCtrl { get { return smallFlowCtrl != null? smallFlowCtrl :
+                 FindObjectOfType<SmallFlowCtrl>(); } }
 
     public override void ProcessEvent(MsgBase msg)
     {
@@ -29,14 +33,19 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         if (msg.msgId == (ushort)SmallFlowModuleEvent.SynchronizationTsq)
         {
             MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
-            if (brodcastMsg != null && brodcastMsg.senderId != GlobalInfo.account.id)
+            MsgSyncCustomUI msgUI = brodcastMsg.GetData<MsgSyncCustomUI>();
+            StartCoroutine(WaitStepInit(msgUI));
+        }
+    }
+
+    IEnumerator WaitStepInit(MsgSyncCustomUI msgUI)
+    {
+        yield return new WaitUntil(()=>steps.Count > 0);
+        if (msgUI.stepIndex >= 0 && msgUI.stepIndex < steps.Count)
+        {
+            for (int i = currentStepIndex; i <= msgUI.stepIndex && i <= steps.Count; i++)
             {
-                MsgString msgString = brodcastMsg.GetData<MsgString>();
-                if (msgString != null)
-                {
-                    TryToNext(msgString.arg);
-                    ExecuteButtonEvent(msgString.arg);
-                }
+                ExecuteButtonEvent(steps[i - 1]);
             }
         }
     }
@@ -1157,15 +1166,15 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     /// </summary>
     public void ButenEvent(string eventname)
     {
-        // 本地执行 延迟一点，避免导致联机判断标志位错误
-        DOVirtual.DelayedCall(0.1f, () =>
+        if (TryToNext(eventname))
         {
-            TryToNext(eventname);
-        });
-        ExecuteButtonEvent(eventname);
-        // 发送广播消息给其他用户
-        if (callback != null)
-            ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationTsq, eventname), true);
+            // 发送广播消息给其他用户（包含操作对象ID）
+            if (callback != null)
+            {
+                ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, eventname, currentStepIndex), true);
+            }
+            ExecuteButtonEvent(eventname);
+        }
     }
 
     /// <summary>
@@ -1443,12 +1452,11 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     }
 
     public Transform TestResoult;
-    Text[] Timeline;
     /// <summary>
     /// 检测当前步骤
     /// </summary>
     /// <param name="stepname"></param>
-    public void TryToNext(string stepname)
+    public bool TryToNext(string stepname)
     {
         if (steps.Count > currentStepIndex && stepname == steps[currentStepIndex])
         {
@@ -1471,7 +1479,9 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     });
                 }
             }
+            return true;
         }
+        return false;
     }
 
     // 协联曲线参数（针对12m水头优化）
@@ -1513,8 +1523,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     /// <param name="i"></param>
     public void SetReports(int i)
     {
-        SmallFlowCtrl smallFlowCtrl = Transform.FindObjectOfType<SmallFlowCtrl>().GetComponent<SmallFlowCtrl>();
-        smallFlowCtrl.AddSchematic(Reports[i]);
+        _SmallFlowCtrl.AddSchematic(Reports[i]);
     }
 
     /// <summary>

@@ -32,14 +32,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         if (msg.msgId == (ushort)SmallFlowModuleEvent.SynchronizationZlqzz)
         {
             MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
-            if (brodcastMsg != null && brodcastMsg.senderId != GlobalInfo.account.id)
-            {
-                MsgString msgString = brodcastMsg.GetData<MsgString>();
-                if (msgString != null)
-                {
-                    ExecuteButtonEvent(msgString.arg);
-                }
-            }
+           
         }
     }
     [SerializeField]
@@ -199,6 +192,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
     public List<MeshCollider> Butens;
     UnityAction callback;
     UISmallSceneModule smallSceneModule;
+    string modelOperationId;
 
     void IBaseBehaviour.Execute(int step, UnityAction callback)
     {
@@ -211,6 +205,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
 
         AvailableStatus newStatus = (AvailableStatus)step;
         availableStatus = newStatus;
+        modelOperationId = GetComponentInParent<ModelInfo>()?.ID;
         GuideTip();
     }
 
@@ -345,9 +340,9 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         {
             ExecuteButtonEvent(eventname);
         });
-        // 发送广播消息给其他用户
-        if (callback != null)
-            ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, eventname), true);
+        // 发送广播消息给其他用户（包含操作对象ID）
+        //if (callback != null)
+        //    ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, modelOperationId, (int)availableStatus, eventname, 0, availableStatus.ToString()), true);
     }
 
     /// <summary>

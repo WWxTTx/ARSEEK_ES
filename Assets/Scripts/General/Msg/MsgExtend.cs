@@ -460,6 +460,40 @@ namespace UnityFramework.Runtime
     }
 
     /// <summary>
+    /// UI自定义脚本同步消息（TSQ/LCU/Zlqzz等上位机操作同步）
+    /// </summary>
+    public class MsgSyncCustomUI : MsgBase
+    {
+        /// <summary>
+        /// 按钮事件名称
+        /// </summary>
+        public string eventname;
+        /// <summary>
+        /// 当前在steps列表中的索引
+        /// </summary>
+        public int stepIndex;
+        /// <summary>
+        /// 操作对象ID（ModelOperation的ID）
+        /// </summary>
+        public string modelOperation;
+
+        public MsgSyncCustomUI() { }
+
+        public MsgSyncCustomUI(ushort msgId, string eventname, int stepIndex) : base(msgId)
+        {
+            this.eventname = eventname;
+            this.stepIndex = stepIndex;
+        }
+
+        public MsgSyncCustomUI(ushort msgId, string eventname, int stepIndex, string modelOperation) : base(msgId)
+        {
+            this.eventname = eventname;
+            this.stepIndex = stepIndex;
+            this.modelOperation = modelOperation;
+        }
+    }
+
+    /// <summary>
     /// 执行操作消息
     /// </summary>
     public class MsgOperation2D : MsgBase

@@ -9,6 +9,7 @@ using System.Windows.Interop;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
+using UnityEngine.XR;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
 using static UnityFramework.Runtime.ServiceRequestData;
@@ -430,15 +431,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             if (finalFlowModule != null)
                 finalFlowModule.TrySelectNode(flow, step);
 
-            //最后一步是操作
-            DOVirtual.DelayedCall(0.5f, () =>
-            {
-                //且是自己的操作 则再次操作
-                if (mIMChannelAgent.currentOp.msgId == (short)SmallFlowModuleEvent.Operate && mIMChannelAgent.currentOp.senderId == GlobalInfo.account.id)
-                {
-                    FormMsgManager.Instance.SendMsg(mIMChannelAgent.currentOp);
-                }
-            });
+
+            yield return new WaitForSecondsRealtime(0.5f);
+            ushort msgId = mIMChannelAgent.currentOp.msgId;
 
             // 恢复他人操作权限状态：如果最后一条操作是其他人的Operate，需要阻止刚重连的人操作
             RestoreOtherUserOperationState();
@@ -496,8 +491,8 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     #endregion
 
     /// <summary>
-    /// 恢复他人操作权限状态：防止重连后userOpModel为空，导致刚重连的人可以在别人操作时进行操作
-    /// 检查currentOp，如果是他人的Operate消息，则恢复对应的操作权限记录
+    /// 恢复操作权限状态：防止重连后userOpModel为空，导致刚重连的人可以在别人操作时进行操作
+    /// 检查currentOp，如果是他人的Operate或UI同步消息，则恢复对应的操作权限记录
     /// </summary>
     private void RestoreOtherUserOperationState()
     {
@@ -505,20 +500,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         if (currentOp == null)
             return;
 
-        // 只处理Operate类型的消息（操作执行中），且必须是他人的操作
-        if (currentOp.msgId != (short)SmallFlowModuleEvent.Operate)
-            return;
 
-        int senderId = currentOp.senderId;
-        if (senderId == GlobalInfo.account.id)
-            return; // 自己的操作不需要恢复，后续会本地触发
 
-        // 获取操作消息数据
-        MsgOperation msgOp = currentOp.GetData<MsgOperation>();
-        if (msgOp == null)
-            return;
-
-        // 获取UISmallSceneModule和SmallFlowCtrl来恢复操作权限
+        // 获取UISmallSceneModule
         UISmallSceneModule uiModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
         if (uiModule == null)
         {
@@ -526,11 +510,60 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             return;
         }
 
+        ushort msgId = currentOp.msgId;
+        if (msgId == (ushort)SmallFlowModuleEvent.Operate ||
+                 msgId == (ushort)SmallFlowModuleEvent.SynchronizationTsq ||
+                 msgId == (ushort)SmallFlowModuleEvent.SynchronizationLcu ||
+                 msgId == (ushort)SmallFlowModuleEvent.SynchronizationZlqzz)
+        {
+            int senderId = currentOp.senderId;
+            //是自己的操作 则再次操作
+            if (mIMChannelAgent.currentOp.senderId == GlobalInfo.account.id)
+            {
+                // Operate消息直接发送
+                if (msgId == (ushort)SmallFlowModuleEvent.Operate)
+                {
+                    FormMsgManager.Instance.SendMsg(mIMChannelAgent.currentOp);
+                }
+                else
+                {
+                    // 在UI同步消息发送前，先构造Operate消息发送
+                    if (ModelManager.Instance.modelGo != null)
+                    {
+                        SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelGo.GetComponent<SmallFlowCtrl>();
+                        if (smallFlowCtrl != null)
+                        {
+                            SmallOp1 modelOp = smallFlowCtrl.GetStepOperationBehaviors();
+                            // 构造Operate消息发送
+                            MsgOperation msgOp = new MsgOperation((ushort)SmallFlowModuleEvent.Operate, modelOp.operation.ID, modelOp.optionName, modelOp.prop?.ID, true);
+                            FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate((ushort)SmallFlowModuleEvent.Operate, JsonTool.Serializable(msgOp)));
+                        }
+                    }
+                    DOVirtual.DelayedCall(0.1f, () =>
+                    {
+                        FormMsgManager.Instance.SendMsg(mIMChannelAgent.currentOp);
+                    });
+                }
+            }
+            else
+                RestoreOperationPermission(senderId, uiModule);
+        }
+    }
+
+    /// <summary>
+    /// 恢复 Operate 消息的操作权限
+    /// </summary>
+    private void RestoreOperatePermission(MsgBrodcastOperate currentOp, int senderId, UISmallSceneModule uiModule)
+    {
+        // 获取操作消息数据
+        MsgOperation msgOp = currentOp.GetData<MsgOperation>();
+        if (msgOp == null)
+            return;
+
         // 获取模型操作对象
         ModelOperation modelOp = null;
         if (!string.IsNullOrEmpty(msgOp.modelOperation))
         {
-            // 尝试从SmallFlowCtrl获取ModelOperation
             if (ModelManager.Instance.modelGo != null)
             {
                 SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelGo.GetComponent<SmallFlowCtrl>();
@@ -549,8 +582,30 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         }
         else
         {
-            // 即使找不到ModelOperation，也记录日志用于调试
             Log.Warning($"RestoreOtherUserOperationState: 无法找到模型操作对象 {msgOp.modelOperation}，senderId={senderId}");
+        }
+    }
+
+    /// <summary>
+    /// 恢复 UI 自定义脚本操作权限
+    /// </summary>
+    private void RestoreOperationPermission(int senderId, UISmallSceneModule uiModule)
+    {
+        // 获取模型操作对象
+        ModelOperation modelOp = null;
+        if (ModelManager.Instance.modelGo != null)
+        {
+            SmallFlowCtrl smallFlowCtrl = ModelManager.Instance.modelGo.GetComponent<SmallFlowCtrl>();
+            if (smallFlowCtrl != null)
+            {
+                modelOp = smallFlowCtrl.GetStepOperation();
+            }
+        }
+
+        if (modelOp != null)
+        {
+            // 恢复操作权限：将他人操作记录到userOpModel
+            uiModule.AcquireOperatePermission(senderId, modelOp);
         }
     }
 

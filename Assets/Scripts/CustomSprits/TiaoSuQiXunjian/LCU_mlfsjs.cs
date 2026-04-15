@@ -39,9 +39,8 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             // 只处理其他用户发送的消息
             if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id)
             {
-                string eventname = ((MsgBrodcastOperate)msg).GetData<MsgString>().arg;
-                TryToNext(eventname);
-                ExecuteButtonEvent(eventname);
+                MsgSyncCustomUI msgUI = ((MsgBrodcastOperate)msg).GetData<MsgSyncCustomUI>();
+               
             }
         }
     }
@@ -65,6 +64,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
     UISmallSceneModule smallSceneModule;
 
     AvailableStatus status;
+    string modelOperationId;
     void IBaseBehaviour.Execute(int step, UnityAction callback)
     {
         if (smallSceneModule == null)
@@ -74,6 +74,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         this.callback = callback;
 
         status = (AvailableStatus)step;
+        modelOperationId = GetComponentInParent<ModelInfo>()?.ID;
         DealEvent();
     }
 
@@ -243,9 +244,9 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             TryToNext(eventname);
         });
         ExecuteButtonEvent(eventname);
-        // 发送广播消息给其他用户
-        if (callback != null)
-            ToolManager.SendBroadcastMsg(new MsgString((ushort)SmallFlowModuleEvent.SynchronizationLcu, eventname), true);
+        // 发送广播消息给其他用户（包含操作对象ID）
+        //if (callback != null)
+            //ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationLcu, modelOperationId, (int)status, eventname, currentStepIndex, status.ToString()), true);
     }
 
     /// <summary>

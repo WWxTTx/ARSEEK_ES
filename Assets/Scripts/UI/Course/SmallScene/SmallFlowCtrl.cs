@@ -795,6 +795,22 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 通过当前任务的索引获取应当执行的ModelOperation对象和正确行为的名称
+    /// </summary>
+    public SmallOp1 GetStepOperationBehaviors()
+    {
+        var steps = flows[index_NowFlow].steps;
+        return steps[index_NowStep].ops[0];
+    }
+
+    public ModelOperation GetStepOperation()
+    {
+        var steps = flows[index_NowFlow].steps;
+        SmallStep1 step = steps[index_NowStep];
+        return step.ops[0].operation;
+    }
+
+    /// <summary>
     /// 选择小步骤
     /// </summary>
     public void SelectStep(int stepIndex)
@@ -1940,6 +1956,20 @@ public class SmallFlowCtrl : MonoBase
                 }
                 break;
         }    
+    }
+
+    /// <summary>
+    /// 获取IBaseBehaviour对应的操作对象ID
+    /// </summary>
+    /// <param name="behaviour">自定义行为脚本</param>
+    /// <returns>操作对象ID（ModelInfo.ID）</returns>
+    public string GetCurrentOperationId(IBaseBehaviour behaviour)
+    {
+        MonoBehaviour mono = behaviour as MonoBehaviour;
+        if (mono == null)
+            return string.Empty;
+        ModelInfo modelInfo = mono.GetComponentInParent<ModelInfo>();
+        return modelInfo != null ? modelInfo.ID : string.Empty;
     }
 
     /// <summary>

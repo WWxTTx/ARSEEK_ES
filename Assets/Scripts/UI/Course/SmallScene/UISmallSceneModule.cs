@@ -333,6 +333,7 @@ public class UISmallSceneModule : UIModuleBase
                 case ModelState.Focusing:
                     modelOperation_Select = null;
                     EnableCameraControl(false);
+                    SetSelect(false);
                     break;
                 case ModelState.Focused:
                     if (focusHint && modelOperation_Focused != null)
@@ -349,6 +350,7 @@ public class UISmallSceneModule : UIModuleBase
                     break;
                 case ModelState.Operating:
                     EnableCameraControl(false);
+                    SetSelect(false);
                     break;
                 case ModelState.Operated:
                     modelOperation_Highlight = modelOperation_Focused;
@@ -939,12 +941,12 @@ public class UISmallSceneModule : UIModuleBase
             if (modelOperation_Select != modelOperation_Focused)
             {
                 modelOperation_Focused = null;
-                ////执行操作表现前 移除高亮
-                //if (modelOperation_Select != null)
-                //{
-                //    smallFlowCtrl.RemoveHint(modelOperation_Select, 1);
-                //    highlights.Remove(modelOperation_Select);
-                //}
+                //执行操作表现前 移除高亮
+                if (modelOperation_Select != null)
+                {
+                    smallFlowCtrl.RemoveHint(modelOperation_Select, 1);
+                    highlights.Remove(modelOperation_Select);
+                }
             }
 
             ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.ClickObj, modelOperation_Select.GetComponent<ModelInfo>().ID, null, null));
@@ -1642,13 +1644,12 @@ public class UISmallSceneModule : UIModuleBase
 
                     if(GlobalInfo.isExam)
                     {
-                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, GlobalInfo.courseMode == CourseMode.Exam ? false : !self);
+                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, !self);
                     }
                     else
                     {
                         smallFlowCtrl.TryExecuteOperation(data, msgOp.correctOp, msgOp.userNo, msgOp.userName, (isOn) =>
                         {
-                            ModelState = ModelState.Operated;
                             if (self)
                             {
                                 RetakeBackpackModel(true);
