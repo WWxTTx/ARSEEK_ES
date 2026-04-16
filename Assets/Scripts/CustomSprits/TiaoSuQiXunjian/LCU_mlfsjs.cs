@@ -36,11 +36,20 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         base.ProcessEvent(msg);
         if (msg.msgId == (ushort)SmallFlowModuleEvent.SynchronizationLcu)
         {
-            // 只处理其他用户发送的消息
-            if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id)
+            MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
+            MsgSyncCustomUI msgUI = brodcastMsg.GetData<MsgSyncCustomUI>();
+            StartCoroutine(WaitStepInit(msgUI));
+        }
+    }
+
+    System.Collections.IEnumerator WaitStepInit(MsgSyncCustomUI msgUI)
+    {
+        yield return new WaitUntil(() => steps.Count > 0);
+        if (msgUI.stepIndex >= 0 && msgUI.stepIndex < steps.Count)
+        {
+            for (int i = currentStepIndex; i <= msgUI.stepIndex && i <= steps.Count; i++)
             {
-                MsgSyncCustomUI msgUI = ((MsgBrodcastOperate)msg).GetData<MsgSyncCustomUI>();
-               
+                ExecuteButtonEvent(steps[i - 1]);
             }
         }
     }
@@ -238,15 +247,15 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
     /// </summary>
     public void ButenEvent(string eventname)
     {
-        // 本地执行 延迟一点，避免导致联机判断标志位错误
-        DOVirtual.DelayedCall(0.1f, () =>
+        if (TryToNext(eventname))
         {
-            TryToNext(eventname);
-        });
+            // 发送广播消息给其他用户（包含操作对象ID）
+            if (callback != null)
+            {
+                ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationLcu, eventname, currentStepIndex), true);
+            }
+        }
         ExecuteButtonEvent(eventname);
-        // 发送广播消息给其他用户（包含操作对象ID）
-        //if (callback != null)
-            //ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationLcu, modelOperationId, (int)status, eventname, currentStepIndex, status.ToString()), true);
     }
 
     /// <summary>
@@ -331,7 +340,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
 
 
     // 检测当前步骤
-    public void TryToNext(string stepname)
+    public bool TryToNext(string stepname)
     {
         if (steps.Count > currentStepIndex && stepname == steps[currentStepIndex])
         {
@@ -349,6 +358,8 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                     SetImageRaycast(true);
                 });
             }
+            return true;
         }
+        return false;
     }
 }

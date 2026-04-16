@@ -287,6 +287,10 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         get { return mIMChannelAgent.IsStartSync; }
         set
         {
+            if (mIMChannelAgent.IsStartSync && !value)
+            {
+                Debug.LogWarning($"执行同步关闭，调用来源: {UnityEngine.StackTraceUtility.ExtractStackTrace()}");
+            }
             mIMChannelAgent.IsStartSync = value;
         }
     }

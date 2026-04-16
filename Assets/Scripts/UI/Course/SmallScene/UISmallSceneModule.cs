@@ -226,7 +226,7 @@ public class UISmallSceneModule : UIModuleBase
     /// <summary>
     /// 全局视角切换按钮
     /// </summary>
-    private Button GlobalBtn;
+    //private Button GlobalBtn;
     /// <summary>
     /// 聚焦模型提示UI
     /// </summary>
@@ -319,8 +319,8 @@ public class UISmallSceneModule : UIModuleBase
         {
             _modelState = value;
 
-            if (GlobalBtn)
-                GlobalBtn.interactable = smallFlowCtrl.globalPerspective != null && _modelState != ModelState.Operating && _modelState != ModelState.Focusing;
+            //if (GlobalBtn)
+            //    GlobalBtn.interactable = smallFlowCtrl.globalPerspective != null && _modelState != ModelState.Operating && _modelState != ModelState.Focusing;
 
             switch (_modelState)
             {
@@ -350,7 +350,7 @@ public class UISmallSceneModule : UIModuleBase
                     break;
                 case ModelState.Operating:
                     EnableCameraControl(false);
-                    SetSelect(false);
+                    SetSelect(true);
                     break;
                 case ModelState.Operated:
                     modelOperation_Highlight = modelOperation_Focused;
@@ -577,16 +577,16 @@ public class UISmallSceneModule : UIModuleBase
         Focus.transform.GetChild(0).gameObject.SetActive(false);
 
         #region 全局视角
-        GlobalBtn = transform.GetComponentByChildName<Button>("Global");
-        if (GlobalBtn)
-        {
-            GlobalBtn.onClick.AddListener(() =>
-            {
-                ModelState = ModelState.Unselect;
-                smallFlowCtrl.SwitchToGlobalPerspective();
-            });
-            GlobalBtn.gameObject.SetActive(smallFlowCtrl.globalPerspective != null);
-        }
+        //GlobalBtn = transform.GetComponentByChildName<Button>("Global");
+        //if (GlobalBtn)
+        //{
+        //    GlobalBtn.onClick.AddListener(() =>
+        //    {
+        //        ModelState = ModelState.Unselect;
+        //        smallFlowCtrl.SwitchToGlobalPerspective();
+        //    });
+        //    GlobalBtn.gameObject.SetActive(smallFlowCtrl.globalPerspective != null);
+        //}
 
         focusHint = transform.GetComponentByChildName<CanvasGroup>("FocusHint");
         focusHint.alpha = 0;

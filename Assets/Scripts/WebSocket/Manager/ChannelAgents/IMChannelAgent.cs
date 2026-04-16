@@ -160,20 +160,27 @@ public class IMChannelAgent : NetworkChannelAgentBase
         deltaTime += Time.deltaTime;
 
         //执行状态同步消息
-        //等待百科状态同步完成再执行后续操作
-        while (!IsSyncBaikeState && stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
+        while (stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
         {
             deltaTime = 0;
             GlobalInfo.SetFanelstate = false;
             if (GlobalInfo.playTimeRatio > 0)
             {
-                UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
+                UIManager.Instance.OpenUI<LoadingPanel>();
             }
 
             currentOp = stateHelper.DequeueStateOp();
             TryExecuteCurrentOp();
         }
 
+        //等待2s还是处于等待中，判断为本地执行错误，标志位没有正确恢复，手动打开消息处理
+        if (!IsStartSync && deltaTime > 2)
+        {
+            IsStartSync = true;
+            UIManager.Instance.CloseUI<LoadingPanel>();
+        }
+        
+        //本地拒绝消息时暂停消息处理
         if (!IsStartSync)
             return;
 
@@ -348,7 +355,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// <returns></returns>
     private IEnumerator SendCoroutine()
     {
-        IsStartSync = true;
         GlobalInfo.version = 0;
 
         while (true)

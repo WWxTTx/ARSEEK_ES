@@ -1173,8 +1173,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             {
                 ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, eventname, currentStepIndex), true);
             }
-            ExecuteButtonEvent(eventname);
         }
+        ExecuteButtonEvent(eventname);
     }
 
     /// <summary>

@@ -32,7 +32,114 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         if (msg.msgId == (ushort)SmallFlowModuleEvent.SynchronizationZlqzz)
         {
             MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
-           
+            // 过滤自己发送的消息
+            if (brodcastMsg.senderId == GlobalInfo.account.id) return;
+
+            // 检查是否处于有效的操作状态
+            if (callback == null) return;
+
+            MsgSyncCustomUI msgUI = brodcastMsg.GetData<MsgSyncCustomUI>();
+            // 解析菜单状态：格式 "index0,index1,index2,depth"
+            string[] parts = msgUI.eventname.Split(',');
+            if (parts.Length >= 4 && int.TryParse(parts[3], out int depth))
+            {
+                // 更新菜单状态
+                for (int i = 0; i < depth && i < parts.Length - 1; i++)
+                {
+                    if (int.TryParse(parts[i], out int idx))
+                    {
+                        selectIndex[i] = idx;
+                    }
+                }
+                // 重建菜单导航到指定状态
+                RebuildMenuState(depth);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 根据保存的菜单状态重建菜单显示
+    /// </summary>
+    private void RebuildMenuState(int targetDepth)
+    {
+        // 先重置到根菜单
+        OnExext();
+
+        if (targetDepth <= 0) return;
+
+        // 逐层向下导航到目标状态
+        for (int d = 0; d < targetDepth && d < 3; d++)
+        {
+            if (d < selectIndex.Length && selectIndex[d] < selectNode[d].children.Count)
+            {
+                // 检查是否有子菜单
+                if (selectNode[d].children[selectIndex[d]].children.Count > 0)
+                {
+                    // 模拟进入子菜单
+                    List<MenuNode> next = selectNode[d].children;
+                    selectNode.Add(next[selectIndex[d]]);
+
+                    // 重建对应的菜单表
+                    RebuildTableForLevel(d + 1);
+                }
+            }
+        }
+
+        // 更新选中状态
+        UpdateSelectionDisplay();
+    }
+
+    /// <summary>
+    /// 为指定层级重建菜单表
+    /// </summary>
+    private void RebuildTableForLevel(int level)
+    {
+        List<GameObject> targetTable = level == 1 ? table2 : (level == 2 ? table3 : table1);
+        Transform targetParent = level == 1 ? Parents[1] : (level == 2 ? Parents[2] : Parents[0]);
+
+        // 清除旧菜单
+        foreach (Transform t in targetParent)
+        {
+            Destroy(t.gameObject);
+        }
+        targetTable.Clear();
+
+        // 创建新菜单
+        if (selectNode.Count > level)
+        {
+            targetParent.gameObject.SetActive(true);
+            foreach (MenuNode item in selectNode[level].children)
+            {
+                GameObject temp = Instantiate(itemP, targetParent);
+                targetTable.Add(temp);
+                temp.name = item.menuText;
+                temp.GetComponent<TextMeshProUGUI>().text = item.menuText;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 更新选中项的显示状态
+    /// </summary>
+    private void UpdateSelectionDisplay()
+    {
+        for (int level = 0; level < 3; level++)
+        {
+            if (level < selectNode.Count)
+            {
+                List<GameObject> table = GetCerrenList(level);
+                selects[level].gameObject.SetActive(true);
+
+                for (int i = 0; i < table.Count; i++)
+                {
+                    table[i].GetComponent<TextMeshProUGUI>().color = b;
+                    if (i == selectIndex[level])
+                    {
+                        selects[level].position = table[i].transform.position;
+                        table[i].GetComponent<TextMeshProUGUI>().color = w;
+                    }
+                }
+            }
         }
     }
     [SerializeField]
@@ -340,9 +447,14 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         {
             ExecuteButtonEvent(eventname);
         });
-        // 发送广播消息给其他用户（包含操作对象ID）
-        //if (callback != null)
-        //    ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, modelOperationId, (int)availableStatus, eventname, 0, availableStatus.ToString()), true);
+
+        // 发送完整的菜单状态给其他用户
+        if (callback != null)
+        {
+            // 序列化菜单状态：index0,index1,index2,depth
+            string menuState = $"{selectIndex[0]},{selectIndex[1]},{selectIndex[2]},{selectNode.Count}";
+            ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, menuState, 0), true);
+        }
     }
 
     /// <summary>

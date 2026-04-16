@@ -182,26 +182,13 @@ public class SmallFlowCtrl : MonoBase
             {
                 ExecuteInitStateSequentially(nowFlowStep.initState, nowFlowStep, 0, 0, () =>
                 {
-                    ByStepPlayAudio();
+                    SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepName);
                 });
             }
             else
             {
-                ByStepPlayAudio();
+                SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepName);
             }
-        }
-    }
-
-    void ByStepPlayAudio()
-    {
-        if (isAutoPlay)
-        {
-            SpeechManager.Instance.DelayStart(nowFlowStep.ID, 0, TipType.StepName);
-        }
-        else
-        {
-            // 非自动播放：立即播放
-            SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepName);
         }
     }
 
@@ -300,22 +287,10 @@ public class SmallFlowCtrl : MonoBase
     private bool useGuide;
 
     /// <summary>
-    /// 是否为自动播放（true: 通过Next()自动进入下一步; false: 用户手动选择步骤）
-    /// 自动播放：使用 DelayStart，等待角色停止移动、等待上一步结束提示播放完成
-    /// 非自动播放：使用 PlayImmediate，立即打断当前播放，直接开始新的语音
-    /// </summary>
-    private bool isAutoPlay = true;
-
-    /// <summary>
     /// 各步骤初始视角
     /// key:flowIndex value: (key:stepIndex value:stepIndex)
     /// </summary>
     private Dictionary<int, Dictionary<int, int>> stepView = new Dictionary<int, Dictionary<int, int>>();
-
-    /// <summary>
-    /// 是否初始进入
-    /// </summary>
-    private bool firstEnter;
 
     //private CanvasGroup masterComputerCanvas;
     //public bool MasterComputerInteractable
@@ -817,31 +792,9 @@ public class SmallFlowCtrl : MonoBase
     {
         // 清空操作记录
         FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
-        //初始全局视角
-        if (!firstEnter && globalPerspective != null)
-        {
-            firstEnter = true;
-            SetFinalState(globalPerspective, globalPerspective.initState);
-            SwitchToGlobalPerspective(() => DoSelectStep(stepIndex));
-        }
-        else
-        {
-            DoSelectStep(stepIndex);
-        }
+        DoSelectStep(stepIndex);
     }
 
-    public void SwitchToGlobalPerspective(UnityAction callback = null)
-    {
-        if (globalPerspective == null)
-        {
-            callback?.Invoke();
-            return;
-        }
-        ExecutePerspectiveOperation(globalPerspective, observeFlag, (_) =>
-        {
-            callback?.Invoke();
-        });
-    }
     private SmallStepState GetPreviousCamState(int flowIndex, int stepIndex)
     {
         SmallStepState cameraState = null;
@@ -865,8 +818,6 @@ public class SmallFlowCtrl : MonoBase
 
     private void DoSelectStep(int stepIndex)
     {
-        isAutoPlay = false; // 非自动播放模式（用户手动选择步骤）
-
         // 清空操作记录
         FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
 
@@ -1061,19 +1012,23 @@ public class SmallFlowCtrl : MonoBase
                     // 先构建联动操作列表，判断是否需要等待联动完成
                     List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
 
-                    SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
+                    WaitUadioNExt(() =>
+                    {
+                        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
+                    });
+                    
                     if (opLinkages.Count != 0)
                     {
                         ExecuteFlowLinkOperation(opLinkages, () =>
                         {
                             callback?.Invoke(true);
-                            Next();
+                            WaitUadioNExt(Next);
                         }, 0, dummy);
                     }
                     else
                     {
                         callback?.Invoke(true);
-                        Next();
+                        WaitUadioNExt(Next);
                     }
                 }, 0, dummy);
             }
@@ -1082,6 +1037,24 @@ public class SmallFlowCtrl : MonoBase
                 Log.Warning("执行了TryExecuteOperation未处理的分支");
             }
         }, dummy);
+    }
+
+    /// <summary>
+    /// 培训模式等待结束提示播放完成才进入下一步
+    /// </summary>
+    void WaitUadioNExt(Action action)
+    {
+        AudioSource audioSource = SpeechManager.Instance.audioSource;
+        if (SpeechManager.Instance.SpeechMode)
+            DOVirtual.DelayedCall(0.1f, () =>
+            {
+                DOVirtual.DelayedCall(audioSource.clip.length - audioSource.time, () =>
+                {
+                    action.Invoke();
+                });
+            });
+        else
+            action.Invoke();
     }
 
     /// <summary>
@@ -1688,7 +1661,6 @@ public class SmallFlowCtrl : MonoBase
                             {
                                 if (op.actions[m].operation.GetComponent<ModelInfo>().PropType != PropType.Auto)
                                     SetFinalState(op.actions[m].operation, op.actions[m].optionName);
-
                             }
                             catch
                             {
@@ -1809,7 +1781,6 @@ public class SmallFlowCtrl : MonoBase
         if (Wait140)
             return;
 
-        isAutoPlay = true; // 语音自动播放 用于与步骤流程中的提示区别
         if (index_NowFlow <= flows.Length - 1)
         {
             if (index_NowStep < nowFlowSteps.Count - 1)
@@ -1826,7 +1797,7 @@ public class SmallFlowCtrl : MonoBase
                 {
                     index_NowFlow += 1;
                     index_NowStep = 0;
-                    }
+                }
             }
         }
         //服务器记录当前步骤完成

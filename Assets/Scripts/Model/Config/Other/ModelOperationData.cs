@@ -1684,15 +1684,36 @@ public class BehaveObserve : BehaveDotween
             callback?.Invoke();
             return;
         }
+        DOTween.Kill("BehaveObserve");
+        ModelManager.Instance.CameraDotween = true;
 
+        //观察开始后语音才变更到过程提示语音，需要等待一下避免计时错误读取步骤开始语音
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            AddSequence(callback);
+        });
+    }
+
+    void AddSequence(UnityAction callback = null)
+    {
+        sequence = DOTween.Sequence();
+        var camera = Camera.main.transform;
         position = Camera.main.transform.position;
         angle = Camera.main.transform.eulerAngles;
 
-        var camera = Camera.main.transform;
+        sequence.Append(camera.DOMove(ctrlGO.transform.position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
+        sequence.Join(camera.DORotate(ctrlGO.transform.eulerAngles, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
         {
-            DOTween.Kill("BehaveObserve");
-
-            ModelManager.Instance.CameraDotween = true;
+            //将等待时间和语音播放关联起来
+            float waitTime = stayTime * GlobalInfo.playTimeRatio;
+            float audioLength = 0;
+            if (SpeechManager.Instance.SpeechMode && SpeechManager.Instance.audioSource != null && SpeechManager.Instance.audioSource.clip != null)
+            {
+                audioLength = SpeechManager.Instance.audioSource.clip.length - SpeechManager.Instance.audioSource.time + 1;
+            }
+            waitTime = Mathf.Max(stayTime, audioLength);
+            sequence.AppendInterval(waitTime);
+            Log.Debug("等待时间" + waitTime);
 
             PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
             if (playerController != null)
@@ -1700,48 +1721,29 @@ public class BehaveObserve : BehaveDotween
                 playerController.CameraFollowTween.Pause();
                 playerController.CameraRotateTween.Pause();
             }
-            sequence = DOTween.Sequence();
+            if (playerController == null)
             {
-                sequence.Append(camera.DOMove(ctrlGO.transform.position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                sequence.Join(camera.DORotate(ctrlGO.transform.eulerAngles, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-
-                //将等待时间和语音播放关联起来
-                float waitTime = stayTime * GlobalInfo.playTimeRatio;
-                float audioLength = 0;
-                if (SpeechManager.Instance.SpeechMode && SpeechManager.Instance.audioSource != null && SpeechManager.Instance.audioSource.clip != null)
+                sequence.Append(camera.DOMove(position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
+                sequence.Join(camera.DORotate(angle, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease).OnComplete(() =>
                 {
-                    audioLength = SpeechManager.Instance.audioSource.clip.length - 1;
-                }
-                waitTime = Mathf.Max(stayTime, audioLength);
-                sequence.AppendInterval(waitTime);
-                Log.Debug("等待时间" +  waitTime);
-
-                if (playerController == null)
-                {
-                    sequence.Append(camera.DOMove(position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                    sequence.Join(camera.DORotate(angle, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease).OnComplete(() =>
-                    {
-                        ModelManager.Instance.CameraDotween = false;
-                        callback?.Invoke();
-                    }));
-                }
-                else
-                {
-                    //角色相机归位
-                    sequence.Append(camera.DOMove(playerController.CameraFollowPoint.position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                    sequence.Join(camera.DORotate(playerController.CameraFollowPoint.eulerAngles, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                    sequence.AppendCallback(() =>
-                    {
-                        ModelManager.Instance.CameraDotween = false;
-                        //playerController.CameraFollowTween.Play();
-                        //playerController.CameraRotateTween.Play();
-                        callback?.Invoke();
-                    });
-                }
+                    ModelManager.Instance.CameraDotween = false;
+                    callback?.Invoke();
+                }));
             }
-            sequence.timeScale = multiplier;
-            sequence.SetId("BehaveObserve");
+            else
+            {
+                //角色相机归位
+                sequence.Append(camera.DOMove(playerController.CameraFollowPoint.position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
+                sequence.Join(camera.DORotate(playerController.CameraFollowPoint.eulerAngles, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
+                sequence.AppendCallback(() =>
+                {
+                    ModelManager.Instance.CameraDotween = false;
+                    callback?.Invoke();
+                });
+            }
         }
+        sequence.timeScale = multiplier;
+        sequence.SetId("BehaveObserve");
     }
 
     public override void SetInitialState()

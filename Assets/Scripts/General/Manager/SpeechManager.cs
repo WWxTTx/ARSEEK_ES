@@ -188,7 +188,7 @@ public class SpeechManager : Singleton<SpeechManager>
     public IEnumerator WaitStepSpeechData(string stepId, int index, TipType tipType)
     {
         yield return new WaitUntil(() => StepSpeechData != null);
-        DelayStart(stepId, index, tipType);
+        PlayImmediate(stepId, index, tipType);
     }
 
     /// <summary>
