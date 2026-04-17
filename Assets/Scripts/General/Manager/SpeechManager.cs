@@ -126,58 +126,15 @@ public class SpeechManager : Singleton<SpeechManager>
         this.onComplete = onComplete;
     }
 
-    /// <summary>
-    /// 延迟执行开始提示 
-    ///如果是开始 且角色正在移动 则等待结束后播放开始
-    ///如果是开始 且当前播放的是结束 则等待结束后播放开始
-    /// </summary>
-    /// <param name="ID"></param>
-    /// <param name="predicate"></param>
-    /// <returns></returns>
-    public void DelayStart(string stepId, int index, TipType tipType)
-    {
-        if (StepSpeechData == null)
-        {
-            StartCoroutine(WaitStepSpeechData(stepId, index, tipType));
-            return;
-        }
 
-        PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-        if (audioSource == null || playerController == null)
-            return;
-
-        if (!playerController.NavEnd || lasttype == TipType.StepComplete)
-        {
-            if (nextCts == null)
-            {
-                nextCts = new CancellationTokenSource();
-                RePlayStart(stepId, nextCts.Token).Forget();
-            }
-            else
-            {
-                nextCts.Cancel();
-                nextCts.Dispose();
-                nextCts = new CancellationTokenSource();
-                RePlayStart(stepId, nextCts.Token).Forget();
-            }
-        }
-        else
-        {
-            PlayImmediate(stepId, index, tipType);
-        }
-    }
 
     public async UniTaskVoid RePlayStart(string ID, CancellationToken ct)
     {
         await UniTask.Delay(800, cancellationToken: ct);
-        PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-        if (playerController != null)
-        {
-            await UniTask.WaitUntil(() => playerController.NavEnd && !IsAudioPlaying, cancellationToken: ct);
-            await UniTask.Delay(200, cancellationToken: ct);
-        }
-        PlayImmediate(ID, 0, TipType.StepName);
+        await UniTask.WaitUntil(() => !IsAudioPlaying, cancellationToken: ct);
+        await UniTask.Delay(200, cancellationToken: ct);
         lasttype = TipType.StepName;
+        PlayImmediate(ID, 0, TipType.StepName);
     }
 
     void OnDestroy()
@@ -408,7 +365,7 @@ public class SpeechManager : Singleton<SpeechManager>
 
     /// <summary>
     /// 立即播放语音（用于用户手动选择步骤）
-    /// 清除等待中的播放，打断当前播放，完全不考虑TipType
+    /// 清除等待中的播放，打断当前播放
     /// </summary>
     public void PlayImmediate(string stepId, int index, TipType tipType)
     {
@@ -426,14 +383,34 @@ public class SpeechManager : Singleton<SpeechManager>
             }
         }
 
-        // 停止当前播放（无论什么类型）
-        StopSpeech();
-
-        // 直接播放，跳过所有 TipType 检查
-        SpeechData speechData = GetSpeechData(stepId, index, tipType);
-        if (speechData != null && speechData.audioUrl != null)
+        if (lasttype == TipType.StepComplete)
         {
-            DoSpeech(speechData, tipType);
+            if (nextCts == null)
+            {
+                nextCts = new CancellationTokenSource();
+                RePlayStart(stepId, nextCts.Token).Forget();
+            }
+            else
+            {
+                nextCts.Cancel();
+                nextCts.Dispose();
+                nextCts = new CancellationTokenSource();
+                RePlayStart(stepId, nextCts.Token).Forget();
+            }
         }
+        else
+        {
+            // 停止当前播放（无论什么类型）
+            StopSpeech();
+
+            // 直接播放，跳过所有 TipType 检查
+            SpeechData speechData = GetSpeechData(stepId, index, tipType);
+            if (speechData != null && speechData.audioUrl != null)
+            {
+                DoSpeech(speechData, tipType);
+            }
+        }
+
+      
     }
 }

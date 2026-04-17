@@ -152,8 +152,6 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         }
     }
 
-    public GameObject DlqZsd;
-    public Transform DlqZsdJk;
     void SetScreen(int open)
     {
         if (open == 0)

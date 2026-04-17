@@ -282,6 +282,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         TextDic["桨叶反馈工程值"].text = ((int)x).ToString("F2");
                         TextDic["实测值"].text = Mathf.Clamp(x / 100, 15470, 29119).ToString("F2");
                         TextDic["导叶开度"].text = x.ToString("F2");
+                        TextDic["导叶目标"].text = x.ToString("F2");
                         TextDic["导叶目标值"].text = x.ToString("F2");
                         CalculateBladeOpening(x);
                     }, 99.00f, usetime).
@@ -340,11 +341,12 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         TextDic["桨叶反馈工程值"].text = ((int)x).ToString("F2");
                         TextDic["实测值"].text = Mathf.Clamp(x / 100, 15470, 29119).ToString("F2");
                         TextDic["导叶开度"].text = x.ToString("F2");
+                        TextDic["导叶目标"].text = x.ToString("F2");
                         TextDic["导叶目标值"].text = x.ToString("F2");
                         CalculateBladeOpening(x);
                     }, 32f, 3.3f);
 
-                    smallSceneModule.ShowHint($"T1阶段3.2秒，导叶开度快速关闭", 1);
+                    smallSceneModule.ShowHint($"T1阶段3.2秒，导叶快速关闭", 1);
                     DOVirtual.DelayedCall(3.2f, () =>
                     {
                         DOTween.To(() => 32f, x =>
@@ -352,6 +354,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                             TextDic["桨叶反馈工程值"].text = ((int)x).ToString("F2");
                             TextDic["实测值"].text = Mathf.Clamp(x / 100, 15470, 29119).ToString("F2");
                             TextDic["导叶开度"].text = x.ToString("F2");
+                            TextDic["导叶目标"].text = x.ToString("F2");
                             TextDic["导叶目标值"].text = x.ToString("F2");
                             CalculateBladeOpening(x);
                         }, 0f, 10f);
@@ -582,6 +585,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
                     //绘制过程参数控制
                     daoyeKd.progress = 0;
+                    TextDic["导叶目标"].text = "14";
                     TextDic["导叶目标值"].text = "14";
                     DOTween.To(() => 0f, x =>
                     {
@@ -1208,6 +1212,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 kd = float.Parse(TextDic["导叶开度"].text);
                 DOTween.To(() => kd, x =>
                 {
+                    TextDic["导叶目标"].text = x.ToString("F2");
                     TextDic["导叶目标值"].text = x.ToString("F2");
                 }, kd + 5, 1).OnComplete(() =>
                 {
@@ -1218,6 +1223,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 kd = float.Parse(TextDic["导叶开度"].text);
                 DOTween.To(() => kd, x =>
                 {
+                    TextDic["导叶目标"].text = x.ToString("F2");
                     TextDic["导叶目标值"].text = x.ToString("F2");
                 }, kd - 5, 1).OnComplete(() =>
                 {
@@ -1276,6 +1282,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 // 导叶接力器全关
                 DOTween.To(() => float.Parse(TextDic["导叶开度"].text), x =>
                 {
+                    TextDic["导叶目标"].text = x.ToString("F2");
                     TextDic["导叶目标值"].text = x.ToString("F2");
                     TextDic["导叶开度"].text = x.ToString("F2");
                 }, 0f, 2f);
@@ -1538,6 +1545,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             TextDic["电气开限"].text = "91.67";
             TextDic["导叶开度"].text = "79.07";
+            TextDic["导叶目标"].text = "79.09";
             TextDic["导叶目标值"].text = "79.09";
             TextDic["机组频率"].text = "50.00";
             TextDic["桨叶开度"].text = "76.91";
@@ -1547,7 +1555,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             TextDic["残压测频"].text = "49.93";
             TextDic["齿盘测频"].text = "50.27";
             TextDic["机组转速"].text = "99.8";
-            TextDic["导叶目标"].text = "79.09";
+
+            TextDic["机组有功"].text = "43.30";
             TextDic["功率目标"].text = "43.30";
 
             TextDic["工作状态"].text = "负载运行";
@@ -1557,6 +1566,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             TextDic["电气开限"].text = "0.00";
             TextDic["导叶开度"].text = "0.22";
+            TextDic["导叶目标"].text = "0.00";
             TextDic["导叶目标值"].text = "0.00";
             TextDic["机组频率"].text = "0.00";
             TextDic["桨叶开度"].text = "0.00";
@@ -1566,8 +1576,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             TextDic["残压测频"].text = "49.93";
             TextDic["齿盘测频"].text = "0.00";
             TextDic["机组转速"].text = "0.00";
-            TextDic["导叶目标"].text = "0.00";
             TextDic["功率目标"].text = "0.00";
+            TextDic["机组有功"].text = "0.00";
 
             TextDic["工作状态"].text = "停机备用";
         }
@@ -1576,6 +1586,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             TextDic["电气开限"].text = "20.00";
             TextDic["导叶开度"].text = "13.91";
+            TextDic["导叶目标"].text = "14.00";
             TextDic["导叶目标值"].text = "14.00";
             TextDic["机组频率"].text = "50.00";
             TextDic["桨叶开度"].text = "1.49";
@@ -1585,8 +1596,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             TextDic["残压测频"].text = "49.93";
             TextDic["齿盘测频"].text = "0.00";
             TextDic["机组转速"].text = "99.8";
-            TextDic["导叶目标"].text = "15.00";
             TextDic["功率目标"].text = "0.00";
+            TextDic["机组有功"].text = "0.00";
 
             TextDic["工作状态"].text = "空载运行";
         }
@@ -1605,7 +1616,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     public void SetRotationControlNow(int opening)
     {
         RotationControl(opening, 0f);
-        TextDic["导叶目标值"].text = TextDic["导叶开度"].text = opening.ToString("F2");
+        TextDic["导叶目标值"].text = TextDic["导叶目标"].text = TextDic["导叶开度"].text = opening.ToString("F2");
         CalculateBladeOpening(opening);
     }
 
@@ -1678,6 +1689,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     public void Daoyexs()
     {
         TextDic["导叶开度"].enabled = false;
+        TextDic["导叶目标"].text = "91.67";
         TextDic["导叶目标值"].text = "91.67";
     }
 }

@@ -1008,28 +1008,25 @@ public class SmallFlowCtrl : MonoBase
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
                     SendOperatingRecordMsg(data, op, userNo, userName);
-
-                    // 先构建联动操作列表，判断是否需要等待联动完成
-                    List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
-
-                    WaitUadioNExt(() =>
-                    {
+                    StartCoroutine(WaitUadioToNext(() => {
                         SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
-                    });
-                    
-                    if (opLinkages.Count != 0)
-                    {
-                        ExecuteFlowLinkOperation(opLinkages, () =>
+
+                        // 先构建联动操作列表，判断是否需要等待联动完成
+                        List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
+                        if (opLinkages.Count != 0)
+                        {
+                            ExecuteFlowLinkOperation(opLinkages, () =>
+                            {
+                                callback?.Invoke(true);
+                                Next();
+                            }, 0, dummy);
+                        }
+                        else
                         {
                             callback?.Invoke(true);
-                            WaitUadioNExt(Next);
-                        }, 0, dummy);
-                    }
-                    else
-                    {
-                        callback?.Invoke(true);
-                        WaitUadioNExt(Next);
-                    }
+                            Next();
+                        }
+                    }));
                 }, 0, dummy);
             }
             else
@@ -1042,17 +1039,14 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 培训模式等待结束提示播放完成才进入下一步
     /// </summary>
-    void WaitUadioNExt(Action action)
+    IEnumerator WaitUadioToNext(Action action)
     {
-        AudioSource audioSource = SpeechManager.Instance.audioSource;
         if (SpeechManager.Instance.SpeechMode)
-            DOVirtual.DelayedCall(0.1f, () =>
-            {
-                DOVirtual.DelayedCall(audioSource.clip.length - audioSource.time, () =>
-                {
-                    action.Invoke();
-                });
-            });
+        {
+            yield return null;
+            yield return new WaitUntil(() => !SpeechManager.Instance.audioSource.isPlaying);
+            action.Invoke();
+        }
         else
             action.Invoke();
     }
