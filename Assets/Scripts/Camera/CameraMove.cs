@@ -92,7 +92,7 @@ public class CameraMove : MonoBehaviour
         if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsOperator())
             return;
 
-        if (moveType == CameraMoveType.None || !ModelManager.Instance.CameraControl || ModelManager.Instance.CameraDotween)
+        if (moveType == CameraMoveType.None || ModelManager.Instance.CameraDotween)
         {
             isMouseDown = false;
             isTouchBegin = false;

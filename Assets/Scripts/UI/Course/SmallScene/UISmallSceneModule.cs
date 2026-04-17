@@ -476,15 +476,15 @@ public class UISmallSceneModule : UIModuleBase
         }
 
         // 仿真系统初始化
-        if (simuSystem != null)
-        {
-            simuSystem.Init(this, smallFlowCtrl);
-            if(smallFlowCtrl.globalPerspective != null)
-                smallFlowCtrl.SetFinalState(smallFlowCtrl.globalPerspective, smallFlowCtrl.globalPerspective.initState);
-            //smallFlowCtrl.SwitchToGlobalPerspective();
-            //考核 通知模块初始化完成
-            //FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
-        }
+        //if (simuSystem != null)
+        //{
+        //    simuSystem.Init(this, smallFlowCtrl);
+        //    if(smallFlowCtrl.globalPerspective != null)
+        //        smallFlowCtrl.SetFinalState(smallFlowCtrl.globalPerspective, smallFlowCtrl.globalPerspective.initState);
+        //    smallFlowCtrl.SwitchToGlobalPerspective();
+        //    //考核 通知模块初始化完成
+        //    FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
+        //}
 
         ToolNode = Camera.main.transform.FindChildByName("ToolNode");
         Transform modelRoot = ModelManager.Instance.modelRoot;

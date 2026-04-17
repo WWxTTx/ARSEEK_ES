@@ -1772,6 +1772,8 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public void Next()
     {
+        ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().ToLast();
+
         if (Wait140)
             return;
 

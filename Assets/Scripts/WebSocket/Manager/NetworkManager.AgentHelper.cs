@@ -543,7 +543,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                             FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate((ushort)SmallFlowModuleEvent.Operate, JsonTool.Serializable(msgOp)));
                         }
                     }
-                    DOVirtual.DelayedCall(0.1f, () =>
+                    DOVirtual.DelayedCall(0.3f, () =>
                     {
                         FormMsgManager.Instance.SendMsg(mIMChannelAgent.currentOp);
                     });

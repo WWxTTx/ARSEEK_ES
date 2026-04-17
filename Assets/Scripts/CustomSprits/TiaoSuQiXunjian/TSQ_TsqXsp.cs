@@ -198,6 +198,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 };
                 break;
             case AvailableStatus.旋钮开度给定13:
+                SetUIPanel("操作界面");
                 int mbkd = 13;
                 RotationControl(1, 0);
                 DOVirtual.DelayedCall(2f, () => {
@@ -949,6 +950,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
     void ChipanCepin()
     {
+        SetUIPanel("操作界面");
         Settip(TextDic["齿盘测频"], true);
         Settip(TextDic["机组转速"], true);
         DOTween.To(() => 0f, x =>
@@ -970,6 +972,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
     void CnayaCepin()
     {
+        SetUIPanel("操作界面");
         Settip(TextDic["残压测频"], true);
         Settip(TextDic["机组转速"], true);
         DOTween.To(() => 48f, x =>
@@ -1620,7 +1623,9 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         CalculateBladeOpening(opening);
     }
 
-
+    /// <summary>
+    /// 清除报警信息
+    /// </summary>
     public void RemoveEvent()
     {
         foreach (Transform item in bjTextParent)
@@ -1631,6 +1636,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             Destroy(item.gameObject);
         }
+        tempConmand.Clear();
+        tempErro.Clear();
     }
 
 
@@ -1648,11 +1655,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             return;
         }
-        else
-            foreach (var item in tempConmand.Values)
-            {
-                Destroy(item);
-            }
+
         Text temp = Instantiate(tempText, zlTextParent).GetComponent<Text>();
         temp.text = t;
         tempConmand.Add(t, temp.gameObject);
@@ -1663,11 +1666,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             return;
         }
-        else
-            foreach (var item in tempErro.Values)
-            {
-                Destroy(item);
-            }
+      
         Text temp = Instantiate(tempText, zlTextParent).GetComponent<Text>();
         temp.text = t;
         tempErro.Add(t, temp.gameObject);

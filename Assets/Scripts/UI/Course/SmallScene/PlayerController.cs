@@ -469,7 +469,7 @@ public class PlayerController : MonoBase
             return;
         }
 
-        if (isNavigating)
+        if (isNavigating && agent.enabled)
         {
             agent.ResetPath();
             verticalPoint.localEulerAngles = new Vector3(verticalPoint.localEulerAngles.x, 0, 0);
