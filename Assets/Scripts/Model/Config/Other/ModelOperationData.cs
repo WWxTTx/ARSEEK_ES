@@ -412,32 +412,12 @@ public class BehaveMoveCamera : BehaveDotween
             DOTween.Kill("BehaveMoveCamera", true);
 
             ModelManager.Instance.CameraDotween = true;
-            PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-            if (playerController != null)
-            {
-                playerController.CameraFollowTween.Pause();
-                playerController.CameraRotateTween.Pause();
-            }
             sequence = DOTween.Sequence();
             {
                 for (int i = 0; i < positions.Count; i++)
                 {
-                    //if (ctrlGO != null)
-                    //{
-                    //    sequence.Append(camera.DOMove(positions[i] + ctrlGO.transform.position, playTimes[i] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                    //    sequence.Join(camera.DORotate(eulerAngles[i] + ctrlGO.transform.eulerAngles, playTimes[i] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                    //}
-                    //else
-                    {
-                        sequence.Append(camera.DOMove(positions[i], playTimes[i] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                        sequence.Join(camera.DORotate(eulerAngles[i], playTimes[i] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                    }
-                }
-                //角色相机归位
-                if (playerController && positions.Count > 0)
-                {
-                    sequence.Append(camera.DOMove(playerController.CameraFollowPoint.position, playTimes[0] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                    sequence.Join(camera.DORotate(playerController.CameraFollowPoint.eulerAngles, playTimes[0] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
+                    sequence.Append(camera.DOMove(positions[i], playTimes[i] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
+                    sequence.Join(camera.DORotate(eulerAngles[i], playTimes[i] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
                 }
 
                 List<MonoBehaviour> cameraComponent = new List<MonoBehaviour>();
@@ -466,15 +446,7 @@ public class BehaveMoveCamera : BehaveDotween
                         {
                             child.enabled = true;
                         }
-
                         ModelManager.Instance.CameraDotween = false;
-                        if (playerController == null)
-                        {
-                            ModelManager.Instance.UpdateCameraPose();
-                        }
-                        // 不在这里恢复相机跟随，由 SmallFlowCtrl.Execute() 和 CompleteExecute 统一管理
-                        // 行为组执行期间相机保持暂停，仅导航行为临时恢复，CompleteExecute 最终释放
-
                         callback?.Invoke();
                     });
                 }
@@ -1714,33 +1686,6 @@ public class BehaveObserve : BehaveDotween
             waitTime = Mathf.Max(stayTime, audioLength);
             sequence.AppendInterval(waitTime);
             Log.Debug("等待时间" + waitTime);
-
-            PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-            if (playerController != null)
-            {
-                playerController.CameraFollowTween.Pause();
-                playerController.CameraRotateTween.Pause();
-            }
-            if (playerController == null)
-            {
-                sequence.Append(camera.DOMove(position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                sequence.Join(camera.DORotate(angle, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease).OnComplete(() =>
-                {
-                    ModelManager.Instance.CameraDotween = false;
-                    callback?.Invoke();
-                }));
-            }
-            else
-            {
-                //角色相机归位
-                sequence.Append(camera.DOMove(playerController.CameraFollowPoint.position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                sequence.Join(camera.DORotate(playerController.CameraFollowPoint.eulerAngles, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                sequence.AppendCallback(() =>
-                {
-                    ModelManager.Instance.CameraDotween = false;
-                    callback?.Invoke();
-                });
-            }
         }
         sequence.timeScale = multiplier;
         sequence.SetId("BehaveObserve");
@@ -2115,7 +2060,7 @@ public class BehaveState : BehaveBase
 /// 角色漫游 相机跟随
 /// </summary>
 [Serializable]
-public class BehaveCameraFollow : BehaveBase
+public class BehaveCameraFollow : BehaveDotween
 {
     /// <summary>
     /// 切换时长
@@ -2130,21 +2075,25 @@ public class BehaveCameraFollow : BehaveBase
 
     public override void Execute(UnityAction callback = null)
     {
-        PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-        //重连执行缓存状态无步骤目标时厂家还没有加载，但是执行了操作步骤
-        if (playerController == null)
-        {
-            callback?.Invoke();
-            return;
-        }
 
-        if (ctrlGO == null)
+        base.Execute(callback);
+
+        var camera = Camera.main.transform;
         {
-            playerController.CameraFollow(null, duration, callback);
-        }
-        else
-        {
-            playerController.CameraFollow(ctrlGO.transform, duration, callback);
+            DOTween.Kill("BehaveMoveCamera", true);
+
+            ModelManager.Instance.CameraDotween = true;
+            sequence = DOTween.Sequence();
+            sequence.Append(camera.DOMove(ctrlGO.transform.position, duration * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
+            sequence.Join(camera.DORotate(ctrlGO.transform.eulerAngles, duration * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
+
+            sequence.timeScale = multiplier;
+            sequence.OnComplete(() =>
+            {
+                ModelManager.Instance.CameraDotween = false;
+                callback?.Invoke();
+            });
+            sequence.SetId("BehaveMoveCamera");
         }
     }
 }
@@ -2229,11 +2178,6 @@ public class BehaveMovePlayer : BehaveDotween
                     }
                     sequence.Append(playerController.transform.DORotate(eulerAngles[i], angleDiff.NormalizedAngle180() / 90f * GlobalInfo.playTimeRatio).SetEase(Ease.Linear));
                 }
-                //else
-                //{
-                //    sequence.Append(playerController.transform.DOMove(positions[i], playTimes[i] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                //    sequence.Join(playerController.transform.DORotate(eulerAngles[i], playTimes[i] * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
-                //}
             }
         }
         //wait camerarotatetweener
@@ -2249,7 +2193,6 @@ public class BehaveMovePlayer : BehaveDotween
 
     public override void SetFinalState()
     {
-        Debug.LogError("进入");
         sequence.Kill();
 
         PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
@@ -2262,17 +2205,11 @@ public class BehaveMovePlayer : BehaveDotween
         }
         else
         {
-            Debug.LogError("进入1");
             if (positions.Count != 0)
             {
                 playerController.transform.position = positions[positions.Count - 1];
                 playerController.transform.eulerAngles = eulerAngles[positions.Count - 1];
             }
-            //bool agentEnabled = playerController.Agent.enabled;
-            //playerController.Agent.enabled = false;
-            //playerController.transform.position = ctrlGO.transform.position;
-            //playerController.transform.eulerAngles = ctrlGO.transform.eulerAngles;
-            //playerController.Agent.enabled = agentEnabled;
         }
     }
 }
@@ -2374,12 +2311,6 @@ public class BehaveObserveRotate : BehaveDotween
 
             ModelManager.Instance.CameraDotween = true;
 
-            PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-            if (playerController != null)
-            {
-                playerController.CameraFollowTween.Pause();
-                playerController.CameraRotateTween.Pause();
-            }
 
             sequence = DOTween.Sequence();
             {
@@ -2404,8 +2335,6 @@ public class BehaveObserveRotate : BehaveDotween
                 sequence.AppendCallback(() =>
                 {
                     ModelManager.Instance.CameraDotween = false;
-                    if (playerController == null)
-                        ModelManager.Instance.UpdateCameraPose();
                     callback?.Invoke();
                 });
             }
@@ -2422,13 +2351,7 @@ public class BehaveObserveRotate : BehaveDotween
     {
         base.SetFinalState();
         sequence.Kill();
-
         ModelManager.Instance.CameraDotween = false;
-        PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-        if (playerController == null)
-        {
-            ModelManager.Instance.UpdateCameraPose();
-        }
     }
 }
 
@@ -2479,8 +2402,8 @@ public class BehavePlayerNavigation : BehaveDotween
         {
             playerController.StartNavigation(ctrlGO.transform);
 
-            // 等待导航完成
-            await UniTask.WaitUntil(() => playerController.NavPathComplete);
+            // 等待导航完成 避免退出没有停住
+            await UniTask.WaitUntil(() => !playerController || playerController.NavPathComplete);
 
             playerController.Model.GetComponent<Animator>().SetBool("isMove", false);
             float angleDiff = ctrlGO.transform.eulerAngles.y - playerController.transform.eulerAngles.y;
@@ -2546,23 +2469,12 @@ public class BehaveFocus : BehaveDotween
             DOTween.Kill("BehaveFocus");
             ModelManager.Instance.CameraDotween = true;
 
-            PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-            if (playerController != null)
-            {
-                playerController.CameraFollowTween.Pause();
-                playerController.CameraRotateTween.Pause();
-            }
             sequence = DOTween.Sequence();
             {
                 sequence.Append(camera.DOMove(ctrlGO.transform.position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
                 sequence.Join(camera.DORotate(ctrlGO.transform.eulerAngles, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease)).OnComplete(() =>
                 {
                     ModelManager.Instance.CameraDotween = false;
-                    if (playerController == null)
-                        ModelManager.Instance.UpdateCameraPose();
-                    // 不在这里恢复相机跟随，由 SmallFlowCtrl.Execute() 和 CompleteExecute 统一管理
-                    // 行为组执行期间相机保持暂停，仅导航行为临时恢复，CompleteExecute 最终释放
-
                     callback?.Invoke();
                 });
             }
@@ -2583,16 +2495,6 @@ public class BehaveFocus : BehaveDotween
         sequence.Kill();
 
         ModelManager.Instance.CameraDotween = false;
-        PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
-        if (playerController == null)
-        {
-            if(ctrlGO != null)
-            {
-                Camera.main.transform.position = ctrlGO.transform.position;
-                Camera.main.transform.eulerAngles = ctrlGO.transform.eulerAngles;
-            }
-            ModelManager.Instance.UpdateCameraPose();
-        }
     }
 }
 

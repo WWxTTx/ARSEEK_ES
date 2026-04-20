@@ -1133,7 +1133,7 @@ public class SmallFlowCtrl : MonoBase
             if(GlobalInfo.courseMode == CourseMode.Training)
             {
                 // 导航：恢复相机跟随 培训模式需要走到下一个位置才能开始下一步语音
-                ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().ToLast();
+                UISmallSceneModule.isExecuteOperation = false;
                 guideBehave.Execute(() =>
                 {
                     ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);

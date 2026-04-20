@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityFramework.Runtime;
 
 /// <summary>
-/// Õ¨≤Ωœ‡ª˙œ‡∂‘ƒ£–ÕµƒŒª÷√≥ØœÚ
+/// ÂêåÊ≠•Áõ∏Êú∫Áõ∏ÂØπÊ®°ÂûãÁöÑ‰ΩçÁΩÆÊúùÂêë
 /// </summary>
 public class CameraSync : MonoBase
 {
@@ -33,7 +33,7 @@ public class CameraSync : MonoBase
 
         target = ModelManager.Instance.modelRoot;
 
-        //∏˘æ›≈‰÷√…Ë÷√”–Œﬁ¬˛”Œƒ£ Ω
+        //Ê†πÊçÆÈÖçÁΩÆËÆæÁΩÆÊúâÊó†Êº´Ê∏∏Ê®°Âºè
         if (GlobalInfo.hasRole)
             syncTransform = Camera.main.transform;
         else
@@ -53,37 +53,37 @@ public class CameraSync : MonoBase
         });
     }
 
-    //private void LateUpdate()
-    //{
-    //    if (target == null || ModelManager.Instance.modelGo == null)
-    //        return;
+    private void LateUpdate()
+    {
+        if (target == null || ModelManager.Instance.modelGo == null)
+            return;
 
-    //    if (ModelManager.Instance.CameraDotween)
-    //        return;
+        if (ModelManager.Instance.CameraDotween)
+            return;
 
-    //    if (!inARMode && GlobalInfo.IsOperator())
-    //    {
-    //        time += Time.deltaTime;
-    //        if (time >= interval)
-    //        {
-    //            if (sync || Diff())
-    //            {
-    //                sync = false;
-    //                prevPosition = transform.position;
-    //                prevRotation = transform.rotation;
+        if (!inARMode && GlobalInfo.IsOperator())
+        {
+            time += Time.deltaTime;
+            if (time >= interval)
+            {
+                if (sync || Diff())
+                {
+                    sync = false;
+                    prevPosition = transform.position;
+                    prevRotation = transform.rotation;
 
-    //                relativePos = target.InverseTransformPoint(transform.position);
-    //                relativeRot = Quaternion.Inverse(target.transform.rotation) * transform.rotation;
+                    relativePos = target.InverseTransformPoint(transform.position);
+                    relativeRot = Quaternion.Inverse(target.transform.rotation) * transform.rotation;
 
-    //                MsgIntVector3Vector4 msg = new MsgIntVector3Vector4((ushort)GazeEvent.UserPose, GlobalInfo.account.id,
-    //                    relativePos, new Vector4(relativeRot.x, relativeRot.y, relativeRot.z, relativeRot.w));
+                    MsgIntVector3Vector4 msg = new MsgIntVector3Vector4((ushort)GazeEvent.UserPose, GlobalInfo.account.id,
+                        relativePos, new Vector4(relativeRot.x, relativeRot.y, relativeRot.z, relativeRot.w));
 
-    //                NetworkManager.Instance.SendFrameMsg(msg);
-    //            }
-    //            time = 0;
-    //        }
-    //    }  
-    //}
+                    NetworkManager.Instance.SendFrameMsg(msg);
+                }
+                time = 0;
+            }
+        }
+    }
 
     int count = 0;
     private void FixedUpdate()

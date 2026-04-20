@@ -58,11 +58,19 @@ public class PlayerController : MonoBase
             return cameraFollowPoint;
         }
     }
-    public Tweener CameraRotateTween => cameraRotateFollow;
-    public Tweener CameraFollowTween => cameraPositionFollow;
     public Transform Model => model;
     public Tweener ModelRotateTween => modelRotateFollow;
     public Tweener ModelFollowTween => modelPositionFollow;
+
+    /// <summary>
+    /// 将相机归位到跟随点，追加到外部 Sequence
+    /// </summary>
+    public void AppendCameraReturn(Sequence seq, float duration, Ease ease)
+    {
+        Transform fp = CameraFollowPoint;
+        seq.Append(mainCamera.DOMove(fp.position, duration).SetEase(ease));
+        seq.Join(mainCamera.DORotate(fp.eulerAngles, duration).SetEase(ease));
+    }
 
     #region Private
     private Transform mainCamera;
@@ -75,8 +83,7 @@ public class PlayerController : MonoBase
     private Transform verticalPoint;
     private Transform cameraFollowPoint;
     private Transform firstCameraFollowPoint;
-    private Tweener cameraRotateFollow;
-    private Tweener cameraPositionFollow;
+    private Transform externalFollowPoint;
 
     private Transform model;
     private Animator animator;
@@ -108,17 +115,6 @@ public class PlayerController : MonoBase
         firstCameraFollowPoint.parent = verticalPoint;
         firstCameraFollowPoint.localPosition = Vector3.zero;
         firstCameraFollowPoint.localEulerAngles = Vector3.zero;
-
-
-        cameraRotateFollow = mainCamera.DORotate(cameraFollowPoint.eulerAngles, cameraRotateDuration).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-        {
-            cameraRotateFollow.ChangeEndValue(cameraFollowPoint.eulerAngles, cameraMoveDuration, true);
-        });
-
-        cameraPositionFollow = mainCamera.DOMove(cameraFollowPoint.position, cameraMoveDuration).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-        {
-            cameraPositionFollow.ChangeEndValue(cameraFollowPoint.position, cameraMoveDuration, true);
-        });
 
         model = this.FindChildByName("Model");
         {
@@ -248,93 +244,17 @@ public class PlayerController : MonoBase
     private void FirstPerson()
     {
         isFirstPerson = true;
-
-        cameraPositionFollow.Pause();
-        cameraRotateFollow.Pause();
-        cameraRotateFollow = mainCamera.DORotate(firstCameraFollowPoint.eulerAngles, cameraRotateDuration).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-        {
-            cameraRotateFollow.ChangeEndValue(firstCameraFollowPoint.eulerAngles, cameraMoveDuration, true);
-        });
-
-        cameraPositionFollow = mainCamera.DOMove(firstCameraFollowPoint.position, cameraMoveDuration).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-        {
-            cameraPositionFollow.ChangeEndValue(firstCameraFollowPoint.position, cameraMoveDuration, true);
-        });
-
-        cameraPositionFollow.Play();
-        cameraRotateFollow.Play();
-
         model.gameObject.SetActive(false);
     }
 
     private void ThirdPerson()
     {
         isFirstPerson = false;
-
-        cameraPositionFollow.Pause();
-        cameraRotateFollow.Pause();
-        cameraRotateFollow = mainCamera.DORotate(cameraFollowPoint.eulerAngles, cameraRotateDuration).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-        {
-            cameraRotateFollow.ChangeEndValue(cameraFollowPoint.eulerAngles, cameraRotateDuration, true);
-        });
-
-        cameraPositionFollow = mainCamera.DOMove(cameraFollowPoint.position, cameraMoveDuration).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-        {
-            cameraPositionFollow.ChangeEndValue(cameraFollowPoint.position, cameraMoveDuration, true);
-        });
-
-        cameraPositionFollow.Play();
-        cameraRotateFollow.Play();
-
         modelPositionFollow.ChangeStartValue(transform.position);
         this.WaitTime(0.1f, () =>
         {
             if (model != null)
                 model.gameObject.SetActive(!isFirstPerson);
-        });
-    }
-
-    /// <summary>
-    /// 提供给相机跟随配置的视角切换
-    /// </summary>
-    /// <param name="followPoint"></param>
-    /// <param name="duration"></param>
-    /// <param name="callback"></param>
-    public void CameraFollow(Transform followPoint, float duration, UnityAction callback = null)
-    {
-        //如果相机跟随的对象是VerticalPoint则按照第一第三人称的设置 否则跟队目标物体
-        if (followPoint.name == "VerticalPoint")
-        {
-            ToLast();
-        }
-        else
-        {
-            cameraPositionFollow.Pause();
-            cameraRotateFollow.Pause();
-
-            cameraRotateFollow = mainCamera.DORotate(followPoint.eulerAngles, duration/*cameraRotateDuration*/).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-            {
-                cameraRotateFollow.ChangeEndValue(followPoint.eulerAngles, duration/*cameraMoveDuration*/, true);
-            });
-
-            cameraPositionFollow = mainCamera.DOMove(followPoint.position, duration/*cameraMoveDuration*/).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-            {
-                cameraPositionFollow.ChangeEndValue(followPoint.position, duration/*cameraMoveDuration*/, true);
-            });
-            cameraPositionFollow.Play();
-            cameraRotateFollow.Play();
-        }
-
-
-        modelPositionFollow.ChangeStartValue(transform.position);
-        this.WaitTime(0.1f, () =>
-        {
-            if (model != null)
-                model.gameObject.SetActive(!isFirstPerson);
-        });
-        this.WaitTime(duration, () =>
-        {
-            callback?.Invoke();
         });
     }
 
@@ -373,48 +293,26 @@ public class PlayerController : MonoBase
     {
         RefreshSpeedCache();
         UpdateCameraFollowValue();
-        if (isFirstPerson)
-        {
-            FirstPerson();
-        }
-        else
-        {
-            ThirdPerson();
-        }
     }
 
     private void UpdateCameraFollowValue()
     {
-        Transform followPoint = cameraFollowPoint;
-        if (isFirstPerson)
-            followPoint = firstCameraFollowPoint;
-        cameraPositionFollow.ChangeStartValue(followPoint.position);
-        cameraRotateFollow.ChangeStartValue(followPoint.eulerAngles);
-        cameraPositionFollow.ChangeEndValue(followPoint.position);
-        cameraRotateFollow.ChangeEndValue(followPoint.eulerAngles);
+        Transform followPoint = isFirstPerson ? firstCameraFollowPoint : cameraFollowPoint;
+        mainCamera.position = followPoint.position;
+        mainCamera.rotation = followPoint.rotation;
     }
 
+    float t;
     private void LateUpdate()
     {
-        if (GlobalInfo.ShowPopup || rotateJoystick == null)
+        //isExecuteOperation=false:是否正在操作的标志位 操作中不可控制角色和相机 角色停止移动 相机由外部自由控制
+        if (GlobalInfo.ShowPopup || rotateJoystick == null || UISmallSceneModule.isExecuteOperation)
             return;
+
 
         if (isNavigating)
         {
-            // 导航期间直接用 Lerp 跟随相机跟随点，绕过 SetLoops(-1) tween 的问题
-            Transform followPoint = isFirstPerson ? firstCameraFollowPoint : cameraFollowPoint;
-            float followSpeed = 1f / cameraMoveDuration * Time.deltaTime;
-            mainCamera.position = Vector3.Lerp(mainCamera.position, followPoint.position, followSpeed);
-            mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, followPoint.rotation, followSpeed);
-
-            //非培训模式导航不准打断 直接不会调用导航 这里先注销
-            //if (Input.anyKey)
-            //{
-            //    EndNavigation();
-            //}
-            //else 
-                
-            if (isNavigating && !agent.pathPending && agent.remainingDistance < agent.stoppingDistance)//remainingDistance 距离很不稳定
+            if (!agent.pathPending && agent.remainingDistance < agent.stoppingDistance)
             {
                 EndNavigation(targetPoint);
             }
@@ -424,6 +322,22 @@ public class PlayerController : MonoBase
             Zoom();
             Rotate();
             Move();
+        }
+
+        // 跟随角色(强制使用玩家跟随点)
+        if (!UISmallSceneModule.isExecuteOperation)
+        {
+            t = 1f / cameraMoveDuration * Time.deltaTime;
+            if (isFirstPerson)
+            {
+                mainCamera.position = Vector3.Lerp(mainCamera.position, firstCameraFollowPoint.position, t);
+                mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, firstCameraFollowPoint.rotation, t);
+            }
+            else
+            {
+                mainCamera.position = Vector3.Lerp(mainCamera.position, cameraFollowPoint.position, t);
+                mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, cameraFollowPoint.rotation, t);
+            }
         }
     }
 
@@ -548,11 +462,6 @@ public class PlayerController : MonoBase
     protected override void OnDestroy()
     {
         base.OnDestroy();
-
-        if (cameraPositionFollow != null)
-            cameraPositionFollow.Kill();
-        if (cameraRotateFollow != null)
-            cameraRotateFollow.Kill();
 
         if (modelPositionFollow != null)
             modelPositionFollow.Kill();

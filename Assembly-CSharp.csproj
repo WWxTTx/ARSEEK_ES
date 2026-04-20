@@ -1117,7 +1117,6 @@
     <Compile Include="Assets\Scripts\Destroy\ModelTypes\DragConvertAngle.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\ClientCertificateType.cs" />
     <Compile Include="Assets\SDK\DatePicker\DatePicker\DatePicker_DayHeader.cs" />
-    <Compile Include="Assets\Scripts\UI\Exam\Destroy\ExamUtils.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\PlatformSupport\TcpClient\WinRT\DataReaderWriterStream.cs" />
     <Compile Include="Assets\Framework\Debugger\Scripts\Runtime\Show\UIInformationModule.cs" />
     <Compile Include="Assets\Framework\Extend\ComponentExtend.cs" />

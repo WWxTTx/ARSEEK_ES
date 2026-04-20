@@ -391,9 +391,9 @@ public class UISmallSceneModule : UIModuleBase
     }
 
     /// <summary>
-    /// 是否正在执行操作（初始视角导航）
+    /// 是否正在执行操作（视角导航）
     /// </summary>
-    private bool isExecuteOperation = false;
+    public static bool isExecuteOperation = false;
 
     [HideInInspector]
     public string FatalFinishMessage;
@@ -1440,24 +1440,9 @@ public class UISmallSceneModule : UIModuleBase
 
     private void EnableCameraControl(bool enabled)
     {
-        if (playerController)
-        {
-            playerController.enabled = enabled;
-            // 只有在启用且没有外部 DOTween 控制相机时才重建跟随 tween
-            // 禁用时不需要调用 ToLast()，因为外部动画（如 BehaveObserve）会接管相机
-            if (enabled && !ModelManager.Instance.CameraDotween)
-            {
-                playerController.ToLast();
-            }
-        }
-        else
-        {
-            ////通过CameraControl控制 会暂停协同操作同步
-            //ModelManager.Instance.CameraControl = enabled;
-            CameraMove.enabled = enabled;
-            CameraRotate.enabled = enabled;
-            CameraZoom.enabled = enabled;
-        }
+        CameraMove.enabled = enabled;
+        CameraRotate.enabled = enabled;
+        CameraZoom.enabled = enabled;
     }
 
     public override void ProcessEvent(MsgBase msg)
