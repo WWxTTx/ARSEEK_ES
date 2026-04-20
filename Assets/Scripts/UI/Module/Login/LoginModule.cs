@@ -1,11 +1,12 @@
 ﻿using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 using UnityFramework.Runtime;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using DG.Tweening;
+using Cysharp.Threading.Tasks;
 using static UnityFramework.Runtime.RequestData;
 using UnityEngine.EventSystems;
 
@@ -139,11 +140,11 @@ public class LoginModule : UIModuleBase
                 SendMsg(new MsgBase((ushort)UIAnimEvent.ShowAnimMask));
                 //SendMsg(new MsgBase((ushort)LoginEvent.LoginAnim));
 
-                StartCoroutine(LoginAnim(Login.GetComponentByChildName<Text>("Text"), () =>
+                LoginAnim(Login.GetComponentByChildName<Text>("Text"), () =>
                 {
                     if (!InRequest) return;
                     ValidateLogin();
-                }));
+                }, this.GetCancellationTokenOnDestroy()).Forget();
 
                 GlobalInfo.isOffLine = false;
 
@@ -425,7 +426,7 @@ public class LoginModule : UIModuleBase
     /// </summary>
     /// <param name="loginText"></param>
     /// <param name="callback"></param>
-    IEnumerator LoginAnim(Text loginText, UnityAction callback)
+    async UniTaskVoid LoginAnim(Text loginText, UnityAction callback, System.Threading.CancellationToken ct)
     {
         IsFinishLoading = true;
         loginText.text = "登录中" + "<color=#FFFFFF00>-----</color>";
@@ -462,7 +463,7 @@ public class LoginModule : UIModuleBase
                 index = -1;
             }
             time += Time.deltaTime;
-            yield return new WaitForSeconds(waitTime);
+            await UniTask.Delay(TimeSpan.FromSeconds(waitTime), cancellationToken: ct);
             time += waitTime;
         }
 

@@ -1,11 +1,12 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using DG.Tweening;
+using Cysharp.Threading.Tasks;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
 using static UISmallSceneOperationHistory;
@@ -41,6 +42,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
     private UISmallSceneModule smallSceneModule;
 
     private bool wikiInitialized = false;
+
+    private Func<bool> sendOpZeroPredicate = () => NetworkManager.Instance.SendOpCount == 0;
+
+    private CancellationTokenSource submitCts;
+    private CancellationTokenSource mCountdownCts;
 
     private bool logout;
 
@@ -111,24 +117,24 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
             RequestManager.Instance.EndExam(examId, () =>
             {
-                StartCoroutine(_Quit());
+                _Quit(this.GetCancellationTokenOnDestroy()).Forget();
             }, (error) =>
             {
                 Log.Error($"考核结束答题失败：{error}");
-                StartCoroutine(_Quit());
+                _Quit(this.GetCancellationTokenOnDestroy()).Forget();
             });
         }
         else
         {
             NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
-            StartCoroutine(_Quit());
+            _Quit(this.GetCancellationTokenOnDestroy()).Forget();
         }
     }
 
-    private IEnumerator _Quit()
+    private async UniTaskVoid _Quit(CancellationToken ct)
     {
         //等待消息发送完成
-        yield return new WaitUntil(() => NetworkManager.Instance.SendOpCount == 0);
+        await UniTask.WaitUntil(sendOpZeroPredicate, cancellationToken: ct);
         NetworkManager.Instance.ReleaseMicrophone();
         NetworkManager.Instance.LeaveRoom();
     }
@@ -265,7 +271,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             wikiInitialized = false;
             LoadEncyclopedia(baikeId);
             //还原考核百科状态
-            StartCoroutine(RecoveryExamWiki());
+            RecoveryExamWiki(this.GetCancellationTokenOnDestroy()).Forget();
         });
     }
 
@@ -411,7 +417,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     private Button submit;
 
-    private Coroutine mCountdownCoroutine;
     /// <summary>
     /// 剩余时长
     /// </summary>
@@ -497,10 +502,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// 恢复百科状态
     /// </summary>
     /// <returns></returns>
-    private IEnumerator RecoveryExamWiki()
+    private async UniTaskVoid RecoveryExamWiki(CancellationToken ct)
     {
         //等待百科初始化完成
-        yield return new WaitUntil(() => wikiInitialized);
+        await UniTask.WaitUntil(() => wikiInitialized, cancellationToken: ct);
 
         if (GlobalInfo.currentWiki != null && answersDic.ContainsKey(GlobalInfo.currentWiki.id))
         {
@@ -582,28 +587,18 @@ public partial class ExamCoursePanel : OPLCoursePanel
         NetworkManager.Instance.IsIMSync = true;
     }
 
-    private Coroutine submitCoroutine;
-    /// <summary>
-    /// 提交考核记录
-    /// </summary>
-    /// <param name="submitRecording">是否提交监控视频</param>
-    /// <param name="showToast">是否弱提示</param>
-    /// <param name="callBack"></param>
     private void SubmitExamRecord(bool submitRecording = true, bool showToast = true, Action<bool> callBack = null)
     {
-        if (submitCoroutine != null)
-        {
-            StopCoroutine(submitCoroutine);
-            submitCoroutine = null;
-        }
-        submitCoroutine = StartCoroutine(_submitExamRecord(submitRecording, showToast, callBack));
+        submitCts?.Cancel();
+        submitCts = new CancellationTokenSource();
+        _submitExamRecord(submitRecording, showToast, callBack, submitCts.Token).Forget();
     }
-    private IEnumerator _submitExamRecord(bool submitRecording = true, bool showToast = true, Action<bool> callBack = null)
+    private async UniTaskVoid _submitExamRecord(bool submitRecording = true, bool showToast = true, Action<bool> callBack = null, CancellationToken ct = default)
     {
         if (GlobalInfo.currentWiki == null)
         {
             callBack?.Invoke(false);
-            yield break;
+            return;
         }
 
         SaveWikiRecord();
@@ -639,7 +634,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         //}
         #endregion
 
-        yield return new WaitForEndOfFrame();
+        await UniTask.WaitForEndOfFrame(this, ct);
 
         switch (GlobalInfo.currentWiki.typeId)
         {
@@ -1053,12 +1048,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
         endTime = data.endTime;
         ExamScreenRecording.Instance.ExamId = examId;
 
-        if (mCountdownCoroutine != null)
-        {
-            StopCoroutine(mCountdownCoroutine);
-            mCountdownCoroutine = null;
-        }
-        mCountdownCoroutine = StartCoroutine(Timing(data.endTime));
+        mCountdownCts?.Cancel();
+        mCountdownCts = new CancellationTokenSource();
+        Timing(data.endTime, mCountdownCts.Token).Forget();
 
 #if UNITY_STANDALONE
         var mid = this.GetComponentByChildName<CanvasGroup>("MidBtns");
@@ -1076,12 +1068,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     /// <param name="endTime"></param>
     /// <returns></returns>
-    private IEnumerator Timing(DateTime endTime)
+    private async UniTaskVoid Timing(DateTime endTime, CancellationToken ct)
     {
         var time = this.GetComponentByChildName<Text>("Time");
         time.gameObject.SetActive(true);
 
-        var wait = new WaitForSeconds(1);
         TimeSpan remainingTime;
         while (endTime > GlobalInfo.ServerTime)
         {
@@ -1089,9 +1080,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
             time.text = $"考核倒计时：{remainingTime.ToString(@"hh\:mm\:ss")}";
             remainingSeconds = (int)remainingTime.TotalSeconds;
             //停止计时
-            if (!inExam)
-                yield break;
-            yield return wait;
+            if (!inExam || ct.IsCancellationRequested)
+                return;
+            await UniTask.Delay(TimeSpan.FromSeconds(1), cancellationToken: ct);
         }
 
         time.text = $"考核倒计时：00:00:00";
@@ -1203,10 +1194,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 ModelManager.Instance.DestroyModels(true);
                 UIManager.Instance.CloseAllModuleUI(this);
                 GlobalInfo.currentWiki = null;
-                if (mCountdownCoroutine != null)
+                if (mCountdownCts != null)
                 {
-                    StopCoroutine(mCountdownCoroutine);
-                    mCountdownCoroutine = null;
+                    mCountdownCts.Cancel();
+                    mCountdownCts = null;
                 }
                 UpdateUIWhenExamStop();
             }
@@ -1315,7 +1306,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     //被踢出时正在考核中，通知房主退出并清理
                     inExam = false;
                     NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
-                    StartCoroutine(_Quit());
+                    _Quit(this.GetCancellationTokenOnDestroy()).Forget();
                 }
                 else
                 {

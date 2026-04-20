@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Events;
 using DG.Tweening;
+using Cysharp.Threading.Tasks;
 using System;
 
 /// <summary>
@@ -211,7 +212,7 @@ public class ForgetModule : UIModuleBase
 
                     currentTime = time;
                     OpenTimer();
-                    StartCoroutine(UpdateTime());
+                    UpdateTime(this.GetCancellationTokenOnDestroy()).Forget();
 
                     inRequestCode = false;
                 }, (code, msg) =>
@@ -267,7 +268,7 @@ public class ForgetModule : UIModuleBase
 
         if (currentTime > 0)
         {
-            StartCoroutine(UpdateTime());
+            UpdateTime(this.GetCancellationTokenOnDestroy()).Forget();
         }
     }
 
@@ -287,8 +288,7 @@ public class ForgetModule : UIModuleBase
     /// <summary>
     /// 更新计时UI
     /// </summary>
-    /// <returns></returns>
-    private System.Collections.IEnumerator UpdateTime()
+    private async UniTaskVoid UpdateTime(System.Threading.CancellationToken ct)
     {
         TimeText.text = $"重新获取({currentTime.ToString("D2")})";
 
@@ -297,7 +297,7 @@ public class ForgetModule : UIModuleBase
         while (currentTime > 0)
         {
             TimeText.text = $"重新获取({currentTime.ToString("D2")})";
-            yield return 0;
+            await UniTask.Yield(ct);
         }
 
         TimeText.transform.parent.gameObject.SetActive(false);

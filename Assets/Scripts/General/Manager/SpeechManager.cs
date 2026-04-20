@@ -1,6 +1,5 @@
 using Cysharp.Threading.Tasks;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -21,10 +20,6 @@ public class SpeechManager : Singleton<SpeechManager>
             PlayerPrefs.SetInt(GlobalInfo.courseVoice, 1);
             GlobalInfo.UpdateSpeechMode();
             Log.Debug("语音模式" + SpeechMode);
-        }
-        else
-        {
-            Log.Debug("语音未进" + PlayerPrefs.GetInt(GlobalInfo.courseVoice));
         }
     }
 
@@ -142,9 +137,12 @@ public class SpeechManager : Singleton<SpeechManager>
         Cancell();
     }
 
-    public IEnumerator WaitStepSpeechData(string stepId, int index, TipType tipType)
+    private Func<bool> stepSpeechDataReadyPredicate;
+
+    public async UniTaskVoid WaitStepSpeechData(string stepId, int index, TipType tipType)
     {
-        yield return new WaitUntil(() => StepSpeechData != null);
+        stepSpeechDataReadyPredicate = () => StepSpeechData != null;
+        await UniTask.WaitUntil(stepSpeechDataReadyPredicate, cancellationToken: this.GetCancellationTokenOnDestroy());
         PlayImmediate(stepId, index, tipType);
     }
 
@@ -378,7 +376,7 @@ public class SpeechManager : Singleton<SpeechManager>
         {
             if (StepSpeechData == null)
             {
-                StartCoroutine(WaitStepSpeechData(stepId, index, tipType));
+                WaitStepSpeechData(stepId, index, tipType).Forget();
                 return;
             }
         }

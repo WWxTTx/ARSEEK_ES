@@ -86,6 +86,7 @@ public class Option_GeneralModule : UIModuleBase
                 float coefficient = SliderToCoefficient(value);
                 PlayerPrefs.SetFloat(GlobalInfo.moveSpeedCacheKey, coefficient);
                 SliderValue.text = Mathf.Floor(coefficient * 100) + "%";
+                ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().cachedRotateSpeed = coefficient;
             });
         }
 
@@ -100,6 +101,7 @@ public class Option_GeneralModule : UIModuleBase
                 float coefficient = SliderToCoefficient(value);
                 PlayerPrefs.SetFloat(GlobalInfo.rotateSpeedCacheKey, coefficient);
                 SliderValue.text = Mathf.Floor(coefficient * 100) + "%";
+                ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().cachedRotateSpeed = coefficient;
             });
         }
 

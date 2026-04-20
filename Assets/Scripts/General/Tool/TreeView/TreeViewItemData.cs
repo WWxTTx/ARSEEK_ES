@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Cysharp.Threading.Tasks;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
@@ -159,7 +160,7 @@ public class TreeViewItemData : MonoBehaviour
         nameCanvas = Name.GetComponent<CanvasGroup>();
         Name.onEndEdit.AddListener((value) =>
         {
-            StartCoroutine(DisableInput(Name));
+            DisableInput(Name).Forget();
             EditObjectName(value, onEndEdit);
         });
 
@@ -221,9 +222,9 @@ public class TreeViewItemData : MonoBehaviour
     }
 
 
-    IEnumerator DisableInput(InputField input)
+    async UniTaskVoid DisableInput(InputField input)
     {
-        yield return new WaitForEndOfFrame();
+        await UniTask.WaitForEndOfFrame(this);
         input.interactable = false;
         nameCanvas.blocksRaycasts = false;
     }

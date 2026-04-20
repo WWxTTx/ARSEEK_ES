@@ -1,8 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
+using Cysharp.Threading.Tasks;
 using UnityFramework.Runtime;
 
 public class MicrophoneAudioRecord : MonoBehaviour
@@ -28,6 +28,7 @@ public class MicrophoneAudioRecord : MonoBehaviour
     [SerializeField]
     private bool isPause = false;
     private Thread saveThread;
+    private CancellationTokenSource recordingCts;
     private AudioClip NewClip;
     private UnityAction EndEditor;
     private UnityAction<int> RecordingTime;
@@ -67,7 +68,9 @@ public class MicrophoneAudioRecord : MonoBehaviour
         isPause = false;
         isRecording = true;
         RecordingTime = timeCallBack;
-        StartCoroutine(Recording());
+        recordingCts?.Cancel();
+        recordingCts = new CancellationTokenSource();
+        Recording(recordingCts.Token).Forget();
         return true;
     }
 
@@ -156,7 +159,7 @@ public class MicrophoneAudioRecord : MonoBehaviour
     /// 录制协程
     /// </summary>
     /// <returns></returns>
-    IEnumerator Recording()
+    async UniTaskVoid Recording(CancellationToken ct)
     {
         //避免多次记录
         bool save = false;
@@ -211,13 +214,14 @@ public class MicrophoneAudioRecord : MonoBehaviour
                 second += audioLength / frequency;
                 save = true;
 
-                while (isPause) yield return 0;
+                while (isPause)
+                    await UniTask.Yield(ct);
 
                 clip = Microphone.Start(DeviceName, true, loopTime, frequency);
                 Log.Debug("录音继续！进程已恢复！");
             }
 
-            yield return 0;
+            await UniTask.Yield(ct);
         }
 
         audioData = new float[Microphone.GetPosition(DeviceName)];
@@ -236,6 +240,8 @@ public class MicrophoneAudioRecord : MonoBehaviour
 
     private void OnDestroy()
     {
+        recordingCts?.Cancel();
+        recordingCts?.Dispose();
         if (saveThread != null)
             saveThread.Abort();
     }

@@ -1,7 +1,6 @@
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -285,6 +284,8 @@ public class SmallFlowCtrl : MonoBase
 
     //是否开启强制引导视角（todo 后台配置）
     private bool useGuide;
+
+    private Func<bool> audioNotPlayingPredicate;
 
     /// <summary>
     /// 各步骤初始视角
@@ -1004,11 +1005,12 @@ public class SmallFlowCtrl : MonoBase
             if (op != null)
             {
                 ModelOperationEventManager.Publish(new ModelStateEvent(modelInfoId, data.optionName));
- 
+
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
                     SendOperatingRecordMsg(data, op, userNo, userName);
-                    StartCoroutine(WaitUadioToNext(() => {
+                    WaitUadioToNext(() =>
+                    {
                         SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
 
                         // 先构建联动操作列表，判断是否需要等待联动完成
@@ -1026,7 +1028,7 @@ public class SmallFlowCtrl : MonoBase
                             callback?.Invoke(true);
                             Next();
                         }
-                    }));
+                    }).Forget();
                 }, 0, dummy);
             }
             else
@@ -1036,15 +1038,17 @@ public class SmallFlowCtrl : MonoBase
         }, dummy);
     }
 
+
     /// <summary>
     /// 培训模式等待结束提示播放完成才进入下一步
     /// </summary>
-    IEnumerator WaitUadioToNext(Action action)
+    async UniTaskVoid WaitUadioToNext(Action action)
     {
         if (SpeechManager.Instance.SpeechMode)
         {
-            yield return null;
-            yield return new WaitUntil(() => !SpeechManager.Instance.audioSource.isPlaying);
+            await UniTask.Yield();
+            audioNotPlayingPredicate = () => !SpeechManager.Instance.audioSource.isPlaying;
+            await UniTask.WaitUntil(audioNotPlayingPredicate, cancellationToken: this.GetCancellationTokenOnDestroy());
             action.Invoke();
         }
         else
@@ -1471,7 +1475,7 @@ public class SmallFlowCtrl : MonoBase
             //    if (isOn != null)
             //        RunAction(actions[index].operation.operations.Find(value => value.name.Equals(actions[index].optionName)).actions, null, 0, dummy);
             //}, null, dummy);
-            StartCoroutine(ExecuteAction(actions[index], dummy));
+            ExecuteAction(actions[index], dummy).Forget();
             RunAction(actions, callBack, ++index, dummy);
         }
     }
@@ -1482,9 +1486,9 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="action"></param>
     /// <param name="dummy"></param>
     /// <returns></returns>
-    private IEnumerator ExecuteAction(OpLinkage action, bool dummy)
+    private async UniTaskVoid ExecuteAction(OpLinkage action, bool dummy)
     {
-        yield return null;
+        await UniTask.Yield();
         ExecuteOperation(action.operation, action.optionName, null, isOn =>
         {
             if (isOn != null)
@@ -1961,7 +1965,6 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="optionName">操作名称</param>
     public void AbortAllOperations()
     {
-        StopAllCoroutines();
         foreach (var modelOperation in operationIDs)
         {
             foreach(var op in modelOperation.Value.operations)
@@ -2061,7 +2064,6 @@ public class SmallFlowCtrl : MonoBase
     protected override void OnDestroy()
     {
         base.OnDestroy();
-        StopAllCoroutines();
     }
 }
 

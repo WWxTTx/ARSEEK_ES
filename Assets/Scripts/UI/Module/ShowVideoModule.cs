@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
@@ -38,6 +39,7 @@ public class ShowVideoModule : UIModuleBase
     private bool SliderValueSetting = false;
     private bool videoSeekPlay = false;
     private double seekDesiredTime;
+    private Func<bool> videoPreparedPredicate;
 
     private Text NowText;
     private Text MaxText;
@@ -101,15 +103,16 @@ public class ShowVideoModule : UIModuleBase
             transform.AutoComponent<GraphicRaycaster>();
         }
 
-        StartCoroutine(Init());
+        Init(this.GetCancellationTokenOnDestroy()).Forget();
     }
 
-    IEnumerator Init()
+    async UniTaskVoid Init(System.Threading.CancellationToken ct)
     {
         if (ShowVideo == null)
-            yield break;
+            return;
         ShowVideo.Prepare();
-        yield return new WaitUntil(() => ShowVideo.isPrepared);
+        videoPreparedPredicate = () => ShowVideo.isPrepared;
+        await UniTask.WaitUntil(videoPreparedPredicate, cancellationToken: ct);
         PlayVideo(true);
     }
 
@@ -307,9 +310,9 @@ public class ShowVideoModule : UIModuleBase
                 ShowVideoToggle.SetIsOnWithoutNotify(videoSeekPlay);
                 ShowVideoplay.enabled = !videoSeekPlay;
 
-                if (seekFrameCo != null)
-                    StopCoroutine(seekFrameCo);
-                seekFrameCo = StartCoroutine(SeekFrameRoutine(frame));
+                seekFrameCts?.Cancel();
+                seekFrameCts = new System.Threading.CancellationTokenSource();
+                SeekFrameRoutine(frame, seekFrameCts.Token).Forget();
 #else
                 ShowVideo.frame = frame;
                 NowText.text = $"{ToTimeFormat(seekDesiredTime)} ";
@@ -357,30 +360,29 @@ public class ShowVideoModule : UIModuleBase
         }
     }
 
-    private Coroutine seekFrameCo;
+    private System.Threading.CancellationTokenSource seekFrameCts;
     /// <summary>
     /// 针对IOS通过帧数设置播放进度和播放的状态
     /// </summary>
     /// <param name="seekFrame"></param>
     /// <returns></returns>
-    private IEnumerator SeekFrameRoutine(long seekFrame)
+    private async UniTaskVoid SeekFrameRoutine(long seekFrame, System.Threading.CancellationToken ct)
     {
         if (ShowVideo)
         {
             ShowVideo.Stop();
-            yield return null;
+            await UniTask.Yield(ct);
 
             ShowVideo.Prepare();
             float waitTillTime = Time.time + 3f;
             while (!ShowVideo.isPrepared && (Time.time < waitTillTime))
             {
-                yield return null;
+                await UniTask.Yield(ct);
             }
 
-            //跳转帧数前需要一次播放暂停处理防止从头开始
             ShowVideo.Play();
             ShowVideo.Pause();
-            yield return null;
+            await UniTask.Yield(ct);
 
             ShowVideo.frame = seekFrame;
             NowText.text = $"{ToTimeFormat(seekDesiredTime)} ";

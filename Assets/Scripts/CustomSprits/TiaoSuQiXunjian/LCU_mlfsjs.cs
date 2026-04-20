@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// Ua, Ub, Uc / Uab, Ubc, Uca
@@ -38,13 +39,13 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         {
             MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
             MsgSyncCustomUI msgUI = brodcastMsg.GetData<MsgSyncCustomUI>();
-            StartCoroutine(WaitStepInit(msgUI));
+            WaitStepInit(msgUI).Forget();
         }
     }
 
-    System.Collections.IEnumerator WaitStepInit(MsgSyncCustomUI msgUI)
+    async UniTaskVoid WaitStepInit(MsgSyncCustomUI msgUI)
     {
-        yield return new WaitUntil(() => steps.Count > 0);
+        await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
         if (msgUI.stepIndex >= 0 && msgUI.stepIndex < steps.Count)
         {
             for (int i = currentStepIndex; i <= msgUI.stepIndex && i <= steps.Count; i++)

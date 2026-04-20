@@ -68,6 +68,9 @@ public class PlayerController : MonoBase
     private Transform mainCamera;
     private float tempFloat;
     private Vector3 tempVector3;
+    //缓存速度系数，避免每帧 PlayerPrefs.GetFloat
+    public float cachedRotateSpeed;
+    public float cachedMoveSpeed;
 
     private Transform verticalPoint;
     private Transform cameraFollowPoint;
@@ -85,6 +88,7 @@ public class PlayerController : MonoBase
     private void Awake()
     {
         isFirstPerson = true;
+        RefreshSpeedCache();
         AddMsg(new ushort[]{
             (ushort)SmallFlowModuleEvent.SelectFlow,
             (ushort)SmallFlowModuleEvent.SelectStep,
@@ -151,10 +155,10 @@ public class PlayerController : MonoBase
     {
 #if UNITY_ANDROID || UNITY_IOS
         //横向轴
-        transform.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+        transform.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
 
         // 计算新的旋转角度
-        tempFloat = verticalPoint.localEulerAngles.x - rotateJoystick.Vertical * GlobalInfo.baseRotateSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+        tempFloat = verticalPoint.localEulerAngles.x - rotateJoystick.Vertical * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
 
         // 将角度转换到[-180, 180]范围
         if (tempFloat > 180)
@@ -169,18 +173,18 @@ public class PlayerController : MonoBase
         verticalPoint.localEulerAngles = new Vector3(clampedAngle, 0f, 0f);
 #else
         //横向轴
-        transform.localEulerAngles += Vector3.up * Input.GetAxis("Mouse X") * GlobalInfo.baseRotateSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+        transform.localEulerAngles += Vector3.up * Input.GetAxis("Mouse X") * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
 
         //纵向轴
         {
-            tempFloat = verticalPoint.localEulerAngles.x - Input.GetAxis("Mouse Y") * GlobalInfo.baseRotateSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+            tempFloat = verticalPoint.localEulerAngles.x - Input.GetAxis("Mouse Y") * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
 
             if (tempFloat > 180)
             {
                 tempFloat -= 360;
             }
 
-            verticalPoint.localEulerAngles = Vector3.right * tempFloat;        
+            verticalPoint.localEulerAngles = Vector3.right * tempFloat;
         }
 #endif
     }
@@ -197,11 +201,11 @@ public class PlayerController : MonoBase
             return;
         if (agent.isOnNavMesh)
         {
-            agent.Move(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * GlobalInfo.baseMoveSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient));
+            agent.Move(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * GlobalInfo.baseMoveSpeed * Time.deltaTime * cachedMoveSpeed);
         }
         else
         {
-            controller.SimpleMove(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * GlobalInfo.baseMoveSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient));
+            controller.SimpleMove(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * GlobalInfo.baseMoveSpeed * Time.deltaTime * cachedMoveSpeed);
         }
 #else
         mVertical = Input.GetAxis("Vertical");
@@ -210,11 +214,11 @@ public class PlayerController : MonoBase
             return;
         if (agent.isOnNavMesh)
         {
-            agent.Move((mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient));
+            agent.Move((mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * Time.deltaTime * cachedMoveSpeed);
         }
         else
         {
-            controller.Move((mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * Time.deltaTime * PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient));
+            controller.Move((mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * Time.deltaTime * cachedMoveSpeed);
         }
 #endif
     }
@@ -356,8 +360,18 @@ public class PlayerController : MonoBase
     }
     #endregion
 
+    /// <summary>
+    /// 刷新速度缓存（设置变更时调用）
+    /// </summary>
+    public void RefreshSpeedCache()
+    {
+        cachedRotateSpeed = PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+        cachedMoveSpeed = PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+    }
+
     private void OnEnable()
     {
+        RefreshSpeedCache();
         UpdateCameraFollowValue();
         if (isFirstPerson)
         {
@@ -367,23 +381,6 @@ public class PlayerController : MonoBase
         {
             ThirdPerson();
         }
-    }
-    private void OnDisable()
-    {
-        EndNavigation();
-
-        transform.position = model.position;
-        modelPositionFollow.ChangeStartValue(transform.position);
-        modelPositionFollow.ChangeEndValue(transform.position);
-
-        cameraPositionFollow.ChangeStartValue(mainCamera.position);
-        cameraRotateFollow.ChangeStartValue(mainCamera.eulerAngles);
-        cameraPositionFollow.ChangeEndValue(cameraFollowPoint.position);
-        cameraRotateFollow.ChangeEndValue(cameraFollowPoint.eulerAngles);
-        UpdateCameraFollowValue();
-
-        cameraPositionFollow.Pause();
-        cameraRotateFollow.Pause();
     }
 
     private void UpdateCameraFollowValue()
@@ -410,11 +407,14 @@ public class PlayerController : MonoBase
             mainCamera.position = Vector3.Lerp(mainCamera.position, followPoint.position, followSpeed);
             mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, followPoint.rotation, followSpeed);
 
-            if (Input.anyKey)
-            {
-                EndNavigation();
-            }
-            else if (isNavigating && !agent.pathPending && agent.remainingDistance < agent.stoppingDistance)//remainingDistance 距离很不稳定
+            //非培训模式导航不准打断 直接不会调用导航 这里先注销
+            //if (Input.anyKey)
+            //{
+            //    EndNavigation();
+            //}
+            //else 
+                
+            if (isNavigating && !agent.pathPending && agent.remainingDistance < agent.stoppingDistance)//remainingDistance 距离很不稳定
             {
                 EndNavigation(targetPoint);
             }

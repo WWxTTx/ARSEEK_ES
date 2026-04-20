@@ -1,12 +1,15 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class GUITool
 {
+    // 缓存字段，避免每帧分配
+    private static PointerEventData cachedPointerEventData;
+    private static List<RaycastResult> cachedRaycastResults = new List<RaycastResult>();
+
     /// <summary>
-    /// �Ƿ�������UI
+    /// 是否在UI上
     /// </summary>
     /// <param name="pos"></param>
     /// <returns></returns>
@@ -15,11 +18,15 @@ public class GUITool
         EventSystem es = EventSystem.current;
         if (es != null)
         {
-            PointerEventData ped = new PointerEventData(es);
-            ped.position = pos;
-            List<RaycastResult> rr = new List<RaycastResult>();
-            es.RaycastAll(ped, rr);
-            return rr.Count > 0;
+            if (cachedPointerEventData == null)
+                cachedPointerEventData = new PointerEventData(es);
+            else
+                cachedPointerEventData.Reset();
+
+            cachedPointerEventData.position = pos;
+            cachedRaycastResults.Clear();
+            es.RaycastAll(cachedPointerEventData, cachedRaycastResults);
+            return cachedRaycastResults.Count > 0;
         }
         return false;
     }
@@ -29,11 +36,22 @@ public class GUITool
         EventSystem es = EventSystem.current;
         if (es != null)
         {
-            PointerEventData ped = new PointerEventData(es);
-            ped.position = pos;
-            List<RaycastResult> rr = new List<RaycastResult>();
-            es.RaycastAll(ped, rr);
-            return rr.Select(r => r).Where(r => r.gameObject.layer != LayerMask.NameToLayer(excludeLayer)).ToList().Count > 0;
+            if (cachedPointerEventData == null)
+                cachedPointerEventData = new PointerEventData(es);
+            else
+                cachedPointerEventData.Reset();
+
+            cachedPointerEventData.position = pos;
+            cachedRaycastResults.Clear();
+            es.RaycastAll(cachedPointerEventData, cachedRaycastResults);
+
+            int excludeLayerIndex = LayerMask.NameToLayer(excludeLayer);
+            for (int i = 0; i < cachedRaycastResults.Count; i++)
+            {
+                if (cachedRaycastResults[i].gameObject.layer != excludeLayerIndex)
+                    return true;
+            }
+            return false;
         }
         return false;
     }
@@ -44,14 +62,18 @@ public class GUITool
         EventSystem es = EventSystem.current;
         if (es != null)
         {
-            PointerEventData ped = new PointerEventData(es);
-            ped.position = pos;
-            List<RaycastResult> rr = new List<RaycastResult>();
-            es.RaycastAll(ped, rr);
+            if (cachedPointerEventData == null)
+                cachedPointerEventData = new PointerEventData(es);
+            else
+                cachedPointerEventData.Reset();
 
-            if (rr.Count == 1)
-                hitGo = rr[0].gameObject;
-            return rr.Count > 0;
+            cachedPointerEventData.position = pos;
+            cachedRaycastResults.Clear();
+            es.RaycastAll(cachedPointerEventData, cachedRaycastResults);
+
+            if (cachedRaycastResults.Count == 1)
+                hitGo = cachedRaycastResults[0].gameObject;
+            return cachedRaycastResults.Count > 0;
         }
         return false;
     }

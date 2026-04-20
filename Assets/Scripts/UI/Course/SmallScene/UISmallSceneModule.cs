@@ -1,9 +1,9 @@
 using DG.Tweening;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Interop;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -190,12 +190,13 @@ public class UISmallSceneModule : UIModuleBase
     #endregion
 
     #region 无角色
+    private Camera mainCam;
     private CameraMove cameraMove;
-    private CameraMove CameraMove => cameraMove == null ? cameraMove = Camera.main.AutoComponent<CameraMove>() : cameraMove;
+    private CameraMove CameraMove => cameraMove == null ? cameraMove = mainCam.AutoComponent<CameraMove>() : cameraMove;
     private CameraRotate cameraRotate;
-    private CameraRotate CameraRotate => cameraRotate == null ? cameraRotate = Camera.main.AutoComponent<CameraRotate>() : cameraRotate;
+    private CameraRotate CameraRotate => cameraRotate == null ? cameraRotate = mainCam.AutoComponent<CameraRotate>() : cameraRotate;
     private CameraZoom cameraZoom;
-    private CameraZoom CameraZoom => cameraZoom == null ? cameraZoom = Camera.main.AutoComponent<CameraZoom>() : cameraZoom;
+    private CameraZoom CameraZoom => cameraZoom == null ? cameraZoom = mainCam.AutoComponent<CameraZoom>() : cameraZoom;
     #endregion
 
     #region 移动端
@@ -380,10 +381,12 @@ public class UISmallSceneModule : UIModuleBase
     {
         get
         {
-            return userOpModel.Any(item =>
-                item.Key != null &&
-                item.Value != GlobalInfo.account.id &&
-                NetworkManager.Instance.IsUserOnline(item.Value));
+            foreach (var item in userOpModel)
+            {
+                if (item.Key != null && item.Value != GlobalInfo.account.id && NetworkManager.Instance.IsUserOnline(item.Value))
+                    return true;
+            }
+            return false;
         }
     }
 
@@ -445,6 +448,9 @@ public class UISmallSceneModule : UIModuleBase
 
     void InitModel(UIData uiData = null)
     {
+        //缓存主相机引用，避免每帧 mainCam 查找
+        mainCam = Camera.main;
+
         //隐藏最外层collider(VR端抓取用);
         if (ModelManager.Instance.modelGo.TryGetComponent(out BoxCollider boxCollider))
             boxCollider.enabled = false;
@@ -486,7 +492,7 @@ public class UISmallSceneModule : UIModuleBase
         //    FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
         //}
 
-        ToolNode = Camera.main.transform.FindChildByName("ToolNode");
+        ToolNode = mainCam.transform.FindChildByName("ToolNode");
         Transform modelRoot = ModelManager.Instance.modelRoot;
 
         //根据配置设置有无漫游模式
@@ -666,7 +672,6 @@ public class UISmallSceneModule : UIModuleBase
             Cursor.lockState = CursorLockMode.None;//鼠标不锁定
             GlobalInfo.CursorLockMode = CursorLockMode.None;
 
-            Camera mainCam = Camera.main;
             cameraMove = mainCam.AutoComponent<CameraMove>();
             cameraRotate = mainCam.AutoComponent<CameraRotate>();
             cameraZoom = mainCam.AutoComponent<CameraZoom>();
@@ -730,7 +735,7 @@ public class UISmallSceneModule : UIModuleBase
             if (/*Input.GetMouseButtonDown(0) && !GUITool.IsOverGUI(Input.mousePosition) && */IsOperatableState)
             {
                 Focus.gameObject.SetActive(true);
-                ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f)); /*Camera.main.ScreenPointToRay(Input.mousePosition);*/
+                ray = mainCam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f)); /*mainCam.ScreenPointToRay(Input.mousePosition);*/
                 //新增限制射线检查距离，以避免穿透当前设备检查到远处的目标
                 if (Physics.Raycast(ray, out hitInfo, 5/*Mathf.Infinity*/, modelLayerMask) && hitInfo.transform.GetComponent<ModelOperation>() != null)
                 {
@@ -753,7 +758,7 @@ public class UISmallSceneModule : UIModuleBase
             if (!GUITool.IsOverGUI(Input.mousePosition) && IsOperatableState)
             {
                 Focus.gameObject.SetActive(true);
-                ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                ray = mainCam.ScreenPointToRay(Input.mousePosition);
 
                 //新增限制射线检查距离，以避免穿透当前设备检查到远处的目标
                 if (Physics.Raycast(ray, out hitInfo, 5/*Mathf.Infinity*/, modelLayerMask) && hitInfo.transform.GetComponent<ModelOperation>() != null)
@@ -792,7 +797,7 @@ public class UISmallSceneModule : UIModuleBase
             if (Cursor.lockState != CursorLockMode.None)
 #endif
             {
-                ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
+                ray = mainCam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
                 if (Physics.Raycast(ray, out hitInfo, Mathf.Infinity, modelLayerMask) && hitInfo.transform.GetComponent<ModelOperation>() != null)
                 {
                     RaySelect();
@@ -1553,17 +1558,20 @@ public class UISmallSceneModule : UIModuleBase
                 OnPropChanged((msg as MsgString).arg);
                 break;
             case (ushort)SmallFlowModuleEvent.SelectInput:
-                //if ((msg as MsgStringBool).arg2)
-                //    OnPropChanged(string.Empty);
+                if ((msg as MsgStringBool).arg2)
+                    OnPropChanged(string.Empty);
                 break;
             case (ushort)SmallFlowModuleEvent.SelectContact:
-                //if ((msg as MsgBool).arg1)
-                //    OnPropChanged(string.Empty);
+                if ((msg as MsgBool).arg1)
+                    OnPropChanged(string.Empty);
                 break;
             //case (ushort)SmallFlowModuleEvent.Operate2D:
             //    Msg2DOperate msg2DOperate = msg as Msg2DOperate;
             //    SelectAndExecute2D(msg2DOperate.operation, msg2DOperate.optionName);
             //    break;
+            case (ushort)SmallFlowModuleEvent.StartExecute:
+                WaitSelect(true).Forget();
+                break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
                 // 操作完成时释放发送者的操作权限
                 MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
@@ -1573,6 +1581,7 @@ public class UISmallSceneModule : UIModuleBase
                 RefreshHighlight();
 
                 //进行下一步时直接取消手中道具
+                WaitSelect(false).Forget();
                 OnPropChanged(string.Empty);
                 toolModule.CloseBackpack();
                 toolModule.CancelDrawingToggle();  // 关闭图纸面板
@@ -1704,12 +1713,6 @@ public class UISmallSceneModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.MaxMap:
                 inMap = ((MsgBool)msg).arg1;
                 break;
-            case (ushort)SmallFlowModuleEvent.CloseCameraOperation:
-                StartCoroutine(WaitSelect(true));
-                break;
-            case (ushort)SmallFlowModuleEvent.OpenCameraOperation:
-                StartCoroutine(WaitSelect(false));
-                break;
             case (ushort)RoomChannelEvent.UpdateControl:
                 MsgIntBool msgIntBool = (MsgIntBool)msg;
                 // 成员失去操作权，释放占用的操作对象
@@ -1821,11 +1824,10 @@ public class UISmallSceneModule : UIModuleBase
     /// <param name="ison"></param>
     /// <param name="time"></param>
     /// <returns></returns>
-    private IEnumerator WaitSelect(bool ison, float time = 0.3f)
+    private async UniTaskVoid WaitSelect(bool ison, float time = 0.3f)
     {
-        yield return null;
+        await UniTask.Yield();
         isExecuteOperation = ison;
-        //安卓端 根据当前第三人称视角设置 自动重新定位相机  
         EnableCameraControl(!ison);
         SetSelect(ison);
     }
@@ -1859,18 +1861,17 @@ public class UISmallSceneModule : UIModuleBase
 
     private void ReleaseOperatePermission(int userId)
     {
-        List<ModelOperation> operations = new List<ModelOperation>();
+        ModelOperation toRemove = null;
         foreach (var userOp in userOpModel)
         {
             if (userOp.Value == userId)
             {
-                operations.Add(userOp.Key);
+                toRemove = userOp.Key;
+                break;
             }
         }
-        foreach (var op in operations)
-        {
-            userOpModel.Remove(op);
-        }
+        if (toRemove != null)
+            userOpModel.Remove(toRemove);
     }
 
 
@@ -1893,10 +1894,10 @@ public class UISmallSceneModule : UIModuleBase
         var operation = modelOperation.operations.FirstOrDefault(o => o.name.Equals(operationName));
         if (operation != null)
         {
-            var linkageModels = operation.actions.Select(action => action.operation).Where(o => o != null).ToList();
-            foreach (var linkageModel in linkageModels)
+            for (int i = 0; i < operation.actions.Count; i++)
             {
-                if (userOpModel.TryGetValue(linkageModel, out userId) && userId != GlobalInfo.account.id && NetworkManager.Instance.IsUserOnline(userId))
+                var linkageModel = operation.actions[i].operation;
+                if (linkageModel != null && userOpModel.TryGetValue(linkageModel, out userId) && userId != GlobalInfo.account.id && NetworkManager.Instance.IsUserOnline(userId))
                     return true;
             }
         }
@@ -2063,10 +2064,13 @@ public class UISmallSceneModule : UIModuleBase
             }
         }
 
-        foreach (var component in highlights.Except(newHighlights))
+        foreach (var component in highlights)
         {
-            smallFlowCtrl.RemoveHint(component);
-            smallFlowCtrl.Remove2DHint(component);
+            if (!newHighlights.Contains(component))
+            {
+                smallFlowCtrl.RemoveHint(component);
+                smallFlowCtrl.Remove2DHint(component);
+            }
         }
 
         highlights = newHighlights;
@@ -2094,10 +2098,13 @@ public class UISmallSceneModule : UIModuleBase
             }
         }
 
-        foreach (var component in highlights.Except(newHighlights))
+        foreach (var component in highlights)
         {
-            smallFlowCtrl.RemoveHint(component);
-            smallFlowCtrl.Remove2DHint(component);
+            if (!newHighlights.Contains(component))
+            {
+                smallFlowCtrl.RemoveHint(component);
+                smallFlowCtrl.Remove2DHint(component);
+            }
         }
 
         highlights = newHighlights;
@@ -2182,8 +2189,13 @@ public class UISmallSceneModule : UIModuleBase
 
     public Dictionary<int, string> GetWarnState()
     {
-        return warnItemsDic.Where(item => item.Value.gameObject.activeSelf)
-            .ToDictionary(item => item.Key, item => item.Value.GetComponent<Text>().text);
+        var result = new Dictionary<int, string>();
+        foreach (var item in warnItemsDic)
+        {
+            if (item.Value.gameObject.activeSelf)
+                result.Add(item.Key, item.Value.GetComponent<Text>().text);
+        }
+        return result;
     }
 
     public void RecoverWarnState(bool warn, Dictionary<int, string> warnRecords)
@@ -2228,8 +2240,12 @@ public class UISmallSceneModule : UIModuleBase
         if (SafetyContent == null)
             return;
 
-        var safetyTools = smallFlowCtrl.toolIDs.Select(t => t)
-            .Where(t => t.Value.PropType == PropType.SafetyTool).ToList();
+        var safetyTools = new List<KeyValuePair<string, ModelInfo>>();
+        foreach (var t in smallFlowCtrl.toolIDs)
+        {
+            if (t.Value.PropType == PropType.SafetyTool)
+                safetyTools.Add(t);
+        }
 
         SafetyContent.RefreshItemsView(safetyTools, (item, tool) =>
         {
@@ -2251,8 +2267,16 @@ public class UISmallSceneModule : UIModuleBase
                 SafetyToolSprites.Add(tool.Key, item.gameObject);
         }, false);
 
-        SafetyContent.transform.parent.gameObject.SetActive(/*safetyTools.Count > 0*/
-            safetyTools.Count(s => (s.Value.InfoData as ModelInfo_SafetyTool).Icon2D != null) > 0);
+        bool hasVisibleIcon = false;
+        for (int i = 0; i < safetyTools.Count; i++)
+        {
+            if ((safetyTools[i].Value.InfoData as ModelInfo_SafetyTool).Icon2D != null)
+            {
+                hasVisibleIcon = true;
+                break;
+            }
+        }
+        SafetyContent.transform.parent.gameObject.SetActive(hasVisibleIcon);
     }
 
     public void ChangeSafetyTool(string id, bool selected)

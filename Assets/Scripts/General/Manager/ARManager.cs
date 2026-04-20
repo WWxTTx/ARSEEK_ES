@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
@@ -66,24 +66,22 @@ namespace UnityFramework.Runtime
             cameraAngle = cameraMain.eulerAngles;
         }
 
-        IEnumerator Start()
+        async UniTaskVoid Start()
         {
-            yield return ARSession.CheckAvailability();
+            await ARSession.CheckAvailability();
 
-            //当前设备不支持AR功能
             if (ARSession.state == ARSessionState.Unsupported)
             {
                 Log.Warning("当前设备不支持AR功能");
             }
             else
             {
-                //设备支持 AR，但需要安装
                 if (ARSession.state == ARSessionState.NeedsInstall)
                 {
                     Log.Info("设备支持 AR，但需要安装");
-                    yield return ARSession.Install();
+                    await ARSession.Install();
                 }
-                
+
                 if (ARSession.state == ARSessionState.Ready)
                 {
                     Log.Debug("设备支持 AR");

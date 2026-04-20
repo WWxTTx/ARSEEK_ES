@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.Video;
 using UnityFramework.Runtime;
+using Cysharp.Threading.Tasks;
 
 public class VideoCtrl : MonoBase
 {
@@ -104,22 +105,22 @@ public class VideoCtrl : MonoBase
             ToolManager.SendBroadcastMsg(new MsgBool((ushort)HyperLinkEvent.VideoCtrl, oldPlayingState), true);         
         });
 
-        StartCoroutine(Init());
+        Init(this.GetCancellationTokenOnDestroy()).Forget();
     }
 
     private void OnEnable()
     {
-        StartCoroutine(Init());
+        Init(this.GetCancellationTokenOnDestroy()).Forget();
     }
 
-    IEnumerator Init()
+    async UniTaskVoid Init(System.Threading.CancellationToken ct)
     {
         if (videoPlayer == null)
-            yield break;
+            return;
 
         while (videoPlayer.frameCount == 0)
         {
-            yield return 0;
+            await UniTask.Yield(ct);
         }
         int i = (int)(videoPlayer.frameCount / videoPlayer.frameRate);
         int m = i / 60;

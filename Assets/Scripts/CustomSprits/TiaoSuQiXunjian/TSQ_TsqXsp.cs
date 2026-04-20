@@ -1,6 +1,5 @@
 using DG.Tweening;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +8,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
+using Cysharp.Threading.Tasks;
 
 public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 {
@@ -34,13 +34,13 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
             MsgSyncCustomUI msgUI = brodcastMsg.GetData<MsgSyncCustomUI>();
-            StartCoroutine(WaitStepInit(msgUI));
+            WaitStepInit(msgUI).Forget();
         }
     }
 
-    IEnumerator WaitStepInit(MsgSyncCustomUI msgUI)
+    async UniTaskVoid WaitStepInit(MsgSyncCustomUI msgUI)
     {
-        yield return new WaitUntil(()=>steps.Count > 0);
+        await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
         if (msgUI.stepIndex >= 0 && msgUI.stepIndex < steps.Count)
         {
             for (int i = currentStepIndex; i <= msgUI.stepIndex && i <= steps.Count; i++)

@@ -1,5 +1,5 @@
 using DG.Tweening;
-using System.Collections;
+using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -114,7 +114,7 @@ public class ExamInfoConfirmPanel : UIPanelBase
             changeUserNo.placeholder.gameObject.SetActive(true);
             changeUserNo.interactable = true;
             changeUserNo.Select();
-            StartCoroutine(MoveLast(changeUserNo));
+            MoveLast(changeUserNo).Forget();
             userNoEditor.gameObject.SetActive(false);
             MaskUserNo.gameObject.SetActive(false);      
         });
@@ -179,7 +179,7 @@ public class ExamInfoConfirmPanel : UIPanelBase
             changeUserOrg.placeholder.gameObject.SetActive(true);
             changeUserOrg.interactable = true;
             changeUserOrg.Select();
-            StartCoroutine(MoveLast(changeUserOrg));
+            MoveLast(changeUserOrg).Forget();
             userOrgEditor.gameObject.SetActive(false);
             MaskUserOrg.gameObject.SetActive(false);
         });
@@ -237,9 +237,9 @@ public class ExamInfoConfirmPanel : UIPanelBase
         });
     }
 
-    private IEnumerator MoveLast(InputField inputField)
+    private async UniTaskVoid MoveLast(InputField inputField)
     {
-        yield return new WaitForEndOfFrame();
+        await UniTask.WaitForEndOfFrame(this);
         inputField.MoveTextEnd(true);
     }
 

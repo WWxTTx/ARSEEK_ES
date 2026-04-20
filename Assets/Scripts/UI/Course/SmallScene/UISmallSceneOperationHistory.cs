@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,6 +6,7 @@ using UnityEngine.Events;
 using DG.Tweening;
 using UnityFramework.Runtime;
 using System;
+using Cysharp.Threading.Tasks;
 using static UnityFramework.Runtime.RequestData;
 
 public class InpuAndHistoryData : UIData
@@ -392,7 +392,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
         {
             CreateItem(i, opRecords[i].userName, opRecords[i].msg, opRecords[i].createTime, (OpType)opRecords[i].type);
         }
-        StartCoroutine(OpRecordShowLast());
+        OpRecordShowLast(this.GetCancellationTokenOnDestroy()).Forget();
     }
 
     /// <summary>
@@ -474,9 +474,9 @@ public class UISmallSceneOperationHistory : UIModuleBase
     /// 操作记录显示最新记录
     /// </summary>
     /// <returns></returns>
-    private IEnumerator OpRecordShowLast()
+    private async UniTaskVoid OpRecordShowLast(System.Threading.CancellationToken ct)
     {
-        yield return new WaitForSeconds(0.5f);
+        await UniTask.Delay(TimeSpan.FromSeconds(0.5), cancellationToken: ct);
         scrollbar.value = 0;
     }
 
@@ -606,7 +606,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 if (showInput)
                 {
                     inputField.ActivateInputField();
-                    StartCoroutine(SetCaretPositionNextFrame(inputField));
+                    SetCaretPositionNextFrame(inputField, this.GetCancellationTokenOnDestroy()).Forget();
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.SelectContact:
@@ -615,7 +615,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 if (showContact)
                 {
                     contactInputField.ActivateInputField();
-                    StartCoroutine(SetCaretPositionNextFrame(contactInputField));
+                    SetCaretPositionNextFrame(contactInputField, this.GetCancellationTokenOnDestroy()).Forget();
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.FocusChanged:
@@ -644,10 +644,10 @@ public class UISmallSceneOperationHistory : UIModuleBase
         }
     }
 
-    private IEnumerator SetCaretPositionNextFrame(InputField inputField)
+    private async UniTaskVoid SetCaretPositionNextFrame(InputField inputField, System.Threading.CancellationToken ct)
     {
         //等待一帧
-        yield return null;
+        await UniTask.Yield(ct);
         //设置光标位置到末尾
         inputField.caretPosition = inputField.text.Length;
         inputField.selectionAnchorPosition = inputField.caretPosition;

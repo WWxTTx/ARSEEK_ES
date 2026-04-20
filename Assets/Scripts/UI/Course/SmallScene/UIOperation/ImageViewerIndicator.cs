@@ -1,10 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
-using System.Collections;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
-/// Í¼Æ¬Ëõ·ÅÌáÊ¾
+/// Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾
 /// </summary>
 [RequireComponent(typeof(CanvasGroup))]
 public class ImageViewerIndicator : MonoBehaviour
@@ -22,8 +22,8 @@ public class ImageViewerIndicator : MonoBehaviour
     private bool _currentShow = true;
 
     private string formatter = "{0:N0}%";
-    private string maxMsg = "ÒÑ·Åµ½×î´ó";
-    private string minMsg = "ÒÑËõµ½×îÐ¡";
+    private string maxMsg = "ï¿½Ñ·Åµï¿½ï¿½ï¿½ï¿½";
+    private string minMsg = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡";
 
     private float _minScale;
     private float _maxScale;
@@ -90,7 +90,7 @@ public class ImageViewerIndicator : MonoBehaviour
         _text.text = msg;
 
         //if (isActiveAndEnabled)
-        StartCoroutine(RebuildLayout());
+        RebuildLayout(this.GetCancellationTokenOnDestroy()).Forget();
 
         Sequence sequence = DOTween.Sequence();
         sequence.Join(_canvasGroup.DOFade(_showAlpha, _fadeTime));
@@ -112,9 +112,9 @@ public class ImageViewerIndicator : MonoBehaviour
         sequence.SetId(HIDE_ID);
     }
 
-    private IEnumerator RebuildLayout()
+    private async UniTaskVoid RebuildLayout(System.Threading.CancellationToken ct)
     {
-        yield return new WaitForEndOfFrame();
+        await UniTask.WaitForEndOfFrame(this);
         LayoutRebuilder.ForceRebuildLayoutImmediate(_text.rectTransform);
         LayoutRebuilder.ForceRebuildLayoutImmediate(_text.transform.parent.GetComponent<RectTransform>());
     }

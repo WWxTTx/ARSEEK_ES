@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
@@ -304,12 +304,13 @@ public class ExamPanel : HoverHintPanel
                     OnExamStart();
                 }
                 // 恢复考核倒计时
-                if (countdownCoroutine != null)
+                if (countdownCts != null)
                 {
-                    StopCoroutine(countdownCoroutine);
-                    countdownCoroutine = null;
+                    countdownCts.Cancel();
+                    countdownCts = null;
                 }
-                countdownCoroutine = StartCoroutine(Timing(GlobalInfo.ServerTime.AddSeconds(((MsgBrodcastOperate)msg).GetData<MsgInt>().arg)));
+                countdownCts = new System.Threading.CancellationTokenSource();
+                Timing(GlobalInfo.ServerTime.AddSeconds(((MsgBrodcastOperate)msg).GetData<MsgInt>().arg), countdownCts.Token).Forget();
                 break;
             case (ushort)RoomChannelEvent.LiveRoomSettingModuleClose:
                 RoomInfoTog.isOn = false;
@@ -350,12 +351,13 @@ public class ExamPanel : HoverHintPanel
         this.WaitTime(3f, () =>
         {
             //考核准备时间结束后再开始考核倒计时
-            if (countdownCoroutine != null)
+            if (countdownCts != null)
             {
-                StopCoroutine(countdownCoroutine);
-                countdownCoroutine = null;
+                countdownCts.Cancel();
+                countdownCts = null;
             }
-            countdownCoroutine = StartCoroutine(Timing(endTime));
+            countdownCts = new System.Threading.CancellationTokenSource();
+            Timing(endTime, countdownCts.Token).Forget();
             RootCanvasGroup.blocksRaycasts = true;
         });
         #endregion
@@ -1017,7 +1019,7 @@ public class ExamPanel : HoverHintPanel
 
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
-        StopAllCoroutines();
+        countdownCts?.Cancel();
         Timer.DelTimer(name);
         base.Close(uiData, callback);
         GlobalInfo.SetCourseMode(CourseMode.Training);
@@ -1073,40 +1075,37 @@ public class ExamPanel : HoverHintPanel
     }
 
     /// <summary>
-    /// 计时协程
+    /// 计时
     /// </summary>
-    private Coroutine countdownCoroutine;
+    private System.Threading.CancellationTokenSource countdownCts;
     /// <summary>
     /// 计时
     /// </summary>
     /// <param name="endTime"></param>
     /// <returns></returns>
-    private IEnumerator Timing(DateTime endTime)
+    private async UniTaskVoid Timing(DateTime endTime, System.Threading.CancellationToken ct)
     {
         var time = this.GetComponentByChildName<Text>("Time");
         {
             time.gameObject.SetActive(true);
 
-            WaitForSecondsRealtime wait = new WaitForSecondsRealtime(1);
             while (endTime > GlobalInfo.ServerTime)
             {
                 time.text = $"考核倒计时：{(endTime - GlobalInfo.ServerTime).ToString(@"hh\:mm\:ss")}";
 
                 if (!inExam)
                 {
-                    //停止计时
                     time.gameObject.SetActive(false);
-                    yield break;
+                    return;
                 }
 
-                yield return wait;
+                await UniTask.Delay(System.TimeSpan.FromSeconds(1), cancellationToken: ct);
             }
 
             time.text = $"考核倒计时：00:00:00";
 
             time.gameObject.SetActive(false);
 
-            //时间到需要主动停止考核
             StopExam((ushort)ExamPanelEvent.Timeout);
         };
     }

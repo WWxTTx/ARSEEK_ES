@@ -1,5 +1,6 @@
-﻿using System.Collections;
+﻿using System;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityFramework.Runtime;
@@ -8,6 +9,7 @@ public class LoginPanel : UIPanelBase
 {
     private Transform ModulePoint;
     private ThemeRawImage[] themeRawImages;
+    private Func<bool> themeReadyPredicate;
 
     public override void Open(UIData uiData = null)
     {
@@ -24,6 +26,7 @@ public class LoginPanel : UIPanelBase
 
         ModulePoint = this.FindChildByName("ModulePoint");
         themeRawImages = GetComponentsInChildren<ThemeRawImage>(true);
+        themeReadyPredicate = () => themeRawImages == null || themeRawImages.Length == 0 || themeRawImages.All(r => r.Updated);
 
         if (uiData == null)
             ProcessEvent(new MsgBase((ushort)LoginEvent.Login));
@@ -34,13 +37,13 @@ public class LoginPanel : UIPanelBase
 
     public override void Show(UIData uiData = null)
     {
-        StartCoroutine(UpdateThemeElements(() =>
+        UpdateThemeElements(() =>
         {
             base.Show(uiData);
-        }));
+        }, this.GetCancellationTokenOnDestroy()).Forget();
     }
 
-    private IEnumerator UpdateThemeElements(UnityAction callback)
+    private async UniTaskVoid UpdateThemeElements(UnityAction callback, System.Threading.CancellationToken ct)
     {
         if(themeRawImages != null)
         {
@@ -49,7 +52,7 @@ public class LoginPanel : UIPanelBase
                 themeRawImage.UpdateElement();
             }
         }
-        yield return new WaitUntil(() => themeRawImages == null || themeRawImages.Length == 0 || themeRawImages.All(r => r.Updated));
+        await UniTask.WaitUntil(themeReadyPredicate, cancellationToken: ct);
 
         callback?.Invoke();
     }
@@ -69,19 +72,19 @@ public class LoginPanel : UIPanelBase
         {
             case (ushort)LoginEvent.CheckVersion:
                 //UIManager.Instance.OpenModuleUI<CheckVersionModule>(this, ModulePoint);
-                StartCoroutine(OpenModule<CheckVersionModule>());
+                OpenModule<CheckVersionModule>(this.GetCancellationTokenOnDestroy()).Forget();
                 break;
             case (ushort)LoginEvent.Login:
                 //UIManager.Instance.OpenModuleUI<LoginModule>(this, ModulePoint);
-                StartCoroutine(OpenModule<LoginModule>());
+                OpenModule<LoginModule>(this.GetCancellationTokenOnDestroy()).Forget();
                 break;
             case (ushort)LoginEvent.Register:
                 //UIManager.Instance.OpenModuleUI<RegisterModule>(this, ModulePoint);
-                StartCoroutine(OpenModule<RegisterModule>());
+                OpenModule<RegisterModule>(this.GetCancellationTokenOnDestroy()).Forget();
                 break;
             case (ushort)LoginEvent.Forget:
                 //UIManager.Instance.OpenModuleUI<ForgetModule>(this, ModulePoint);
-                StartCoroutine(OpenModule<ForgetModule>());
+                OpenModule<ForgetModule>(this.GetCancellationTokenOnDestroy()).Forget();
                 break;
             case (ushort)ShortcutEvent.PressAnyKey:
                 if (ShortcutManager.Instance.CheckShortcutKey(msg, ShortcutManager.ApplicationQuit))
@@ -92,9 +95,9 @@ public class LoginPanel : UIPanelBase
         }
     }
 
-    private IEnumerator OpenModule<T>() where T : UIModuleBase
+    private async UniTaskVoid OpenModule<T>(System.Threading.CancellationToken ct) where T : UIModuleBase
     {
-        yield return new WaitUntil(() => themeRawImages == null || themeRawImages.Length == 0 || themeRawImages.All(r => r.Updated));
+        await UniTask.WaitUntil(themeReadyPredicate, cancellationToken: ct);
         UIManager.Instance.OpenModuleUI<T>(this, ModulePoint);
     }
 

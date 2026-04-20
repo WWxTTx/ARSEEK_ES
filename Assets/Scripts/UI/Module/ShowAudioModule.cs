@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -53,6 +54,8 @@ public class ShowAudioModule : UIModuleBase
     public ShowLinkModuleData AudioModuleData { get; private set; }
 
     private bool interactable;
+
+    private Func<bool> canvasReadyPredicate;
 
     //同步
     private float updateInterval = 2f;
@@ -163,12 +166,13 @@ public class ShowAudioModule : UIModuleBase
     public void ShowAudioHandler(string url, string title)
     {
         //UIManager.Instance.OpenUI<LoadingPanel>(UILevel.PopUp);
-        StartCoroutine(GetIntroduceAudioClip(url, title));
+        GetIntroduceAudioClip(url, title, this.GetCancellationTokenOnDestroy()).Forget();
     }
 
-    IEnumerator GetIntroduceAudioClip(string path, string title)
+    async UniTaskVoid GetIntroduceAudioClip(string path, string title, System.Threading.CancellationToken ct)
     {
-        yield return new WaitUntil(() => CanvasGroup.alpha == 1);
+        canvasReadyPredicate = () => CanvasGroup.alpha == 1;
+        await UniTask.WaitUntil(canvasReadyPredicate, cancellationToken: ct);
 
         string fileExtension = System.IO.Path.GetExtension(path).ToUpper().Substring(1);
         AudioType audioType = AudioType.MPEG;
@@ -183,7 +187,7 @@ public class ShowAudioModule : UIModuleBase
         }
 
         var uwr = UnityWebRequestMultimedia.GetAudioClip(path, audioType);
-        yield return uwr.SendWebRequest();
+        await uwr.SendWebRequest();
 
         if (uwr.result == UnityWebRequest.Result.ConnectionError || uwr.result == UnityWebRequest.Result.ProtocolError)
         {

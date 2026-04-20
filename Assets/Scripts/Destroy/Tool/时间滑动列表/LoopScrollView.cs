@@ -1,10 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using DG.Tweening;
+using Cysharp.Threading.Tasks;
 using UnityFramework.Runtime;
 
 /// <summary>
@@ -156,7 +156,7 @@ public class LoopScrollView : MonoBehaviour
     }
     private Vector2 itemVectorLenght;
     private RectTransform defaultItem;
-    private IEnumerator fakeUpdate;
+    private System.Threading.CancellationTokenSource loopCts;
     private void InitItemInfo()
     {
         defaultItem = component.content.GetChild(0).GetComponent<RectTransform>();
@@ -165,14 +165,12 @@ public class LoopScrollView : MonoBehaviour
             itemLenght = Item.sizeDelta.x;
             itemVectorLenght = new Vector2(itemLenght, 0);
             componentLenght = component.GetComponent<RectTransform>().sizeDelta.x;
-            fakeUpdate = horizontalUpdate();
         }
         else
         {
             itemLenght = Item.sizeDelta.y;
             componentLenght = component.GetComponent<RectTransform>().sizeDelta.y;
             itemVectorLenght = new Vector2(0, -itemLenght);
-            fakeUpdate = verticalUpdate();
         }
     }
     /// <summary>
@@ -209,7 +207,7 @@ public class LoopScrollView : MonoBehaviour
         }
         if (index == -1)
         {
-            StartCoroutine(fakeUpdate);
+            StartLoop();
         }
         else
         {
@@ -244,7 +242,7 @@ public class LoopScrollView : MonoBehaviour
             maxPoint = items.Last.Value;
 
             nowSelectedItem?.Invoke(NowIndex, selectItem);
-            StartCoroutine(fakeUpdate);
+            StartLoop();
         }
     }
     private void OnDisable()
@@ -319,14 +317,19 @@ public class LoopScrollView : MonoBehaviour
         moveIndex = (itemLenght * 0.5f + component.transform.position.y) / componentLenght;
         if (!gameObject.activeInHierarchy) return;
 
-        if (component.horizontal) StartCoroutine(horizontalUpdate());
-        else StartCoroutine(verticalUpdate());
+        StartLoop();
+    }
+    private void StartLoop()
+    {
+        loopCts?.Cancel();
+        loopCts = new System.Threading.CancellationTokenSource();
+        if (component.horizontal) horizontalUpdate(loopCts.Token).Forget();
+        else verticalUpdate(loopCts.Token).Forget();
     }
     /// <summary>
-    /// 横轴协程
+    /// 横轴更新
     /// </summary>
-    /// <returns></returns>
-    IEnumerator horizontalUpdate()
+    async UniTaskVoid horizontalUpdate(System.Threading.CancellationToken ct)
     {
         float x;
         while (runUpdate)
@@ -342,15 +345,13 @@ public class LoopScrollView : MonoBehaviour
                 maxPoint.GetComponent<RectTransform>().anchoredPosition -= moveValue;
                 maxPoint = PreviousValue(items, maxPoint);
             }
-            yield return 0;
+            await UniTask.Yield(ct);
         }
-        yield return 0;
     }
     /// <summary>
-    /// 纵轴协程
+    /// 纵轴更新
     /// </summary>
-    /// <returns></returns>
-    IEnumerator verticalUpdate()
+    async UniTaskVoid verticalUpdate(System.Threading.CancellationToken ct)
     {
         //新标志位
         bool? flag = false;
@@ -409,9 +410,8 @@ public class LoopScrollView : MonoBehaviour
                     nowSelectedItem?.Invoke(NowIndex, selectItem);
                 }
             }
-            yield return 0;
+            await UniTask.Yield(ct);
         }
-        yield return 0;
     }
     /// <summary>
     /// 极值更换时调用

@@ -2,6 +2,8 @@ using System;
 using UnityEngine;
 using DG.Tweening;
 using UnityFramework.Runtime;
+using Cysharp.Threading.Tasks;
+using System.Threading;
 using System.Collections;
 
 /// <summary>
@@ -22,6 +24,7 @@ public class UIObserve : MonoBase
     protected UISmallSceneModule smallSceneModule;
 
     private bool initialized = false;
+    private Func<bool> initializedPredicate;
 
     protected override void InitComponents()
     {
@@ -38,6 +41,7 @@ public class UIObserve : MonoBase
     protected virtual void InitUI()
     {
         initialized = true;
+        initializedPredicate = () => initialized;
     }
 
     /// <summary>
@@ -49,12 +53,13 @@ public class UIObserve : MonoBase
 
     public void Init(string id, BehaveObserve behaveObserve, Action<string> onFinish, Action onFail)
     {
-        StartCoroutine(_init(id, behaveObserve, onFinish, onFail));
+        _init(id, behaveObserve, onFinish, onFail).Forget();
     }
 
-    private IEnumerator _init(string id, BehaveObserve behaveObserve, Action<string> onFinish, Action onFail)
+    private async UniTaskVoid _init(string id, BehaveObserve behaveObserve, Action<string> onFinish, Action onFail)
     {
-        yield return new WaitUntil(() => initialized);
+        var ct = this.GetCancellationTokenOnDestroy();
+        await UniTask.WaitUntil(initializedPredicate, cancellationToken: ct);
 
         this.id = id;
         this.behaveObserve = behaveObserve;

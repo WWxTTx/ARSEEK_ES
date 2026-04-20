@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -7,7 +6,9 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using DG.Tweening;
 using UnityFramework.Runtime;
+using Cysharp.Threading.Tasks;
 using static UnityFramework.Runtime.RequestData;
+using System;
 
 
 public class ABPanelInfo : UIData
@@ -131,6 +132,7 @@ public class OPLCoursePanel : HoverHintPanel
     protected bool firstBaike = true;
 
     protected bool encyclopediaModelLoaded = false;
+    private Func<bool> _encyclopediaModelLoadedPredicate;
 
     private float timeCourseStart;
 
@@ -169,6 +171,7 @@ public class OPLCoursePanel : HoverHintPanel
 
     protected virtual void InitVariables()
     {
+        _encyclopediaModelLoadedPredicate = () => encyclopediaModelLoaded;
         RootCanvasGroup = transform.GetComponent<CanvasGroup>();
         TopNavigation = transform.GetComponentByChildName<RectTransform>("TopNavigation");
         Title = TopNavigation.transform.GetComponentByChildName<Text>("Title");
@@ -687,19 +690,19 @@ public class OPLCoursePanel : HoverHintPanel
             DescText.text = string.IsNullOrEmpty(course.remarks) ? "无"/* $"本次工作内容为{course.name}任务"*/ : course.remarks;
             if (string.IsNullOrEmpty(course.remarks))
             {
-                StartCoroutine(ShowDescription(false));
+                ShowDescription(false, this.GetCancellationTokenOnDestroy()).Forget();
             }
             else
             {
-                StartCoroutine(ShowDescription(true));
+                ShowDescription(true, this.GetCancellationTokenOnDestroy()).Forget();
             }
         }
     }
 
-    protected IEnumerator ShowDescription(bool show)
+    protected async UniTaskVoid ShowDescription(bool show, System.Threading.CancellationToken ct)
     {
-        yield return new WaitUntil(() => encyclopediaModelLoaded);
-        yield return null;
+        await UniTask.WaitUntil(_encyclopediaModelLoadedPredicate, cancellationToken: ct);
+        await UniTask.Yield(ct);
         //DescToggle.gameObject.SetActive(true);
         DescToggle.isOn = show;
     }

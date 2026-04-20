@@ -1,5 +1,6 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
@@ -10,6 +11,7 @@ using UnityFramework.Runtime;
 using UnityEditor;
 using System.Windows.Forms;
 using Button = UnityEngine.UI.Button;
+using System.Threading;
 
 /// <summary>
 /// 显示视频模块
@@ -59,6 +61,7 @@ public class ShowExamVideoModule : UIModuleBase
     private float exitProgressGap = 3f;
 
     private double rawVideoLength = 0;
+    private CancellationTokenSource videoCts;
 
     public ShowExamModuleData VideoModuleData { get; private set; }
 
@@ -152,13 +155,15 @@ public class ShowExamVideoModule : UIModuleBase
         {
             if (state)
             {
-                StopAllCoroutines();
-                StartCoroutine(StartVideo());
+                videoCts?.Cancel();
+                videoCts = new CancellationTokenSource();
+                StartVideo(videoCts.Token).Forget();
             }
             else
             {
-                StopAllCoroutines();
-                StartCoroutine(StopVideo());
+                videoCts?.Cancel();
+                videoCts = new CancellationTokenSource();
+                StopVideo(videoCts.Token).Forget();
                 ShowVideo.Pause();
             }
 
@@ -217,7 +222,7 @@ public class ShowExamVideoModule : UIModuleBase
             ShowVideo.time = ShowVideo.length * progressBar_slider.value;
             if (playState_toggle.isOn)
             {
-                StartCoroutine(StartVideo());
+                StartVideo(this.GetCancellationTokenOnDestroy()).Forget();
             }
         });
         //(全屏)进度条拖拽事件
@@ -231,7 +236,7 @@ public class ShowExamVideoModule : UIModuleBase
             ShowVideo.time = ShowVideo.length * fullProgressBar_slider.value;
             if (playState_toggle.isOn)
             {
-                StartCoroutine(StartVideo());
+                StartVideo(this.GetCancellationTokenOnDestroy()).Forget();
             }
         });
         #endregion
@@ -387,9 +392,9 @@ public class ShowExamVideoModule : UIModuleBase
     /// 延迟播放，为了避免双击放大
     /// </summary>
     /// <returns></returns>
-    private IEnumerator StartVideo()
+    private async UniTaskVoid StartVideo(CancellationToken ct)
     {
-        yield return new WaitForSeconds(doubleClickGap);
+        await UniTask.Delay((int)(doubleClickGap * 1000), cancellationToken: ct);
         ShowVideo.Play();
 
         transform.GetComponentByChildName<Image>("PauseImage").gameObject.SetActive(!playState_toggle.isOn);
@@ -397,7 +402,7 @@ public class ShowExamVideoModule : UIModuleBase
 
         if (isend)
         {
-            yield return new WaitForSeconds(0.1f);
+            await UniTask.Delay(100, cancellationToken: ct);
             isend = false;
         }
     }
@@ -406,9 +411,9 @@ public class ShowExamVideoModule : UIModuleBase
     /// 延迟暂停，为了避免双击放大缩小时暂停按钮显示
     /// </summary>
     /// <returns></returns>
-    private IEnumerator StopVideo()
+    private async UniTaskVoid StopVideo(CancellationToken ct)
     {
-        yield return new WaitForSeconds(doubleClickGap);
+        await UniTask.Delay((int)(doubleClickGap * 1000), cancellationToken: ct);
         transform.GetComponentByChildName<Image>("PauseImage").gameObject.SetActive(!playState_toggle.isOn);
         transform.GetComponentByChildName<Image>("PauseImage_Full").gameObject.SetActive(!playState_toggle.isOn);
     }

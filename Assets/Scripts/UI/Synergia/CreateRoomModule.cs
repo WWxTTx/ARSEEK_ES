@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
-using System.Collections;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
@@ -9,6 +9,7 @@ using UnityFramework.Runtime;
 using static UnityFramework.Runtime.ServiceRequestData;
 using static UnityFramework.Runtime.RequestData;
 using WebSocketSharp;
+using System;
 
 /// <summary>
 /// 创建协同房间模块
@@ -242,16 +243,18 @@ public class CreateRoomModule : ResourcesModule
     /// 加载课程列表
     /// </summary>
     /// <param name="moduleData"></param>
+    private Func<bool> backgroundReadyPredicate;
+
     protected override void InitCourseList()
     {
         base.InitCourseList();
-        StartCoroutine(initCourseListCo());     
+        initCourseListCo(this.GetCancellationTokenOnDestroy()).Forget();
     }
 
-    private IEnumerator initCourseListCo()
+    private async UniTaskVoid initCourseListCo(System.Threading.CancellationToken ct)
     {
-        //避免阻塞动效
-        yield return new WaitUntil(() => BackgroundCanvas.alpha >= 1);
+        backgroundReadyPredicate = () => BackgroundCanvas.alpha >= 1;
+        await UniTask.WaitUntil(backgroundReadyPredicate, cancellationToken: ct);
         ScrollPage.gameObject.SetActive(true);
 
         GetTags(() =>

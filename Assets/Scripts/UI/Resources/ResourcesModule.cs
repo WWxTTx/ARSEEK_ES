@@ -1,5 +1,5 @@
 using DG.Tweening;
-using System.Collections;
+using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -213,8 +213,8 @@ public class ResourcesModule : UIModuleBase
         set 
         {
             isDownOpen = value;
-            StartCoroutine(RefreshTagList());
-            StartCoroutine(RefreshAllLayout());
+            RefreshTagListAsync().Forget();
+            RefreshAllLayoutAsync().Forget();
         }
     }
 
@@ -419,8 +419,8 @@ public class ResourcesModule : UIModuleBase
         //content.GetComponent<HorizontalLayoutGroup>().enabled = false;
 
         //排列标签列表
-        StartCoroutine(RefreshTagList());
-        StartCoroutine(RefreshAllLayout());
+        RefreshTagListAsync().Forget();
+        RefreshAllLayoutAsync().Forget();
 
         //还原记录的状态
         {
@@ -584,10 +584,10 @@ public class ResourcesModule : UIModuleBase
     /// <param name="tag"></param>
     protected virtual void RefreshList()
     {
-        StartCoroutine(ShowLoad());
+        ShowLoad(this.GetCancellationTokenOnDestroy()).Forget();
     }
 
-    private IEnumerator ShowLoad() 
+    private async UniTaskVoid ShowLoad(System.Threading.CancellationToken ct)
     {
         if (isFirstEnter)
         {
@@ -622,7 +622,7 @@ public class ResourcesModule : UIModuleBase
         //ResourceContent.GetComponent<GridLayoutGroup>().enabled = false;
         //ResourceContent.GetComponent<ContentSizeFitter>().enabled = false;
 
-        yield return new WaitForSeconds(0.8f);
+        await UniTask.Delay(System.TimeSpan.FromSeconds(0.8f), cancellationToken: ct);
         UIManager.Instance.CloseUI<LoadingPanel>();
 #if UNITY_STANDALONE
         transform.FindChildByName("PageScrollList").gameObject.SetActive(true);
@@ -760,9 +760,9 @@ public class ResourcesModule : UIModuleBase
     /// <summary>
     /// 排列标签列表
     /// </summary>
-    public IEnumerator RefreshTagList()
+    public async UniTaskVoid RefreshTagListAsync()
     {
-        yield return new WaitForEndOfFrame();
+        await UniTask.WaitForEndOfFrame(this);
 
         float high = highPadding;
         float width = leftPadding;
@@ -812,10 +812,10 @@ public class ResourcesModule : UIModuleBase
     /// <summary>
     /// 设置标签，下载进度条，课程页面的布局
     /// </summary>
-    public IEnumerator RefreshAllLayout()
+    public async UniTaskVoid RefreshAllLayoutAsync()
     {
-        yield return new WaitForEndOfFrame();
-        yield return new WaitForEndOfFrame();
+        await UniTask.WaitForEndOfFrame(this);
+        await UniTask.WaitForEndOfFrame(this);
 
         RectTransform content_rectTransform = transform.FindChildByName("Category").GetComponent<RectTransform>();
         RectTransform downLoading_rectTransform = transform.FindChildByName("Downloading").GetComponent<RectTransform>();

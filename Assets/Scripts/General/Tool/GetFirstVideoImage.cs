@@ -1,8 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Video;
+using Cysharp.Threading.Tasks;
 using UnityFramework.Runtime;
 
 public class VideoPreviewData
@@ -34,9 +35,9 @@ public class GetFirstVideoImage : MonoBehaviour
 
     private string lastLoadedUrl;
 
-    private Coroutine loadPreviewCo;
+    private CancellationTokenSource loadPreviewCts;
 
-    private Coroutine loadPreviewsCo;
+    private CancellationTokenSource loadPreviewsCts;
 
 
     private void InitComponent()
@@ -66,10 +67,12 @@ public class GetFirstVideoImage : MonoBehaviour
 
         videoFrameTexture = new Texture2D(2, 2);
         InitComponent();
-        loadPreviewCo = StartCoroutine(_loadPreview(url, callBack));
+        loadPreviewCts?.Cancel();
+        loadPreviewCts = new CancellationTokenSource();
+        _loadPreview(url, callBack, loadPreviewCts.Token).Forget();
     }
 
-    private IEnumerator _loadPreview(string url, UnityAction<Texture2D> callBack)
+    private async UniTaskVoid _loadPreview(string url, UnityAction<Texture2D> callBack, CancellationToken ct)
     {
         vp.frame = 0;
         vp.url = url.Replace("https", "http");
@@ -80,17 +83,17 @@ public class GetFirstVideoImage : MonoBehaviour
         vp.errorReceived += (vp, msg) =>
         {
             Log.Error(msg);
-            if (loadPreviewCo != null)
+            if (loadPreviewCts != null)
             {
-                StopCoroutine(loadPreviewCo);
+                loadPreviewCts.Cancel();
                 vp.Pause();
             }
         };
         //等待缓冲
         while (!vp.isPrepared)
-            yield return 0;
+            await UniTask.Yield(ct);
         while (videoFrameTexture == null)
-            yield return 0;
+            await UniTask.Yield(ct);
 
         videoFrameTexture = ScaleTexture(videoFrameTexture, 332, 305);
         vp.Pause();
@@ -106,13 +109,13 @@ public class GetFirstVideoImage : MonoBehaviour
     /// <param name="callBacke"></param>
     public void LoadVideoPreviews(Dictionary<int, string> urls, UnityAction<Dictionary<int, VideoPreviewData>> callBack)
     {
-        if (loadPreviewsCo != null)
-            StopCoroutine(loadPreviewsCo);
+        loadPreviewsCts?.Cancel();
+        loadPreviewsCts = new CancellationTokenSource();
         InitComponent();
-        loadPreviewsCo = StartCoroutine(_loadAllTogether(urls, callBack));
+        _loadAllTogether(urls, callBack, loadPreviewsCts.Token).Forget();
     }
 
-    public IEnumerator _loadAllTogether(Dictionary<int, string> urls, UnityAction<Dictionary<int, VideoPreviewData>> callBack)
+    public async UniTaskVoid _loadAllTogether(Dictionary<int, string> urls, UnityAction<Dictionary<int, VideoPreviewData>> callBack, CancellationToken ct)
     {
         List<int> index = new List<int>(urls.Keys);
         bool errorReceived = false;
@@ -131,9 +134,9 @@ public class GetFirstVideoImage : MonoBehaviour
 
             //等待缓冲
             while (!vp.isPrepared && !errorReceived)
-                yield return 0;
+                await UniTask.Yield(ct);
             while (videoFrameTexture == null && !errorReceived)
-                yield return 0;
+                await UniTask.Yield(ct);
 
             if (errorReceived)
                 continue;
@@ -153,14 +156,14 @@ public class GetFirstVideoImage : MonoBehaviour
     /// <param name="callBack"></param>
     public void LoadVideoPreviews2(Dictionary<int, string> urls, UnityAction<VideoPreviewData> callBack)
     {
-        if (loadPreviewsCo != null)
-            StopCoroutine(loadPreviewsCo);
+        loadPreviewsCts?.Cancel();
+        loadPreviewsCts = new CancellationTokenSource();
         InitComponent();
-        loadPreviewsCo = StartCoroutine(_loadSeperate(urls, callBack));
+        _loadSeperate(urls, callBack, loadPreviewsCts.Token).Forget();
     }
 
     private bool errorReceived;
-    public IEnumerator _loadSeperate(Dictionary<int, string> urls, UnityAction<VideoPreviewData> callBack)
+    private async UniTaskVoid _loadSeperate(Dictionary<int, string> urls, UnityAction<VideoPreviewData> callBack, CancellationToken ct)
     {
         List<int> index = new List<int>(urls.Keys);
         for (int i = 0; i < index.Count; i++)
@@ -177,9 +180,9 @@ public class GetFirstVideoImage : MonoBehaviour
             vp.errorReceived += OnError;
             //等待缓冲
             while (!vp.isPrepared && !errorReceived)
-                yield return 0;
+                await UniTask.Yield(ct);
             while (videoFrameTexture == null && !errorReceived)
-                yield return 0;
+                await UniTask.Yield(ct);
 
             if (errorReceived)
                 continue;
@@ -308,6 +311,10 @@ public class GetFirstVideoImage : MonoBehaviour
 
     private void OnDestroy()
     {
+        loadPreviewCts?.Cancel();
+        loadPreviewCts?.Dispose();
+        loadPreviewsCts?.Cancel();
+        loadPreviewsCts?.Dispose();
         save.Clear();
     }
 }

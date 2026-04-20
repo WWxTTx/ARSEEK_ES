@@ -1,5 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
@@ -61,7 +61,7 @@ public class PopupPanel_AutoConfirm : UIPanelBase
     private string info;
     private int countDown;
     private Button autoBtn;
-    private Coroutine countDownCo;
+    private System.Threading.CancellationTokenSource countDownCts;
 
     public override void Open(UIData uiData = null)
     {
@@ -225,7 +225,8 @@ public class PopupPanel_AutoConfirm : UIPanelBase
         {
             Content.blocksRaycasts = true;
             if (countDown > 0)
-                countDownCo = StartCoroutine(CountDown());
+                countDownCts = new System.Threading.CancellationTokenSource();
+                CountDown(countDownCts.Token).Forget();
         });
         base.JoinAnim(callback);
     }
@@ -240,22 +241,18 @@ public class PopupPanel_AutoConfirm : UIPanelBase
         ExitSequence.Join(DOTween.To(() => Mask.alpha, (value) => Mask.alpha = value, 0f, ExitAnimePlayTime));
         ExitSequence.AppendCallback(() =>
         {
-            if (countDownCo != null)
-            {
-                StopCoroutine(countDownCo);
-                countDownCo = null;
-            }
+            countDownCts?.Cancel();
+            countDownCts = null;
         });
         base.ExitAnim(callback);
     }
 
-    private WaitForSecondsRealtime sec = new WaitForSecondsRealtime(1f);
-    private IEnumerator CountDown()
+    private async UniTaskVoid CountDown(System.Threading.CancellationToken ct)
     {
         while (countDown > 0)
         {
             textInfo.text = $"{info}\n\n即将关闭: {countDown--}";
-            yield return sec;
+            await UniTask.Delay(System.TimeSpan.FromSeconds(1f), cancellationToken: ct);
 
             if(countDown == 0)
             {

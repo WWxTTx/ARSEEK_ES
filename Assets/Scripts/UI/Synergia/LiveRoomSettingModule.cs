@@ -2,8 +2,10 @@
 using UnityEngine.Events;
 using UnityEngine.UI;
 using DG.Tweening;
+using Cysharp.Threading.Tasks;
 using UnityFramework.Runtime;
-using System.Collections;
+using System;
+using System.Threading;
 
 /// <summary>
 /// 直播间设置模块
@@ -47,6 +49,10 @@ public class LiveRoomSettingModule : UIModuleBase
 
     private string prevRoomName;
     private string prevPassword;
+    private CancellationTokenSource setRoomCts;
+    private bool setNameFinish;
+    private bool setPasswordFinish;
+    private Func<bool> roomInfoReadyPredicate;
 
 
     public override void Open(UIData uiData = null)
@@ -89,7 +95,9 @@ public class LiveRoomSettingModule : UIModuleBase
         
         SaveBtn.onClick.AddListener(() =>
         {
-            StartCoroutine(SetRoomInfo());
+            setRoomCts?.Cancel();
+            setRoomCts = new CancellationTokenSource();
+            SetRoomInfo(setRoomCts.Token).Forget();
         });
     }
 
@@ -97,10 +105,10 @@ public class LiveRoomSettingModule : UIModuleBase
     /// 修改房间信息
     /// </summary>
     /// <returns></returns>
-    private IEnumerator SetRoomInfo()
+    private async UniTaskVoid SetRoomInfo(CancellationToken ct)
     {
-        bool setNameFinish = false;
-        bool setPasswordFinish = false;
+        setNameFinish = false;
+        setPasswordFinish = false;
 
         if (!RoomName.text.Equals(GlobalInfo.roomInfo.RoomName))
         {
@@ -109,7 +117,6 @@ public class LiveRoomSettingModule : UIModuleBase
             {
                 GlobalInfo.roomInfo.RoomName = RoomName.text;
                 UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("房间名称修改成功"));
-                //同步房间信息
                 MsgString msgStr = new MsgString((ushort)RoomChannelEvent.RoomInfo, GlobalInfo.roomInfo.RoomName);
                 NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate(msgStr.msgId, JsonTool.Serializable(msgStr)));
                 setNameFinish = true;
@@ -163,7 +170,8 @@ public class LiveRoomSettingModule : UIModuleBase
             setPasswordFinish = true;
         }
 
-        yield return new WaitUntil(() => setNameFinish && setPasswordFinish);
+        roomInfoReadyPredicate = () => setNameFinish && setPasswordFinish;
+        await UniTask.WaitUntil(roomInfoReadyPredicate, cancellationToken: ct);
         SendMsg(new MsgBase((ushort)RoomChannelEvent.LiveRoomSettingModuleClose));
     }
 
@@ -210,7 +218,7 @@ public class LiveRoomSettingModule : UIModuleBase
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
         base.Close(uiData, callback);
-        StopAllCoroutines();
+        setRoomCts?.Cancel();
     }
 
     #region 动效

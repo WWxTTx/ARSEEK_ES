@@ -1,10 +1,11 @@
 using System;
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
+using Cysharp.Threading.Tasks;
 using RenderHeads.Media.AVProMovieCapture;
 using FFmpeg;
 using UnityFramework.Runtime;
@@ -20,6 +21,12 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
     /// 单例（全局访问）
     /// </summary>
     public static ExamScreenRecording Instance;
+
+    private CancellationTokenSource cts;
+
+    private Func<bool> _encoderReadyPredicate;
+    private Func<bool> _notMergingPredicate;
+    private Func<bool> _uploadCompletePredicate;
 
     [SerializeField] private GameViewEncoder encoder;
     [SerializeField] CaptureFromTexture _movieCapture = null;
@@ -89,6 +96,7 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
     {
         Instance = this;
         FFmpegParser.Handler = this;
+        cts = new CancellationTokenSource();
     }
 
     protected override void InitComponents()
@@ -184,11 +192,17 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
     /// </summary>
     /// <param name="fileName"></param>
     /// <returns></returns>
-    private IEnumerator StartCapture(int baikeId/*string fileName*/)
+    private async UniTaskVoid StartCapture(int baikeId/*string fileName*/)
     {
-        yield return new WaitForEndOfFrame();
-        yield return new WaitForEndOfFrame();
-        yield return new WaitUntil(() => encoder.GetStreamTexture != null && !fileWriting);
+        CancellationToken ct = cts.Token;
+
+        await UniTask.WaitForEndOfFrame(this);
+        await UniTask.WaitForEndOfFrame(this);
+
+        if (_encoderReadyPredicate == null)
+            _encoderReadyPredicate = () => encoder.GetStreamTexture != null && !fileWriting;
+
+        await UniTask.WaitUntil(_encoderReadyPredicate, cancellationToken: ct);
 
         //更新录制图像
         _movieCapture.SetSourceTexture(encoder.GetStreamTexture);
@@ -318,21 +332,26 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
     {
         if (string.IsNullOrEmpty(filePath))
             return;
-        StartCoroutine(UploadFile(examid, baikeId, filePath, callback));
+        UploadFile(examid, baikeId, filePath, callback).Forget();
     }
 
-    private IEnumerator UploadFile(int examId, int baikeId, string filePath, UnityAction<int, string> callback)
+    private async UniTaskVoid UploadFile(int examId, int baikeId, string filePath, UnityAction<int, string> callback)
     {
+        CancellationToken ct = cts.Token;
+
         uploading.Add(filePath);
 
-        yield return new WaitUntil(() => !startMerge);
-        yield return new WaitForEndOfFrame();
+        if (_notMergingPredicate == null)
+            _notMergingPredicate = () => !startMerge;
+
+        await UniTask.WaitUntil(_notMergingPredicate, cancellationToken: ct);
+        await UniTask.WaitForEndOfFrame(this);
 
         if (!File.Exists(filePath))
         {
             uploading.Remove(filePath);
             callback?.Invoke(baikeId, string.Empty);
-            yield break;
+            return;
         }
 
         bool result = false;
@@ -349,7 +368,8 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
             uploading.Remove(filePath);
         });
 
-        yield return new WaitUntil(() => !uploading.Contains(filePath));
+        Func<bool> uploadPredicate = () => !uploading.Contains(filePath);
+        await UniTask.WaitUntil(uploadPredicate, cancellationToken: ct);
         Log.Debug(result ? $"上传视频文件{filePath}成功" : $"上传视频文件{filePath}失败");
         callback?.Invoke(baikeId, result ? GetVideoObjectName(examId, baikeId, filePath) : string.Empty);
     }

@@ -166,7 +166,7 @@ public class CameraRotate : MonoBehaviour
                             pivot = ModelManager.Instance.modelBoundsCenter;
                             break;
                         case CameraRotateType.RotateAroundMouse:
-                            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                            Ray ray = mainCam.ScreenPointToRay(Input.mousePosition);
                             if (Physics.Raycast(ray, out RaycastHit hit))
                             {
                                 pivot = hit.point;
@@ -183,7 +183,7 @@ public class CameraRotate : MonoBehaviour
                             break;
                         case CameraRotateType.RotateAroundScreen:
                             //pivot = Camera.main.ViewportToWorldPoint(Camera.main.ScreenToViewportPoint(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, Vector3.Distance(transform.position, ModelManager.Instance.modelRoot.position))));
-                            Ray ray2 = Camera.main.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
+                            Ray ray2 = mainCam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
                             if (Physics.Raycast(ray2, out RaycastHit hit2))
                             {
                                 pivot = hit2.point;
