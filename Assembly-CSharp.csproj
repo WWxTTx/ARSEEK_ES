@@ -213,7 +213,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\ASN1SetParser.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\modes\GCMBlockCipher.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Features\DemoObjectAnimation.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\SkewTextExample.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\BufferedBlockCipher.cs" />
     <Compile Include="Assets\Scripts\General\Tool\FileStorage\StorageManager.cs" />
     <Compile Include="Assets\Scripts\WebSever\RequestBase.cs" />
@@ -238,7 +237,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x509\X509NameTokenizer.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\DHKeyParameters.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\abc\SimpleBigDecimal.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\SimpleScript.cs" />
     <Compile Include="Assets\Scripts\Destroy\Tool\AudioRecord\MicrophoneAudioRecord.cs" />
     <Compile Include="Assets\Scripts\UI\Course\SmallScene\UISmallSceneModule.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMNetwork\Scripts\FMClient.cs" />
@@ -375,7 +373,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\DerGraphicString.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\Certificate.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\security\InvalidKeyException.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark01_UGUI.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\IBasicAgreement.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\signers\GenericSigner.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\AbstractTlsSignerCredentials.cs" />
@@ -395,7 +392,6 @@
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Networking\ConnectionDebugText.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SignalR\Transports\TransportBase.cs" />
     <Compile Include="Assets\SDK\DatePicker\DatePicker\DatePicker_Enums.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextSelector_A.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT233FieldElement.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Standalone\Scripts\StandaloneWebPlugin.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\raw\Nat224.cs" />
@@ -478,7 +474,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsAeadCipher.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT163R2Curve.cs" />
     <Compile Include="Assets\SDK\DatePicker\DatePicker\DatePickerExtensions.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\VertexShakeA.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\x509\extension\X509ExtensionUtil.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\encodings\OaepEncoding.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\HTTPUpdateDelegator.cs" />
@@ -494,7 +489,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SocketIO\HandshakeData.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\Asn1OutputStream.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\endo\GlvEndomorphism.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark04.cs" />
     <Compile Include="Assets\Scripts\General\Data\GlobalInfo.cs" />
     <Compile Include="Assets\SDK\HighlightPlus\Runtime\Scripts\HighlightTrigger.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\CanvasWebViewPrefab.cs" />
@@ -566,7 +560,6 @@
     <Compile Include="Assets\SDK\FFmpeg\Standalone\StandaloneProxy.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\zlib\JZlib.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Extensions\HeaderValue.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\ChatController.cs" />
     <Compile Include="Assets\Scripts\Destroy\Button_LinkModeExtend.cs" />
     <Compile Include="Assets\Scripts\General\Tool\FileStorage\TaskExtensions.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\sec\SECNamedCurves.cs" />
@@ -584,7 +577,6 @@
     <Compile Include="Assets\Scripts\Model\ModelEvent\CollisionBoxMouseEvent.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Android\Scripts\Internal\AndroidStringAndBoolDelegateCallback.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\WebSocket\Extensions\IExtension.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TextMeshProFloatingText.cs" />
     <Compile Include="Assets\Scripts\UI\Course\BaikeSelectModule.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT571R1Point.cs" />
     <Compile Include="Assets\Scripts\UI\Synergia\TransitionPanel.cs" />
@@ -628,7 +620,6 @@
     <Compile Include="Assets\Scripts\Destroy\ModelTypes\DragRotateModel.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Demos\Scripts\SimpleWebViewDemo.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x509\CertificateList.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\VertexShakeB.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Features\Interactive\WorldSpaceButton\WorldToScreenSpace.cs" />
     <Compile Include="Assets\Scripts\UI\Course\SmallScene\UISmallSceneToolModule.cs" />
     <Compile Include="Assets\SDK\FFmpeg\FFmpegCode\FFmpegHelpers\FFmpegCommands.cs" />
@@ -650,12 +641,10 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x509\KeyUsage.cs" />
     <Compile Include="Assets\Scripts\General\Tool\PermissionManager.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\IesWithCipherParameters.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\EnvMapAnimator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\modes\CfbBlockCipher.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\IStreamCipher.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\PageLoadFailedException.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\DatagramTransport.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_UiFrameRateCounter.cs" />
     <Compile Include="Assets\Scripts\General\Tool\TreeView\SideTreeViewItemData.cs" />
     <Compile Include="Assets\Scripts\Destroy\ModelTypes\RotaryKnobModel.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\IWithPopups.cs" />
@@ -715,7 +704,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\DsaPrivateKeyParameters.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Demos\Scripts\HardwareKeyboardListener.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\DerUTCTime.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\CameraController.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\ElGamalKeyParameters.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecP192K1Curve.cs" />
     <Compile Include="Assets\SDK\DatePicker\TimePicker.cs" />
@@ -762,7 +750,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Caching\HTTPCacheFileInfo.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Manager\INetworkManager.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\RSABlindingParameters.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMPro_InstructionOverlay.cs" />
     <Compile Include="Assets\Scripts\Destroy\ModelTypes\DragConvertFloat.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SocketIO\JsonEncoders\IJSonEncoder.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\anssi\ANSSIObjectIdentifiers.cs" />
@@ -774,17 +761,14 @@
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\Internal\Dispatcher.cs" />
     <Compile Include="Assets\Framework\Debugger\Scripts\Runtime\Show\UIDebugger.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\PlatformSupport\TcpClient\WinRT\TcpClient.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_ExampleScript_01.cs" />
     <Compile Include="Assets\Scripts\UI\Course\WebModule.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Networking\NetworkAction\NetworkActions_Debug.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\IAgentHelper\IFrameAgentHelper.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TextConsoleSimulator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT131R2Point.cs" />
     <Compile Include="Assets\Scripts\UI\Synergia\LiveRoomMemberModule.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\Cast5Engine.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x9\DHValidationParms.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\digests\GeneralDigest.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\ObjectSpin.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsSignerCredentials.cs" />
     <Compile Include="Assets\Scripts\Destroy\ToggleWithSoundEffect.cs" />
     <Compile Include="Assets\Scripts\General\ComponentTool\SetParentBehavior\SetParentClip.cs" />
@@ -806,7 +790,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\iana\IANAObjectIdentifiers.cs" />
     <Compile Include="Assets\Scripts\UI\Course\AnimModule.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\io\pem\PemReader.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextInfoDebugTool.cs" />
     <Compile Include="Assets\Scripts\UI\Exam\Destroy\ExamPauseModule.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\JSON\JSON.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\ICertificateVerifyer.cs" />
@@ -835,7 +818,6 @@
     <Compile Include="Assets\Framework\UI\Base\UIModuleBase.cs" />
     <Compile Include="Assets\Scripts\Destroy\Tool\VideoCtrl.cs" />
     <Compile Include="Assets\SDK\HighlightPlus\Runtime\Scripts\HighlightManager.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextEventCheck.cs" />
     <Compile Include="Assets\Scripts\UI\Course\SmallScene\UIOperation\ImageViewer.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\ECPrivateKeyParameters.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT283R1Curve.cs" />
@@ -866,7 +848,6 @@
     <Compile Include="Assets\Scripts\Camera\CameraSync.cs" />
     <Compile Include="Assets\Scripts\WebSever\ResultCode.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\BERSequenceParser.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\ShaderPropAnimator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\macs\CbcBlockCipherMac.cs" />
     <Compile Include="Assets\Scripts\WebSever\RequestData.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\GOST3410PublicKeyParameters.cs" />
@@ -904,7 +885,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT113R1Point.cs" />
     <Compile Include="Assets\SDK\FFmpeg\FFmpegCode\FFmpegHelpers\FFmpegConfigs.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\paddings\ISO7816d4Padding.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\WarpTextExample.cs" />
     <Compile Include="Assets\Scripts\Destroy\Tool\InfiniteScrollRect\InfiniteListScrollRect.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x509\AlgorithmIdentifier.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\encoders\Hex.cs" />
@@ -941,7 +921,6 @@
     <Compile Include="Assets\SDK\FFmpeg\FFmpegCode\FFmpegHelpers\FFmpegProgressParser.cs" />
     <Compile Include="Assets\Scripts\UI\Synergia\PlayerManager.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Mapper\AudioDecoder.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_DigitValidator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecP224K1Point.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\ECCurve.cs" />
     <Compile Include="Assets\SDK\DatePicker\DatePicker\DatePickerTimer.cs" />
@@ -1011,7 +990,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\macs\Poly1305.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x9\DHDomainParameters.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT131R1Curve.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark02.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\MouseButton.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\ClickedEventArgs.cs" />
     <Compile Include="Assets\Scripts\Model\Dismantling\AnimController.cs" />
@@ -1037,7 +1015,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\WebSocket\Extensions\PerMessageCompression.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\ASN1StreamParser.cs" />
     <Compile Include="Assets\SDK\DatePicker\DatePicker\DatePicker_Button.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TextMeshSpawner.cs" />
     <Compile Include="Assets\Scripts\UI\Resources\ResourcesModule.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\BaseWebView.cs" />
     <Compile Include="Assets\Framework\UI\LoadingPanel.cs" />
@@ -1104,7 +1081,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x509\SubjectPublicKeyInfo.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecP128R1Point.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\SignatureAlgorithm.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark03.cs" />
     <Compile Include="Assets\Scripts\General\System\StartSetup.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\PrfAlgorithm.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\Internal\StringBridgeMessage.cs" />
@@ -1172,7 +1148,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Caching\HTTPCacheMaintananceParams.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\IdeaEngine.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\Integers.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_FrameRateCounter.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\RSABlindedEngine.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMWebSocket\Scripts\SocketIO\FM_Packet\EnginePacketType.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\LazyASN1InputStream.cs" />
@@ -1232,7 +1207,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Manager\NetworkManager.Const.cs" />
     <Compile Include="Assets\Scripts\Destroy\ButtonWithSoundEffect.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\BaseKeyboard.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\VertexJitter.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\SupplementalDataEntry.cs" />
     <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\LC_Fjlqgz.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMNetwork\Scripts\Demo\FMNetwork_DemoAnimation.cs" />
@@ -1260,7 +1234,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\zlib\ZOutputStream.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\IWrapper.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\security\cert\CrlException.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextEventHandler.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecP192K1Point.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\ECBasisType.cs" />
     <Compile Include="Assets\Scripts\General\Manager\ARManager.cs" />
@@ -1294,7 +1267,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\DataLengthException.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\DsaParameters.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x9\X9IntegerConverter.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextSelector_B.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Authentication\Credentials.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\generators\DHParametersHelper.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecP224R1Point.cs" />
@@ -1430,7 +1402,6 @@
     <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\DynamicRope.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\Arrays.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\TEAEngine.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_PhoneNumberValidator.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMWebSocket\Scripts\SocketIO\FM_IO\Decoder.cs" />
     <Compile Include="Assets\Scripts\UI\Module\Setting\Option_UserInfoModule.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\HTTPManager.cs" />
@@ -1441,7 +1412,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\MemoableResetException.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SignalR\Transports\PostSendTransportBase.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\PlatformSupport\IO\Directory.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\VertexColorCycler.cs" />
     <Compile Include="Assets\Scripts\UI\Synergia\TrainingPanel.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\AsymmetricKeyParameter.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\signers\ECGOST3410Signer.cs" />
@@ -1455,7 +1425,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\digests\Sha384Digest.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\endo\GlvTypeBEndomorphism.cs" />
     <Compile Include="Assets\Scripts\General\ComponentTool\UIComponent\DraggableComponent.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\TeleType.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\ECKeyParameters.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecP256R1Point.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\Internal\WebViewLogger.cs" />
@@ -1477,7 +1446,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsDheKeyExchange.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\CertificateStatusType.cs" />
     <Compile Include="Assets\Scripts\Model\Config\Other\ModelInfoData.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\VertexZoom.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\HTTPMethods.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\AuthRequestedEventArgs.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsNullCompression.cs" />
@@ -1533,7 +1501,6 @@
     <Compile Include="Assets\Scripts\General\ComponentTool\UIAnim\UITextScroll.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\digests\RipeMD320Digest.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\RijndaelEngine.cs" />
-    <Compile Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark01.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\paddings\ISO10126d2Padding.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\RC2Engine.cs" />
     <Compile Include="Assets\Scripts\UI\Course\OPLCoursePanel.cs" />
@@ -1615,7 +1582,6 @@
     <None Include="Assets\Packages\Microsoft.Extensions.Primitives.8.0.0\lib\net462\Microsoft.Extensions.Primitives.xml" />
     <None Include="Assets\SDK\Vuplex\WebView\iOS\LICENSE_iOS.txt" />
     <None Include="Assets\Packages\Microsoft.AspNetCore.SignalR.Protocols.Json.8.0.3\THIRD-PARTY-NOTICES.TXT" />
-    <None Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Fonts\3500.txt" />
     <None Include="Assets\SDK\TextMesh Pro\Resources\Shaders\TMP_Bitmap.shader" />
     <None Include="Assets\SDK\HighlightPlus\Runtime\Resources\HighlightPlus\HighlightOccluder.shader" />
     <None Include="Assets\Packages\System.Collections.Immutable.6.0.0\lib\net461\System.Collections.Immutable.dll" />
@@ -1635,7 +1601,6 @@
     <None Include="Assets\Packages\Microsoft.Extensions.Logging.Abstractions.8.0.1\lib\net462\Microsoft.Extensions.Logging.Abstractions.xml" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn4.0\cs\es\System.Text.Json.SourceGeneration.resources.dll" />
     <None Include="Assets\link.xml" />
-    <None Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Fonts\Oswald-Bold - OFL.txt" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn3.11\cs\zh-Hant\System.Text.Json.SourceGeneration.resources.dll" />
     <None Include="Assets\Packages\MessagePack.Annotations.2.5.108\lib\netstandard2.0\MessagePack.Annotations.xml" />
     <None Include="Assets\SDK\FMETP_STREAM\FMCore\Shaders\FMPCStream\FMPCStreamDecoder.shader" />
@@ -1650,7 +1615,6 @@
     <None Include="Assets\Packages\Microsoft.Extensions.Logging.Abstractions.8.0.1\analyzers\dotnet\roslyn3.11\cs\Microsoft.Extensions.Logging.Generators.dll" />
     <None Include="Assets\SDK\HighlightPlus\README.txt" />
     <None Include="Assets\Packages\CommunityToolkit.HighPerformance.8.3.0\lib\netstandard2.0\CommunityToolkit.HighPerformance.dll" />
-    <None Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Fonts\Anton OFL.txt" />
     <None Include="Assets\Packages\WindowsBase.dll" />
     <None Include="Assets\Packages\System.Memory.4.5.5\lib\net461\System.Memory.dll" />
     <None Include="Assets\Packages\Microsoft.Extensions.DependencyInjection.Abstractions.8.0.1\useSharedDesignerContext.txt" />
@@ -1913,7 +1877,6 @@
     <None Include="Assets\SDK\TextMesh Pro\Resources\Shaders\TMP_Sprite.shader" />
     <None Include="Assets\SDK\FMETP_STREAM\FMCore\Plugins\FMDesktop\x86_64\FMDesktop.dll" />
     <None Include="Assets\Packages\Microsoft.Extensions.Logging.Abstractions.8.0.1\analyzers\dotnet\roslyn3.11\cs\zh-Hant\Microsoft.Extensions.Logging.Generators.resources.dll" />
-    <None Include="Assets\SDK\TextMesh Pro\Examples &amp; Extras\Fonts\Bangers - OFL.txt" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

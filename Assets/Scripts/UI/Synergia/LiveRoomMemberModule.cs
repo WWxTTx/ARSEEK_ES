@@ -554,7 +554,7 @@ public class LiveRoomMemberModule : UIModuleBase
     private void RegistUIEvent_Live(Transform tf, Member info)
     {
         Toggle mvToggle = tf.GetComponentByChildName<Toggle>("MainViewTog");
-        Toggle opConToggle = tf.GetComponentByChildName<Toggle>("OperationControlTog");
+        //Toggle opConToggle = tf.GetComponentByChildName<Toggle>("OperationControlTog");
         Button voiceToggle = tf.GetComponentByChildName<Button>("VoiceControlTog");
         Button kickBtn = tf.GetComponentByChildName<Button>("KickBtn");
 
@@ -610,8 +610,8 @@ public class LiveRoomMemberModule : UIModuleBase
         //注册权限控制按钮,仅房主
         if (GlobalInfo.IsHomeowner())
         {
-            opConToggle.onValueChanged.RemoveAllListeners();
-            opConToggle.interactable = false;
+            //opConToggle.onValueChanged.RemoveAllListeners();
+            //opConToggle.interactable = false;
             //TODO 2026.1.21 多人权限控制有问题，暂时去掉直播多人权限控制
             //opConToggle.onValueChanged.AddListener((isOn) =>
             //{
@@ -769,7 +769,7 @@ public class LiveRoomMemberModule : UIModuleBase
     private void UpdateUIState_Live(Transform tf, Member info)
     {
         Toggle mvToggle = tf.GetComponentByChildName<Toggle>("MainViewTog");
-        Toggle opConToggle = tf.GetComponentByChildName<Toggle>("OperationControlTog");
+        //Toggle opConToggle = tf.GetComponentByChildName<Toggle>("OperationControlTog");
         Button voiceToggle = tf.GetComponentByChildName<Button>("VoiceControlTog");
         Button kickBtn = tf.GetComponentByChildName<Button>("KickBtn");
 
@@ -781,22 +781,22 @@ public class LiveRoomMemberModule : UIModuleBase
 
 
         // LUO: 罗老师修复bug
-        opConToggle.interactable = false;
-        //权限显示
-        if (info.Id == GlobalInfo.roomInfo.creatorId)
-        {
-            //房主移交主屏权限后，可选择取消自己的操作权限
-            //opConToggle.interactable = GlobalInfo.IsHomeowner() && GlobalInfo.mainScreenId != info.Id;// TODO 2026.1.21 多人权限控制有问题，暂时去掉直播多人权限控制
-            ////房主占一位操作权
-            //opConToggle.interactable = false;
-            opConToggle.SetIsOnWithoutNotify(GlobalInfo.controllerIds.Contains(info.Id));
-        }
-        else
-        {
-            opConToggle.gameObject.SetActive(true);
-            opConToggle.SetIsOnWithoutNotify(GlobalInfo.controllerIds.Contains(info.Id));
-            //opConToggle.interactable = GlobalInfo.IsHomeowner();    //TODO 2026.1.21 多人权限控制有问题，暂时去掉直播多人权限控制
-        }
+        //opConToggle.interactable = false;
+        ////权限显示
+        //if (info.Id == GlobalInfo.roomInfo.creatorId)
+        //{
+        //    //房主移交主屏权限后，可选择取消自己的操作权限
+        //    //opConToggle.interactable = GlobalInfo.IsHomeowner() && GlobalInfo.mainScreenId != info.Id;// TODO 2026.1.21 多人权限控制有问题，暂时去掉直播多人权限控制
+        //    ////房主占一位操作权
+        //    //opConToggle.interactable = false;
+        //    opConToggle.SetIsOnWithoutNotify(GlobalInfo.controllerIds.Contains(info.Id));
+        //}
+        //else
+        //{
+        //    opConToggle.gameObject.SetActive(true);
+        //    opConToggle.SetIsOnWithoutNotify(GlobalInfo.controllerIds.Contains(info.Id));
+        //    //opConToggle.interactable = GlobalInfo.IsHomeowner();    //TODO 2026.1.21 多人权限控制有问题，暂时去掉直播多人权限控制
+        //}
 
         //语音控制显示
         if (info.Id != GlobalInfo.roomInfo.creatorId)

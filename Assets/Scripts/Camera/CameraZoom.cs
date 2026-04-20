@@ -98,7 +98,7 @@ public class CameraZoom : MonoBehaviour
         if (GlobalInfo.InPaintMode)
             return;
 
-        if (GlobalInfo.IsLiveMode() && !GlobalInfo.IsOperator())
+        if (!GlobalInfo.IsOperator())
             return;
 
         if (zoomType == CameraZoomType.None || !ModelManager.Instance.CameraControl || ModelManager.Instance.CameraDotween)

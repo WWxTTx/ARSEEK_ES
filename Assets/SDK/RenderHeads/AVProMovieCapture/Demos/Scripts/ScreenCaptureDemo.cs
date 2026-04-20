@@ -23,10 +23,6 @@ namespace RenderHeads.Media.AVProMovieCapture.Demos
 
 		private IEnumerator Start()
 		{
-#if UNITY_IOS
-			Application.targetFrameRate = 60;
-#endif
-			// Play music track
 			if (_audioBG != null)
 			{
 				// AudioSource.PlayClipAtPoint(_audioBG, Vector3.zero);

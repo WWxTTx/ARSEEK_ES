@@ -2052,21 +2052,21 @@ namespace RenderHeads.Media.AVProMovieCapture
 			else
 			{
 				// Disable vsync
-				#if !UNITY_EDITOR && (UNITY_IOS || UNITY_ANDROID)
-					if (_allowVSyncDisable)
-					{
-						// iOS and Android do not support disabling vsync so use _oldVsyncCount to store the current target framerate.
-						_oldVSyncCount = Application.targetFrameRate;
-						// We want to runs as fast as possible.
-						Application.targetFrameRate = 300;
-					}
-				#else
-					if (_allowVSyncDisable && !Screen.fullScreen && QualitySettings.vSyncCount > 0)
-					{
-						_oldVSyncCount = QualitySettings.vSyncCount;
-						QualitySettings.vSyncCount = 0;
-					}
-				#endif
+				//#if !UNITY_EDITOR && (UNITY_IOS || UNITY_ANDROID)
+				//	if (_allowVSyncDisable)
+				//	{
+				//		// iOS and Android do not support disabling vsync so use _oldVsyncCount to store the current target framerate.
+				//		_oldVSyncCount = Application.targetFrameRate;
+				//		// We want to runs as fast as possible.
+				//		Application.targetFrameRate = 300;
+				//	}
+				//#else
+				//	if (_allowVSyncDisable && !Screen.fullScreen && QualitySettings.vSyncCount > 0)
+				//	{
+				//		_oldVSyncCount = QualitySettings.vSyncCount;
+				//		QualitySettings.vSyncCount = 0;
+				//	}
+				//#endif
 
 				if (_useMotionBlur && _motionBlurSamples > 1)
 				{
@@ -2788,17 +2788,17 @@ namespace RenderHeads.Media.AVProMovieCapture
 
 			#if !UNITY_EDITOR_OSX && (UNITY_IOS || UNITY_ANDROID)
 				// Android and iOS do not support disabling vsync so _oldVsyncCount is actually the target framerate before we started capturing.
-				if (_oldVSyncCount != 0)
-				{
-					Application.targetFrameRate = _oldVSyncCount;
-					_oldVSyncCount = 0;
-				}
-			#else
-				if (_oldVSyncCount > 0)
-				{
-					QualitySettings.vSyncCount = _oldVSyncCount;
-					_oldVSyncCount = 0;
-				}
+			//	if (_oldVSyncCount != 0)
+			//	{
+			//		Application.targetFrameRate = _oldVSyncCount;
+			//		_oldVSyncCount = 0;
+			//	}
+			//#else
+			//	if (_oldVSyncCount > 0)
+			//	{
+			//		QualitySettings.vSyncCount = _oldVSyncCount;
+			//		_oldVSyncCount = 0;
+			//	}
 			#endif
 
 			_motionBlur = null;
