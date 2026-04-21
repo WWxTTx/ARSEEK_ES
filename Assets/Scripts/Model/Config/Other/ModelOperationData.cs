@@ -411,7 +411,7 @@ public class BehaveMoveCamera : BehaveDotween
         {
             DOTween.Kill("BehaveMoveCamera", true);
 
-            ModelManager.Instance.CameraDotween = true;
+            
             sequence = DOTween.Sequence();
             {
                 for (int i = 0; i < positions.Count; i++)
@@ -446,7 +446,7 @@ public class BehaveMoveCamera : BehaveDotween
                         {
                             child.enabled = true;
                         }
-                        ModelManager.Instance.CameraDotween = false;
+                        
                         callback?.Invoke();
                     });
                 }
@@ -466,7 +466,7 @@ public class BehaveMoveCamera : BehaveDotween
         {
             Camera.main.transform.position = positions[0];
             Camera.main.transform.eulerAngles = eulerAngles[0];
-            ModelManager.Instance.CameraDotween = false;
+            
             ModelManager.Instance.UpdateCameraPose();
         }
     }
@@ -491,7 +491,7 @@ public class BehaveMoveCamera : BehaveDotween
                 Camera.main.transform.position = positions[positions.Count - 1];
                 Camera.main.transform.eulerAngles = eulerAngles[positions.Count - 1];
 
-                ModelManager.Instance.CameraDotween = false;
+                
                 ModelManager.Instance.UpdateCameraPose();
             }
         }
@@ -522,7 +522,7 @@ public class BehaveZoomCamera : BehaveDotween
         {
             DOTween.Kill("BehaveZoomCamera", true);
 
-            ModelManager.Instance.CameraDotween = true;
+            
             sequence = DOTween.Sequence();
             {
                 Vector3 targetPosition = ModelManager.Instance.modelBoundsCenter - camera.forward * distance;
@@ -562,7 +562,7 @@ public class BehaveZoomCamera : BehaveDotween
                         }
 
                         ModelManager.Instance.UpdateCameraPose();
-                        ModelManager.Instance.CameraDotween = false;
+                        
                         callback?.Invoke();
                     });
                 }
@@ -584,7 +584,7 @@ public class BehaveZoomCamera : BehaveDotween
         sequence.Kill();
         Transform camera = Camera.main.transform;
         camera.position = ModelManager.Instance.modelBoundsCenter - camera.forward * distance;
-        ModelManager.Instance.CameraDotween = false;
+        
         ModelManager.Instance.UpdateCameraPose();
     }
 
@@ -1657,11 +1657,12 @@ public class BehaveObserve : BehaveDotween
             return;
         }
         DOTween.Kill("BehaveObserve");
-        ModelManager.Instance.CameraDotween = true;
+        
 
         //观察开始后语音才变更到过程提示语音，需要等待一下避免计时错误读取步骤开始语音
         DOVirtual.DelayedCall(0.1f, () =>
         {
+            
             AddSequence(callback);
         });
     }
@@ -1687,6 +1688,8 @@ public class BehaveObserve : BehaveDotween
             sequence.AppendInterval(waitTime);
             Log.Debug("等待时间" + waitTime);
         }
+
+        sequence.OnComplete(() => callback?.Invoke());
         sequence.timeScale = multiplier;
         sequence.SetId("BehaveObserve");
     }
@@ -1704,7 +1707,7 @@ public class BehaveObserve : BehaveDotween
         sequence.Kill();
         Camera.main.transform.position = position;
         Camera.main.transform.eulerAngles = angle;
-        ModelManager.Instance.CameraDotween = false;
+        
     }
 
     public override void SaveInitialState()
@@ -2082,7 +2085,7 @@ public class BehaveCameraFollow : BehaveDotween
         {
             DOTween.Kill("BehaveMoveCamera", true);
 
-            ModelManager.Instance.CameraDotween = true;
+            
             sequence = DOTween.Sequence();
             sequence.Append(camera.DOMove(ctrlGO.transform.position, duration * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
             sequence.Join(camera.DORotate(ctrlGO.transform.eulerAngles, duration * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
@@ -2090,7 +2093,7 @@ public class BehaveCameraFollow : BehaveDotween
             sequence.timeScale = multiplier;
             sequence.OnComplete(() =>
             {
-                ModelManager.Instance.CameraDotween = false;
+                
                 callback?.Invoke();
             });
             sequence.SetId("BehaveMoveCamera");
@@ -2309,9 +2312,7 @@ public class BehaveObserveRotate : BehaveDotween
         {
             DOTween.Kill("BehaveObserveRotate");
 
-            ModelManager.Instance.CameraDotween = true;
-
-
+            
             sequence = DOTween.Sequence();
             {
                 Vector3 pivotPos = ctrlGO.transform.position;
@@ -2334,7 +2335,7 @@ public class BehaveObserveRotate : BehaveDotween
 
                 sequence.AppendCallback(() =>
                 {
-                    ModelManager.Instance.CameraDotween = false;
+                    
                     callback?.Invoke();
                 });
             }
@@ -2351,7 +2352,7 @@ public class BehaveObserveRotate : BehaveDotween
     {
         base.SetFinalState();
         sequence.Kill();
-        ModelManager.Instance.CameraDotween = false;
+        
     }
 }
 
@@ -2425,6 +2426,9 @@ public class BehavePlayerNavigation : BehaveDotween
 
     public override void SetFinalState()
     {
+        if (GlobalInfo.SetCerrenstate)
+            return;
+
         sequence.Kill();
         if (ctrlGO == null)
             return;
@@ -2467,14 +2471,13 @@ public class BehaveFocus : BehaveDotween
         var camera = Camera.main.transform;
         {
             DOTween.Kill("BehaveFocus");
-            ModelManager.Instance.CameraDotween = true;
+            
 
             sequence = DOTween.Sequence();
             {
                 sequence.Append(camera.DOMove(ctrlGO.transform.position, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease));
                 sequence.Join(camera.DORotate(ctrlGO.transform.eulerAngles, time * GlobalInfo.playTimeRatio).SetEase((Ease)ease)).OnComplete(() =>
                 {
-                    ModelManager.Instance.CameraDotween = false;
                     callback?.Invoke();
                 });
             }
@@ -2494,7 +2497,7 @@ public class BehaveFocus : BehaveDotween
         base.SetFinalState();
         sequence.Kill();
 
-        ModelManager.Instance.CameraDotween = false;
+        
     }
 }
 

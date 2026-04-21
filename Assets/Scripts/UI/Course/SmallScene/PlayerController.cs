@@ -305,39 +305,43 @@ public class PlayerController : MonoBase
     float t;
     private void LateUpdate()
     {
-        //isExecuteOperation=false:是否正在操作的标志位 操作中不可控制角色和相机 角色停止移动 相机由外部自由控制
-        if (GlobalInfo.ShowPopup || rotateJoystick == null || UISmallSceneModule.isExecuteOperation)
-            return;
-
-
+        //导航的相机跟随不受其他条件影响
         if (isNavigating)
         {
+            CameraFollow();
             if (!agent.pathPending && agent.remainingDistance < agent.stoppingDistance)
             {
                 EndNavigation(targetPoint);
             }
         }
-        else
+
+        //CameraDotween是否正在执行相机动画的标志位 动画中不可控制角色和相机 相机由外部自由控制
+        if (GlobalInfo.ShowPopup || rotateJoystick == null || ModelManager.Instance.CameraDotween)
+            return;
+
+        if (!isNavigating)
         {
             Zoom();
             Rotate();
             Move();
         }
 
-        // 跟随角色(强制使用玩家跟随点)
-        if (!UISmallSceneModule.isExecuteOperation)
+        CameraFollow();
+    }
+
+    // 跟随角色(强制使用玩家跟随点)
+    void CameraFollow()
+    {
+        t = 1f / cameraMoveDuration * Time.deltaTime;
+        if (isFirstPerson)
         {
-            t = 1f / cameraMoveDuration * Time.deltaTime;
-            if (isFirstPerson)
-            {
-                mainCamera.position = Vector3.Lerp(mainCamera.position, firstCameraFollowPoint.position, t);
-                mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, firstCameraFollowPoint.rotation, t);
-            }
-            else
-            {
-                mainCamera.position = Vector3.Lerp(mainCamera.position, cameraFollowPoint.position, t);
-                mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, cameraFollowPoint.rotation, t);
-            }
+            mainCamera.position = Vector3.Lerp(mainCamera.position, firstCameraFollowPoint.position, t);
+            mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, firstCameraFollowPoint.rotation, t);
+        }
+        else
+        {
+            mainCamera.position = Vector3.Lerp(mainCamera.position, cameraFollowPoint.position, t);
+            mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, cameraFollowPoint.rotation, t);
         }
     }
 

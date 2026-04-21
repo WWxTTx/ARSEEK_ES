@@ -14,7 +14,6 @@ namespace UnityFramework.Runtime
             new GameObject(typeof(ResLoad).Name).AddComponent<ResLoad>().transform.parent = Managers;
             new GameObject(typeof(FormMsgManager).Name).AddComponent<FormMsgManager>().transform.parent = Managers;
             new GameObject(typeof(UIManager).Name).AddComponent<UIManager>().transform.parent = Managers;
-            new GameObject(typeof(LogManager).Name).AddComponent<LogManager>().transform.parent = Managers;
         }
     }
 }

@@ -40,7 +40,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
 
             MsgSyncCustomUI msgUI = brodcastMsg.GetData<MsgSyncCustomUI>();
             // 解析菜单状态：格式 "index0,index1,index2,depth"
-            string[] parts = msgUI.eventname.Split(',');
+            string[] parts = msgUI.modelOperation.Split(',');
             if (parts.Length >= 4 && int.TryParse(parts[3], out int depth))
             {
                 // 更新菜单状态
@@ -153,7 +153,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         风机轮换 = 5,
     }
 
-    public AvailableStatus availableStatus;
+    public AvailableStatus status;
     public GameObject itemP;
 
     class MenuNode
@@ -311,7 +311,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         this.callback = callback;
 
         AvailableStatus newStatus = (AvailableStatus)step;
-        availableStatus = newStatus;
+        status = newStatus;
         modelOperationId = GetComponentInParent<ModelInfo>()?.ID;
         GuideTip();
     }
@@ -453,7 +453,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         {
             // 序列化菜单状态：index0,index1,index2,depth
             string menuState = $"{selectIndex[0]},{selectIndex[1]},{selectIndex[2]},{selectNode.Count}";
-            ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, menuState, 0), true);
+            ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, (int)status, 0, menuState), true);
         }
     }
 
@@ -627,7 +627,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         {
             smallSceneModule = FindObjectOfType<UISmallSceneModule>().GetComponent<UISmallSceneModule>();
         }
-        switch (availableStatus)
+        switch (status)
         {
             case AvailableStatus.启动双风机:
                 if (EventTrager(new int[] { 3, 4, 5 }))
@@ -699,7 +699,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
     /// </summary>
     void GuideTip()
     {
-        switch (availableStatus)
+        switch (status)
         {
             case AvailableStatus.启动双风机:
             case AvailableStatus.风机轮换:
@@ -753,9 +753,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
     {
         DOVirtual.DelayedCall(2, () => {
             OnExext();
-            smallSceneModule.ModelState = ModelState.Unselect;;
             callback?.Invoke();
-            callback = null;
         });
     }
 

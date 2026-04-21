@@ -105,9 +105,9 @@ public partial class IMStateHelper
         { (ushort)SmallFlowModuleEvent.Operate, MsgStateType.Update },
 
         //UI同步事件不加入操作历史
-        { (ushort)SmallFlowModuleEvent.SynchronizationTsq, MsgStateType.NoneState },
-        { (ushort)SmallFlowModuleEvent.SynchronizationLcu, MsgStateType.NoneState },
-        { (ushort)SmallFlowModuleEvent.SynchronizationZlqzz, MsgStateType.NoneState },
+        //{ (ushort)SmallFlowModuleEvent.SynchronizationTsq, MsgStateType.NoneState },
+        //{ (ushort)SmallFlowModuleEvent.SynchronizationLcu, MsgStateType.NoneState },
+        //{ (ushort)SmallFlowModuleEvent.SynchronizationZlqzz, MsgStateType.NoneState },
 
         //{ (ushort)SmallFlowModuleEvent.MasterComputerOperate, MsgStateType.Default },
         //{ (ushort)SmallFlowModuleEvent.Input, MsgStateType.Default },

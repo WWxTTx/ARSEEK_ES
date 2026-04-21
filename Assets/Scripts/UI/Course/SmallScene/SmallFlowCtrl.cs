@@ -221,26 +221,23 @@ public class SmallFlowCtrl : MonoBase
 
         if (!GlobalInfo.isExam)
         {
-            if (GlobalInfo.courseMode == CourseMode.Training)
+            foreach (var op in state.operation.operations)
             {
-                foreach (var op in state.operation.operations)
+                if (op.name.Equals(state.optionName))
                 {
-                    if (op.name.Equals(state.optionName))
+                    if (op.behaveBases != null)
                     {
-                        if (op.behaveBases != null)
+                        foreach (var behave in op.behaveBases)
                         {
-                            foreach (var behave in op.behaveBases)
+                            if (behave is BehavePopup popup)
                             {
-                                if (behave is BehavePopup popup)
-                                {
-                                    hasPopup = true;
-                                    popupBehave = popup;
-                                    break;
-                                }
+                                hasPopup = true;
+                                popupBehave = popup;
+                                break;
                             }
                         }
-                        break;
                     }
+                    break;
                 }
             }
         }
@@ -704,7 +701,7 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
-    /// 选择任务
+    /// 选择任务 
     /// </summary>
     public void SelectFlow(int index_Flow)
     {
@@ -928,6 +925,8 @@ public class SmallFlowCtrl : MonoBase
     {
         Wait140 = false;
         NetworkManager.Instance.IsIMSync = false;
+        if (!dummy)
+            ModelManager.Instance.CameraDotween = true;
 
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
         bool isOnOperation = IsOnOperation(data.optionName, data.operation.ID);
@@ -958,10 +957,7 @@ public class SmallFlowCtrl : MonoBase
                             if (isOnOperation)
                                 Next();
                             else
-                                DOVirtual.DelayedCall(0.1f, () =>
-                                {
-                                    FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-                                });
+                                Over();
                         }, 0, true);
                     }
                     else
@@ -969,10 +965,7 @@ public class SmallFlowCtrl : MonoBase
                         if (isOnOperation)
                             Next();
                         else
-                            DOVirtual.DelayedCall(0.1f, () =>
-                            {
-                                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-                            });
+                            Over();
                     }
                 }, 0, dummy);
             }
@@ -981,6 +974,14 @@ public class SmallFlowCtrl : MonoBase
                 Log.Warning("执行了TryExecuteOperation未处理的分支");
             }
         }, dummy);
+    }
+
+    void Over()
+    {
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+        });
     }
 
     /// <summary>
@@ -996,6 +997,8 @@ public class SmallFlowCtrl : MonoBase
     {
         Wait140 = false;
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
+        if (!dummy)
+            ModelManager.Instance.CameraDotween = true;
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
         // Tips 类型语音,自动进入0 与 smallSceneModule.ShowHint冲突 增加了一个标志位，如果是配置了流程解说 则不重复执行提示0
@@ -1132,10 +1135,9 @@ public class SmallFlowCtrl : MonoBase
         {
             if(GlobalInfo.courseMode == CourseMode.Training)
             {
-                // 导航：恢复相机跟随 培训模式需要走到下一个位置才能开始下一步语音
-                UISmallSceneModule.isExecuteOperation = false;
                 guideBehave.Execute(() =>
                 {
+                    //培训模式需要走到下一个位置才能开始下一步语音
                     ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
                 });
             }
@@ -1646,7 +1648,7 @@ public class SmallFlowCtrl : MonoBase
                         }
                         catch
                         {
-                            //Log.Error(operation.name + "    " + op.behaveBases[k].behaveType + "  该物体没有配置最终状态");
+                            Log.Debug(operation.name + "    " + op.behaveBases[k].behaveType + "  该物体没有配置最终状态");
                         }
                     }
 
@@ -1776,7 +1778,8 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public void Next()
     {
-        ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().ToLast();
+        //恢复自由移动
+        ModelManager.Instance.CameraDotween = false;
 
         if (Wait140)
             return;
@@ -1802,12 +1805,7 @@ public class SmallFlowCtrl : MonoBase
         }
         //服务器记录当前步骤完成
         ToolManager.SendBroadcastMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowFlow, index_NowStep));
-
-        //延迟刷新状态
-        DOVirtual.DelayedCall(0.1f, () =>
-        {
-            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-        });
+        Over();
     }
 
     /// <summary>

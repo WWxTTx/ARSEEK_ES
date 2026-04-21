@@ -102,7 +102,6 @@ public class UIInput : UIObserve
                 sequence.Join(Camera.main.transform.DORotate(camAngle, behaveObserve.time).SetEase((Ease)behaveObserve.ease));
                 sequence.OnComplete(() =>
                 {
-                    ModelManager.Instance.CameraDotween = false;
                     onFinish?.Invoke(inputField.text);
                 });
 
@@ -197,22 +196,9 @@ public class UIInput : UIObserve
         switch (msg.msgId)
         {
             case (ushort)SmallFlowModuleEvent.SelectFlow:
-            case (ushort)SmallFlowModuleEvent.SelectStep:
                 if (main.activeSelf)
                 {
                     main.SetActive(false);
-
-                    //todo
-                    //if (!ModelManager.Instance.CameraDotween)
-                    //{
-                    //    Sequence sequence = DOTween.Sequence();
-                    //    sequence.Join(Camera.main.transform.DOMove(camPosition, behaveObserve.time).SetEase((Ease)behaveObserve.ease));
-                    //    sequence.Join(Camera.main.transform.DORotate(camAngle, behaveObserve.time).SetEase((Ease)behaveObserve.ease));
-                    //    sequence.OnComplete(() =>
-                    //    {
-                    //        ModelManager.Instance.CameraDotween = false;
-                    //    });
-                    //}
                 }
                 break;
         }

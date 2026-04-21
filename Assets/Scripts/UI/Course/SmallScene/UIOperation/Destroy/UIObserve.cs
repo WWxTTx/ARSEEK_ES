@@ -69,7 +69,6 @@ public class UIObserve : MonoBase
             camPosition = Camera.main.transform.position;
             camAngle = Camera.main.transform.eulerAngles;
 
-            ModelManager.Instance.CameraDotween = true;
             FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, id, false));
 
             Sequence sequence = DOTween.Sequence();
@@ -77,7 +76,6 @@ public class UIObserve : MonoBase
             sequence.Join(Camera.main.transform.DORotate(behaveObserve.ctrlGO.transform.eulerAngles, behaveObserve.time).SetEase((Ease)behaveObserve.ease));
             sequence.OnComplete(() =>
             {
-                ModelManager.Instance.CameraDotween = false;
                 CheckInput(0, onFinish, onFail);
                 main.SetActive(true);
                 OnEnter();

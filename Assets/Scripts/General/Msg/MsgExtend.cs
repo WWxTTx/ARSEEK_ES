@@ -465,9 +465,9 @@ namespace UnityFramework.Runtime
     public class MsgSyncCustomUI : MsgBase
     {
         /// <summary>
-        /// 按钮事件名称
+        /// 当前任务索引
         /// </summary>
-        public string eventname;
+        public int status;
         /// <summary>
         /// 当前在steps列表中的索引
         /// </summary>
@@ -479,15 +479,15 @@ namespace UnityFramework.Runtime
 
         public MsgSyncCustomUI() { }
 
-        public MsgSyncCustomUI(ushort msgId, string eventname, int stepIndex) : base(msgId)
+        public MsgSyncCustomUI(ushort msgId, int task, int stepIndex) : base(msgId)
         {
-            this.eventname = eventname;
+            this.status = task;
             this.stepIndex = stepIndex;
         }
 
-        public MsgSyncCustomUI(ushort msgId, string eventname, int stepIndex, string modelOperation) : base(msgId)
+        public MsgSyncCustomUI(ushort msgId, int task, int stepIndex, string modelOperation) : base(msgId)
         {
-            this.eventname = eventname;
+            this.status = task;
             this.stepIndex = stepIndex;
             this.modelOperation = modelOperation;
         }

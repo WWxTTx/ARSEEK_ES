@@ -368,7 +368,7 @@ public class UISmallSceneModule : UIModuleBase
     {
         get
         {
-            return !ModelManager.Instance.CameraDotween && !isExecuteOperation &&
+            return !ModelManager.Instance.CameraDotween &&
                 (ModelState == ModelState.Unselect
                 || ModelState == ModelState.Focused
                 || ModelState == ModelState.OtherOperating
@@ -389,11 +389,6 @@ public class UISmallSceneModule : UIModuleBase
             return false;
         }
     }
-
-    /// <summary>
-    /// 是否正在执行操作（视角导航）
-    /// </summary>
-    public static bool isExecuteOperation = false;
 
     [HideInInspector]
     public string FatalFinishMessage;
@@ -567,7 +562,7 @@ public class UISmallSceneModule : UIModuleBase
                 EnableCameraControl(false);
                 SetSelect(true);
             }
-            else if (isAlt && ModelState != ModelState.Operating && !isExecuteOperation)
+            else if (isAlt && ModelState != ModelState.Operating)
             {
                 EnableCameraControl(true);
                 SetSelect(false);
@@ -1525,12 +1520,14 @@ public class UISmallSceneModule : UIModuleBase
                 OnStepChanged();
                 break;
             case (ushort)SmallFlowModuleEvent.SelectStep:
+                //这里也设置一次，避免联机跳步骤错过 角色移动的恢复
+                ModelManager.Instance.CameraDotween = false;
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
-                UIManager.Instance.CloseUI<PopupPanel>(new UIPopupData(string.Empty, msgStringTuple.arg2.Item3, null));
+                UIManager.Instance.CloseUI<PopupPanel>();
                 smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1);
                 smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2);
 
-                Log.Debug("状态调试 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
+                Log.Debug("执行跳步骤 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
                 break;
             case (ushort)SmallFlowModuleEvent.Guide:
@@ -1550,12 +1547,42 @@ public class UISmallSceneModule : UIModuleBase
                 if ((msg as MsgBool).arg1)
                     OnPropChanged(string.Empty);
                 break;
-            //case (ushort)SmallFlowModuleEvent.Operate2D:
-            //    Msg2DOperate msg2DOperate = msg as Msg2DOperate;
-            //    SelectAndExecute2D(msg2DOperate.operation, msg2DOperate.optionName);
-            //    break;
             case (ushort)SmallFlowModuleEvent.StartExecute:
-                WaitSelect(true).Forget();
+                WaitSelect(true);
+                break;
+            case (ushort)SmallFlowModuleEvent.CompleteStep:
+                if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id && !ModelManager.Instance.CameraDotween)
+                {
+                    MsgIntInt completeStepData = ((MsgBrodcastOperate)msg).GetData<MsgIntInt>();
+                    int receivedFlow = completeStepData.arg1;
+                    int receivedStep = completeStepData.arg2;
+                    //用于同步过程中，又有新操作导致的错误 恢复
+                    if (receivedFlow != smallFlowCtrl.index_NowFlow || receivedStep != smallFlowCtrl.index_NowStep)
+                    {
+                        if(GlobalInfo.SetFanelstate)
+                        {
+                            GlobalInfo.SetCerrenstate = true;
+                            DOVirtual.DelayedCall(0.1f, () =>
+                            {
+                                GlobalInfo.SetCerrenstate = false;
+                            });
+                        }
+                       
+                        UIManager.Instance.CloseUI<PopupPanel>();
+                        smallFlowCtrl.SelectFlow(receivedFlow);
+                        smallFlowCtrl.SelectStep(receivedStep);
+                        Log.Debug("执行跳步骤 任务选中" + receivedFlow + "步骤选中" + receivedStep);
+                    }
+                }
+
+                ReleaseOperatePermission();
+                ModelState = ModelState.Unselect;
+                RefreshHighlight();
+                WaitSelect(false);
+                OnPropChanged(string.Empty);
+                toolModule.CloseBackpack();
+                toolModule.CancelDrawingToggle();
+                toolModule.ShowTool(true);
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
                 // 操作完成时释放发送者的操作权限
@@ -1566,7 +1593,7 @@ public class UISmallSceneModule : UIModuleBase
                 RefreshHighlight();
 
                 //进行下一步时直接取消手中道具
-                WaitSelect(false).Forget();
+                WaitSelect(false);
                 OnPropChanged(string.Empty);
                 toolModule.CloseBackpack();
                 toolModule.CancelDrawingToggle();  // 关闭图纸面板
@@ -1674,7 +1701,7 @@ public class UISmallSceneModule : UIModuleBase
                                 return;
                             if(playerController == null)
                                 return;
-                            if (!isAlt || !isExecuteOperation)
+                            if (!isAlt)
                             {
                                 EnableCameraControl(isAlt);
                                 SetSelect(!isAlt);
@@ -1809,10 +1836,8 @@ public class UISmallSceneModule : UIModuleBase
     /// <param name="ison"></param>
     /// <param name="time"></param>
     /// <returns></returns>
-    private async UniTaskVoid WaitSelect(bool ison, float time = 0.3f)
+    private void WaitSelect(bool ison, float time = 0.3f)
     {
-        await UniTask.Yield();
-        isExecuteOperation = ison;
         EnableCameraControl(!ison);
         SetSelect(ison);
     }
@@ -2101,15 +2126,6 @@ public class UISmallSceneModule : UIModuleBase
 
         SpeechManager.Instance.StopSpeech();
 
-        // 注意：不要在这里调用 CloseModuleUI，因为如果是通过 CloseAllModuleUI 关闭的，
-        // 会导致在遍历列表时修改列表，引发异常或跳过元素。
-        // 子模块的关闭由 CloseAllModuleUI 统一处理。
-        // UIManager.Instance.CloseModuleUI<UISmallSceneFlowModule>(ParentPanel);
-        // UIManager.Instance.CloseModuleUI<UISmallSceneToolModule>(ParentPanel);
-        // UIManager.Instance.CloseModuleUI<UISmallSceneOperationHistory>(ParentPanel);
-        // UIManager.Instance.CloseModuleUI<UISmallSceneMinMapModule>(ParentPanel);
-        // UIManager.Instance.CloseAllModuleUI<ToastPanel>(ParentPanel);
-
         UnityEngine.AI.NavMesh.RemoveAllNavMeshData();
 
         ModelManager.Instance.ControlSceneLight(true, LightShadows.Soft);
@@ -2123,7 +2139,7 @@ public class UISmallSceneModule : UIModuleBase
         {
             Cursor.lockState = CursorLockMode.None;
             GlobalInfo.CursorLockMode = CursorLockMode.None;
-            ModelManager.Instance.CameraDotween = false;
+            
         });
     }
 

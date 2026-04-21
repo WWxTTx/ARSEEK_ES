@@ -99,6 +99,9 @@ public class GlobalInfo
     /// 标志位，用于每次触发断线重连，只准设置一次最终状态
     /// </summary>
     public static bool SetFanelstate = true;
+
+    //特殊情况在已经同步但是还是有步骤差异的情况下 不控制镜头和移动
+    public static bool SetCerrenstate = false;
     #region 课程模式
     /// <summary>
     /// 当前课程模式

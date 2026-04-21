@@ -38,6 +38,9 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         if (msg.msgId == (ushort)SmallFlowModuleEvent.SynchronizationLcu)
         {
             MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
+            // 过滤自己发送的消息
+            if (brodcastMsg.senderId == GlobalInfo.account.id) return;
+
             MsgSyncCustomUI msgUI = brodcastMsg.GetData<MsgSyncCustomUI>();
             WaitStepInit(msgUI).Forget();
         }
@@ -45,14 +48,36 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
 
     async UniTaskVoid WaitStepInit(MsgSyncCustomUI msgUI)
     {
-        await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
-        if (msgUI.stepIndex >= 0 && msgUI.stepIndex < steps.Count)
+        // 如果步骤列表为空，先初始化流程
+        if (steps.Count == 0)
         {
-            for (int i = currentStepIndex; i <= msgUI.stepIndex && i <= steps.Count; i++)
-            {
-                ExecuteButtonEvent(steps[i - 1]);
-            }
+            DealEvent((AvailableStatus)msgUI.status);
+            SetImageRaycast(true);
         }
+
+        await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
+
+        // 如果已经完成所有步骤
+        if (msgUI.stepIndex >= steps.Count)
+        {
+            callback?.Invoke();
+            callback = null;
+            currentStepIndex = msgUI.stepIndex;
+            SetTip();
+            SetImageRaycast(true);
+            return;
+        }
+
+        // 执行从当前步骤到目标步骤
+        for (int i = currentStepIndex; i < msgUI.stepIndex && i < steps.Count; i++)
+        {
+            ExecuteButtonEvent(steps[i]);
+        }
+
+        await UniTask.Yield();
+        currentStepIndex = msgUI.stepIndex;
+        SetTip();
+        SetImageRaycast(true);
     }
 
     [SerializeField]
@@ -69,8 +94,8 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
     public Image zttb;
     public List<Text> bjxx;
     public List<Text> cs;
-    UnityAction endEvent;
     UnityAction callback;
+    UnityAction Othercallback;
     UISmallSceneModule smallSceneModule;
 
     AvailableStatus status;
@@ -81,16 +106,20 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         {
             smallSceneModule = Transform.FindObjectOfType<UISmallSceneModule>().GetComponent<UISmallSceneModule>();
         }
-        this.callback = callback;
+        Othercallback = callback;
+        Othercallback += () =>
+        {
+            SetImageRaycast(true);
+        };
 
         status = (AvailableStatus)step;
         modelOperationId = GetComponentInParent<ModelInfo>()?.ID;
-        DealEvent();
+        DealEvent(status);
     }
 
     public Text TsqztText;
     public TSQ_TsqXsp TSQ_TsqXsp;
-    public void DealEvent()
+    public void DealEvent(AvailableStatus status)
     {
         steps.Clear();
         switch (status)
@@ -107,6 +136,10 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                     string[] flow = { "开机" };
                     steps = flow.ToList();
                 }
+                callback = () =>
+                {
+                    ExecuteButtonEvent("空载运行");
+                };
                 StartFlow();
                 break;
             case AvailableStatus.发送断路器合令:
@@ -120,6 +153,10 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                     string[] flow = { "断路器合" };
                     steps = flow.ToList();
                 }
+                callback = () =>
+                {
+                    ExecuteButtonEvent("断路器断合");
+                };
                 StartFlow();
                 break;
             case AvailableStatus.发送断路器分令:
@@ -134,6 +171,10 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                     string[] flow = { "断路器分" };
                     steps = flow.ToList();
                 }
+                callback = () =>
+                {
+                    ExecuteButtonEvent("断路器断开");
+                };
                 StartFlow();
                 break;
             case AvailableStatus.发送停机令:
@@ -148,6 +189,10 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                     string[] flow = { "停机" };
                     steps = flow.ToList();
                 }
+                callback = () =>
+                {
+                    ExecuteButtonEvent("停机");
+                };
                 StartFlow();
                 break;
         }
@@ -249,10 +294,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         if (TryToNext(eventname))
         {
             // 发送广播消息给其他用户（包含操作对象ID）
-            if (callback != null)
-            {
-                ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationLcu, eventname, currentStepIndex), true);
-            }
+            ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationLcu, (int)status, currentStepIndex), true);
         }
         ExecuteButtonEvent(eventname);
     }
@@ -349,12 +391,8 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             {
                 SmallFlowCtrl.Wait140 = false;
                 callback?.Invoke();
-                callback = null;
-                endEvent?.Invoke();
-                DOVirtual.DelayedCall(2, () =>
-                {
-                    endEvent?.Invoke();
-                    SetImageRaycast(true);
+                DOVirtual.DelayedCall(2, () => {
+                    Othercallback?.Invoke();
                 });
             }
             return true;

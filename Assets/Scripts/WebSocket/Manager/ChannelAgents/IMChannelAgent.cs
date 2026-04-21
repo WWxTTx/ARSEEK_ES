@@ -224,7 +224,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             Log.Error($"执行消息错误: {e.Message}");
             IsStartSync = false;
             UIManager.Instance.OpenUI<LoadingPanel>();
-            Invoke("Delayed", 2);
+            //Invoke("Delayed", 2);
             return;
         }
     }

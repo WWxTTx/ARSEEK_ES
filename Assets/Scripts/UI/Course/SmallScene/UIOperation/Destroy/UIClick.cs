@@ -6,7 +6,7 @@ using DG.Tweening;
 using UnityFramework.Runtime;
 
 /// <summary>
-/// ¼ì²éµã»÷UI
+/// æ£€æŸ¥ç‚¹å‡»UI
 /// </summary>
 public class UIClick : UIObserve
 {
@@ -41,7 +41,6 @@ public class UIClick : UIObserve
                     sequence.Join(Camera.main.transform.DORotate(camAngle, behaveObserve.time).SetEase((Ease)behaveObserve.ease));
                     sequence.OnComplete(() =>
                     {
-                        ModelManager.Instance.CameraDotween = false;
                         onFinish?.Invoke(string.Empty);
                     });
                 }

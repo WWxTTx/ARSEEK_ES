@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,6 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
-using Cysharp.Threading.Tasks;
 
 public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 {
@@ -21,6 +21,30 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         AddMsg(new ushort[] {
             (ushort)SmallFlowModuleEvent.SynchronizationTsq
         });
+
+        // 初始化 TextDic
+        if (Texts != null)
+        {
+            foreach (var text in Texts)
+            {
+                if (text != null && !string.IsNullOrEmpty(text.name))
+                {
+                    TextDic[text.name] = text;
+                }
+            }
+        }
+
+        // 初始化 PanelDic
+        if (UIPanel != null)
+        {
+            foreach (var panel in UIPanel)
+            {
+                if (panel != null && !string.IsNullOrEmpty(panel.name))
+                {
+                    PanelDic[panel.name] = panel;
+                }
+            }
+        }
     }
 
     SmallFlowCtrl smallFlowCtrl;
@@ -34,20 +58,40 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
             MsgSyncCustomUI msgUI = brodcastMsg.GetData<MsgSyncCustomUI>();
-            WaitStepInit(msgUI).Forget();
+            if (brodcastMsg.senderId != GlobalInfo.account.id)
+            {
+                WaitStepInit(msgUI).Forget();
+            }
         }
     }
 
     async UniTaskVoid WaitStepInit(MsgSyncCustomUI msgUI)
     {
-        await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
-        if (msgUI.stepIndex >= 0 && msgUI.stepIndex < steps.Count)
+        //将表现内容和步骤分开 同步时只执行表现内容 不设置步骤 等待操作者使用结束消息触发下一步
+        if (steps.Count == 0)
         {
-            for (int i = currentStepIndex; i <= msgUI.stepIndex && i <= steps.Count; i++)
-            {
-                ExecuteButtonEvent(steps[i - 1]);
-            }
+               DealEvent((AvailableStatus)msgUI.status);
+        SetImageRaycast(true);
         }
+        else if(steps.Count <= msgUI.stepIndex)
+        {
+            callback?.Invoke();
+            currentStepIndex = msgUI.stepIndex;
+            SetTip();
+            return;
+        }
+
+        await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
+
+        for (int i = currentStepIndex; i < msgUI.stepIndex && i < steps.Count; i++)
+        {
+            ExecuteButtonEvent(steps[i]);
+        }
+
+        await UniTask.Yield();
+        currentStepIndex = msgUI.stepIndex;
+        SetTip();
+        SetImageRaycast(true);
     }
 
     [SerializeField]
@@ -105,7 +149,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         };
 
         status = (AvailableStatus)step;
-        DealEvent();
+        DealEvent(status);
     }
 
     public List<Text> Texts;
@@ -115,37 +159,10 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     public Dictionary<string, Text> TextDic = new Dictionary<string, Text>();
     public Dictionary<string, GameObject> PanelDic = new Dictionary<string, GameObject>();
 
-    void Start()
-    {
-        // 初始化 TextDic
-        if (Texts != null)
-        {
-            foreach (var text in Texts)
-            {
-                if (text != null && !string.IsNullOrEmpty(text.name))
-                {
-                    TextDic[text.name] = text;
-                }
-            }
-        }
-
-        // 初始化 PanelDic
-        if (UIPanel != null)
-        {
-            foreach (var panel in UIPanel)
-            {
-                if (panel != null && !string.IsNullOrEmpty(panel.name))
-                {
-                    PanelDic[panel.name] = panel;
-                }
-            }
-        }
-    }
-
     /// <summary>
     /// 处理流程中涉及的表现
     /// </summary>
-    public void DealEvent()
+    public void DealEvent(AvailableStatus status)
     {
         switch (status)
         {
@@ -160,7 +177,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(3, () =>
                     {
                         Othercallback?.Invoke();
-                        smallSceneModule.ModelState = ModelState.Unselect;
+                        
                     });
                 };
                 break;
@@ -193,7 +210,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     {
                         Monitor(false);
                         Othercallback?.Invoke();
-                        smallSceneModule.ModelState = ModelState.Unselect;
+                        
                     });
                 };
                 break;
@@ -232,7 +249,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         {
                             Monitor(false);
                             Othercallback?.Invoke();
-                            smallSceneModule.ModelState = ModelState.Unselect;
+                            
                         });
                     });
                 });
@@ -298,7 +315,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         {
                             Monitor(false);
                             Othercallback?.Invoke();
-                            smallSceneModule.ModelState = ModelState.Unselect;
+                            
                         });
                     });
                 });
@@ -379,7 +396,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         {
                             Monitor(false);
                             Othercallback?.Invoke();
-                            smallSceneModule.ModelState = ModelState.Unselect;
+                            
                         });
                     });
                 });
@@ -439,7 +456,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(2, () =>
                     {
                         Othercallback?.Invoke();
-                        smallSceneModule.ModelState = ModelState.Unselect;
+                        
                     });
                 }
                 break;
@@ -537,7 +554,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(24, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Unselect;
+                        
                     });
                 };
                 break;
@@ -554,7 +571,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(4, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Unselect;
+                        
                     });
                 };
                 break;
@@ -612,7 +629,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(14, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Unselect;
+                        
                     });
                 };
                 break;
@@ -784,7 +801,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         DOVirtual.DelayedCall(2, () =>
                         {
                             Othercallback.Invoke();
-                            smallSceneModule.ModelState = ModelState.Unselect;
+                            
                         });
                     });
                 };
@@ -929,7 +946,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(14, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Unselect;
+                        
                     });
                 };
 
@@ -964,7 +981,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             {
                 Settip(TextDic["齿盘测频"], false);
                 Settip(TextDic["机组转速"], false);
-                smallSceneModule.ModelState = ModelState.Unselect;
+                
                 Othercallback.Invoke();
             });
         });
@@ -987,7 +1004,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 Settip(TextDic["残压测频"], false);
                 Settip(TextDic["机组转速"], false);
                 Othercallback?.Invoke();
-                smallSceneModule.ModelState = ModelState.Unselect;
+                
             });
         });
     }
@@ -1176,10 +1193,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         if (TryToNext(eventname))
         {
             // 发送广播消息给其他用户（包含操作对象ID）
-            if (callback != null)
-            {
-                ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, eventname, currentStepIndex), true);
-            }
+            ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, (int)status, currentStepIndex), true);
         }
         ExecuteButtonEvent(eventname);
     }
@@ -1436,9 +1450,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     public void StartFlow()
     {
         SmallFlowCtrl.Wait140 = true;
-
-        if (smallSceneModule.ModelState != ModelState.OtherOperating)
-            SetImageRaycast(false);
+        SetImageRaycast(false);
         currentStepIndex = 0;
         SetTip();
     }
@@ -1485,13 +1497,14 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     DOVirtual.DelayedCall(2, () =>
                     {
                         Othercallback.Invoke();
-                        smallSceneModule.ModelState = ModelState.Unselect;
                     });
                 }
             }
             return true;
         }
-        return false;
+        else
+            return false;
+
     }
 
     // 协联曲线参数（针对12m水头优化）
