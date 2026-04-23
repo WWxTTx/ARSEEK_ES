@@ -241,7 +241,6 @@ public class OPLCoursePanel : HoverHintPanel
         {
             DescToggle.onValueChanged.AddListener((isOn) =>
             {
-                GlobalInfo.ShowPopup = isOn;
                 if (isOn)
                 {
                     DescPanel.GetComponent<ShowAnimation>().Show();

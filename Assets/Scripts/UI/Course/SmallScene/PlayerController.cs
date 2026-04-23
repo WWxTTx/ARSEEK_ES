@@ -316,7 +316,7 @@ public class PlayerController : MonoBase
         }
 
         //CameraDotween是否正在执行相机动画的标志位 动画中不可控制角色和相机 相机由外部自由控制
-        if (GlobalInfo.ShowPopup || rotateJoystick == null || ModelManager.Instance.CameraDotween)
+        if (GlobalInfo.SysPopup || rotateJoystick == null || ModelManager.Instance.CameraDotween)
             return;
 
         if (!isNavigating)

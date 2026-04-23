@@ -422,8 +422,7 @@ public class MouseDragMove : MonoBase
                     Interactable = false;
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
-                if (!string.IsNullOrEmpty(modelInfoID) && modelInfoID.Equals((msg as MsgString).arg))
-                    Interactable = true;
+                Interactable = true;
                 break;
             case (ushort)SmallFlowModuleEvent.FocusChanged:
                 if (GlobalInfo.ShouldProcess((msg as MsgBrodcastOperate).senderId))

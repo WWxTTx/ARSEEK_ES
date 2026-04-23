@@ -315,10 +315,9 @@ public enum SmallFlowModuleEvent
     /// </summary>
     StartExecute,
     /// <summary>
-    /// 操作表现、联动执行完成
-    /// 自动跳步
+    /// 同步关闭弹窗
     /// </summary>
-    StepEnd,
+    ClousePop,
     /// <summary>
     /// 操作执行完成
     /// </summary>

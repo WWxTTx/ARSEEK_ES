@@ -239,6 +239,8 @@ namespace UnityFramework.Runtime
             return ui;
         }
 
+ 
+
         /// <summary>
         /// 提供一种全局的获取已创建UIPanel的方式
         /// </summary>
@@ -271,6 +273,20 @@ namespace UnityFramework.Runtime
             else
                 Log.Warning(panelName + "未实例化");
 
+            return ui;
+        }
+
+        //新增一个返回默认第一个不需要data的方法
+        public UIPanelBase GetUI<T>() where T : UIPanelBase
+        {
+            string panelName = typeof(T).Name;
+            UIPanelBase ui = null;
+            if (allRepeatableUI.ContainsKey(panelName))
+            {
+                List<UIPanelBase> list = allRepeatableUI[panelName];
+                if(list.Count > 0)
+                    return list[0];
+            }
             return ui;
         }
 

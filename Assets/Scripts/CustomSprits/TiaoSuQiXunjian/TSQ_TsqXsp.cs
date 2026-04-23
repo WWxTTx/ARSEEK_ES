@@ -1047,11 +1047,15 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
     /// <summary>
     /// 变更聚焦目标
+    /// 这里单独控制了相机 在联机模式下需要根据情况处理
     /// </summary>
     Vector3 oldPos;
     Vector3 oldRot;
     void ChangeFouces(bool newPos)
     {
+        if (!ModelManager.Instance.CameraDotween)
+            return;
+
         if (newPos)
         {
             Transform ctrlGO = transform.Find("point");

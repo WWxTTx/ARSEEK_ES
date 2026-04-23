@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Windows.Forms;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -2426,9 +2427,6 @@ public class BehavePlayerNavigation : BehaveDotween
 
     public override void SetFinalState()
     {
-        if (GlobalInfo.SetCerrenstate)
-            return;
-
         sequence.Kill();
         if (ctrlGO == null)
             return;
@@ -2572,9 +2570,20 @@ public class BehavePopup : BehaveBase
     //弹窗默认将确定和关闭事件都加上回调
     public override void Execute(UnityAction callback = null)
     {
+        //已存在系统级弹窗就不弹了 配置的弹窗都是非系统提示弹窗
+        if (GlobalInfo.SysPopup)
+            return;
+
         Dictionary<string, PopupButtonData> popupData = new Dictionary<string, PopupButtonData>();
+        callback += (() =>
+        {
+            //刷新自由移动标志位 
+            ModelManager.Instance.CameraDotween = false;
+        });
         popupData.Add("确定", new PopupButtonData(callback, true));
-        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", message, popupData, callback));
+        UIPopupData uIPopup = new UIPopupData("提示", message, popupData, callback);
+        uIPopup.isSystem = false;
+        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, uIPopup);
     }
 
     public override void SetInitialState()

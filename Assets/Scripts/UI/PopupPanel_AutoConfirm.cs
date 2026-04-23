@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -85,9 +85,6 @@ public class PopupPanel_AutoConfirm : UIPanelBase
         Mask.alpha = 0;
         BackGround.alpha = 0;
         Content.alpha = 0;
-
-        //在Open中调用，避免CheckIsDuplicated返回true的panel重复增加_showPopup的值
-        GlobalInfo.ShowPopup = true;
     }
 
     /// <summary>
@@ -207,7 +204,7 @@ public class PopupPanel_AutoConfirm : UIPanelBase
 
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
-        GlobalInfo.ShowPopup = false;
+        GlobalInfo.SysPopup = false;
         base.Close(uiData, callback);
     }
 

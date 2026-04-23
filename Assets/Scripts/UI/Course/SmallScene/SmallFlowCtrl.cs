@@ -980,7 +980,7 @@ public class SmallFlowCtrl : MonoBase
     {
         DOVirtual.DelayedCall(0.1f, () =>
         {
-            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+            ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
         });
     }
 

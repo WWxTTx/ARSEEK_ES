@@ -100,8 +100,6 @@ public class GlobalInfo
     /// </summary>
     public static bool SetFanelstate = true;
 
-    //特殊情况在已经同步但是还是有步骤差异的情况下 不控制镜头和移动
-    public static bool SetCerrenstate = false;
     #region 课程模式
     /// <summary>
     /// 当前课程模式
@@ -140,7 +138,7 @@ public class GlobalInfo
     public static void SetCourseMode(CourseMode mode)
     {
         //重连时从房间类型中获得
-        if(roomInfo != null)
+        if (roomInfo != null)
         {
             if (roomInfo.RoomType == 1)
             {
@@ -250,39 +248,9 @@ public class GlobalInfo
     public static CursorLockMode CursorLockMode;
 
     /// <summary>
-    /// 当前是否有弹窗显示
+    /// 当前是否有系统等弹窗显示
     /// </summary>
-    public static bool ShowPopup
-    {
-        get
-        {
-            if (_showPopup > 0)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        set
-        {
-            if (value)
-            {
-                _showPopup++;
-            }
-            else
-            {
-                _showPopup--;
-            }
-
-            if (_showPopup < 0)
-            {
-                Debug.LogError("就不应该能等于负数,检查相关设置!");
-                _showPopup = 0;
-            }
-        }
-    }
+    public static bool SysPopup = false;
     /// <summary>
     /// 当前是否有多个弹窗
     /// </summary>

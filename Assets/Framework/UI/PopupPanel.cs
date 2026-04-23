@@ -105,7 +105,7 @@ public class PopupPanel : UIPanelBase
     /// <summary>
     /// 关闭按钮
     /// </summary>
-    private Button CloseButton;
+    public Button CloseButton;
 
     Button_LinkMode Btn1;
     Button_LinkMode Btn2;
@@ -140,8 +140,8 @@ public class PopupPanel : UIPanelBase
         BackGround.alpha = 0;
         Content.alpha = 0;
 
-        //在Open中调用，避免CheckIsDuplicated返回true的panel重复增加_showPopup的值
-        GlobalInfo.ShowPopup = true;
+        if(uiData.isSystem)
+            GlobalInfo.SysPopup = true;
     }
 
     /// <summary>
@@ -167,6 +167,7 @@ public class PopupPanel : UIPanelBase
                     Cursor.lockState = GlobalInfo.CursorLockMode;
 
                 uiPopupData.onClose?.Invoke();
+
                 UIManager.Instance.CloseUI<PopupPanel>(uiData);
             });
             CloseButton.gameObject.SetActive(uiPopupData.showCloseBtn);
@@ -197,6 +198,7 @@ public class PopupPanel : UIPanelBase
                             Cursor.lockState = GlobalInfo.CursorLockMode;
 
                         item.Value.action?.Invoke();
+                        ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.ClousePop));
                         UIManager.Instance.CloseUI<PopupPanel>(uiPopupData);
                     });
                     btnClone.interactable = item.Value.interactable;
@@ -260,21 +262,12 @@ public class PopupPanel : UIPanelBase
         return list;
     }
 
-    //避免和设置快捷键冲突
-    //private void Update()
-    //{
-    //    if (Input.GetKeyDown(KeyCode.Escape))
-    //    {
-    //        Cursor.lockState = GlobalInfo.CursorLockMode;
-    //        UIManager.Instance.CloseUI<PopupPanel>(uiPopupData);
-    //    }
-    //}
 
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
         //弹窗时禁用快捷键
         ShortcutManager.Instance.enabled = true;
-        GlobalInfo.ShowPopup = false;
+        GlobalInfo.SysPopup = false;
         base.Close(uiData, callback);
     }
 

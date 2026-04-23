@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -8,7 +8,8 @@ namespace UnityFramework.Runtime
 {
     public class UIData
     {
-
+        [HideInInspector]
+        public bool isSystem = true;
     }
     /// <summary>
     /// UI对象基类

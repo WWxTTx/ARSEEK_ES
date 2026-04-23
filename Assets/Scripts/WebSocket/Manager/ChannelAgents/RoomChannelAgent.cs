@@ -138,11 +138,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                 {
                     NetworkManager.Instance.LeaveRoom();
                 }, true));
-
-                DOVirtual.DelayedCall(1, () =>
-                {
-                    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "房主不在房间内，请退出房间重试", popupDic, null, false));
-                });
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "房主不在房间内，请退出房间重试", popupDic, null, false));
             }
         }
 

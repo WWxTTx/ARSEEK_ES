@@ -431,6 +431,7 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.OperatingRecord,
             (ushort)SmallFlowModuleEvent.OpenCameraOperation,
             (ushort)SmallFlowModuleEvent.CloseCameraOperation,
+            (ushort)SmallFlowModuleEvent.ClousePop,
             (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.OtherLeave,
             (ushort)SmallFlowModuleEvent.StartExecute
@@ -1522,8 +1523,10 @@ public class UISmallSceneModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.SelectStep:
                 //这里也设置一次，避免联机跳步骤错过 角色移动的恢复
                 ModelManager.Instance.CameraDotween = false;
+                if (!GlobalInfo.SysPopup)
+                    UIManager.Instance.CloseUI<PopupPanel>();
+
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
-                UIManager.Instance.CloseUI<PopupPanel>();
                 smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1);
                 smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2);
 
@@ -1559,15 +1562,6 @@ public class UISmallSceneModule : UIModuleBase
                     //用于同步过程中，又有新操作导致的错误 恢复
                     if (receivedFlow != smallFlowCtrl.index_NowFlow || receivedStep != smallFlowCtrl.index_NowStep)
                     {
-                        if(GlobalInfo.SetFanelstate)
-                        {
-                            GlobalInfo.SetCerrenstate = true;
-                            DOVirtual.DelayedCall(0.1f, () =>
-                            {
-                                GlobalInfo.SetCerrenstate = false;
-                            });
-                        }
-                       
                         UIManager.Instance.CloseUI<PopupPanel>();
                         smallFlowCtrl.SelectFlow(receivedFlow);
                         smallFlowCtrl.SelectStep(receivedStep);
@@ -1585,8 +1579,6 @@ public class UISmallSceneModule : UIModuleBase
                 toolModule.ShowTool(true);
                 break;
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
-                // 操作完成时释放发送者的操作权限
-                MsgBrodcastOperate brodcastMsg = msg as MsgBrodcastOperate;
                 ReleaseOperatePermission();
 
                 ModelState = ModelState.Unselect;
@@ -1613,6 +1605,11 @@ public class UISmallSceneModule : UIModuleBase
                     ModelState = ModelState.Unselect;
                 }
                 //AcquireOperatePermission(userIdFocus, modelOperationFocused, string.Empty);
+                break;
+            case (ushort)SmallFlowModuleEvent.ClousePop:
+                UIPanelBase popup = UIManager.Instance.GetUI<PopupPanel>();
+                if (popup &&((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id)
+                    ((PopupPanel)popup).CloseButton.onClick?.Invoke();
                 break;
             case (ushort)SmallFlowModuleEvent.ClickObj:
                 ModelOperation modelOperation = smallFlowCtrl.GetModelOperation((msg as MsgBrodcastOperate).GetData<MsgOperation>().modelOperation);
@@ -1697,7 +1694,7 @@ public class UISmallSceneModule : UIModuleBase
                     {
                         ShortcutManager.SmallScene_SwitchCursor, ()=>
                         {
-                            if (ModelState == ModelState.Operating || GlobalInfo.InPaintMode || GlobalInfo.ShowPopup || inMap)
+                            if (ModelState == ModelState.Operating || GlobalInfo.InPaintMode || GlobalInfo.SysPopup || inMap)
                                 return;
                             if(playerController == null)
                                 return;

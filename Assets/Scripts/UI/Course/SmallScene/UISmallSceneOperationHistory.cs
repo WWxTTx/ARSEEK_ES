@@ -669,31 +669,26 @@ public class UISmallSceneOperationHistory : UIModuleBase
             return;
         }
 
-        inputField.text = string.Empty;
-        inputCancelBtn.onClick?.Invoke();
-        if (GlobalInfo.courseMode != CourseMode.Training)
+        contactInputField.text = string.Empty;
+        contactCancelBtn.onClick?.Invoke();
+
+        //当前步骤是记录操作
+        if (smallFlowCtrl.IsOnOperation(SmallFlowCtrl.inputFlag/*value*/))
         {
-            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+            MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
+            //发送输入文本消息
+            SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
+                string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
+                msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Input));
+            GotoNextStep();
         }
         else
         {
-            if (smallFlowCtrl.IsOnOperation(SmallFlowCtrl.inputFlag/*value*/))
+            //非考核模式需要错误提示
+            if (!GlobalInfo.isExam && ((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id)
             {
-                MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
-                //发送输入文本消息
-                SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
-                    string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
-                    msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Input));
-                GotoNextStep();
-            }
-            else
-            {
-                //非考核模式需要错误提示
-                if (!GlobalInfo.isExam)
-                {
-                    data.smallSceneModule.OnErrorShow();
-                    FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-                }
+                data.smallSceneModule.OnErrorShow();
+                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
             }
         }
     }
@@ -715,30 +710,23 @@ public class UISmallSceneOperationHistory : UIModuleBase
 
         contactInputField.text = string.Empty;
         contactCancelBtn.onClick?.Invoke();
-        if (data.isFree || !GlobalInfo.EnableFlow)
+        //当前步骤是联系操作
+        if (smallFlowCtrl.IsOnOperation(SmallFlowCtrl.contactFlag))
         {
-            FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+            MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
+            //发送输入文本消息
+            SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
+                string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
+                msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Contact));
+            GotoNextStep();
         }
         else
         {
-            //当前步骤是联系操作
-            if (smallFlowCtrl.IsOnOperation(SmallFlowCtrl.contactFlag))
+            //考核模式不进行错误提示
+            if (!GlobalInfo.isExam && ((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id)
             {
-                MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
-                //发送输入文本消息
-                SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
-                    string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
-                    msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Contact));
-                GotoNextStep();
-            }
-            else
-            {
-                //考核模式不进行错误提示
-                if(!GlobalInfo.isExam)
-                {
-                    data.smallSceneModule.OnErrorShow();
-                    FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
-                }
+                data.smallSceneModule.OnErrorShow();
+                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
             }
         }
     }
