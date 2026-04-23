@@ -86,6 +86,8 @@ public class LiveRoomMemberModule : UIModuleBase
 
         allMemberItem = new Dictionary<int, GameObject>();
         allMemberMicState = new Dictionary<int, Image>();
+
+        UpdateMemberList(NetworkManager.Instance.GetRoomMemberList());
     }
 
     public override void Show(UIData uiData = null)
@@ -419,6 +421,13 @@ public class LiveRoomMemberModule : UIModuleBase
     /// </summary>
     public void UpdateMemberList(List<Member> members)
     {
+        //对比新旧成员列表，移除不在新列表中的用户视线标记
+        List<int> oldIds = new List<int>(allMemberItem.Keys);
+        List<int> newIds = members.Select(m => m.Id).ToList();
+        List<int> removedIds = oldIds.Except(newIds).ToList();
+        if (removedIds.Count > 0)
+            PlayerManager.Instance.RemoveUsers(removedIds);
+
         MemberCount.text = $"({members.Count}人)";
         allMemberItem.Clear();
 

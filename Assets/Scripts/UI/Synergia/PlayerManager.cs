@@ -141,6 +141,21 @@ public class PlayerManager : MonoBase
     }
 
     /// <summary>
+    /// 批量移除指定用户的视线标记
+    /// </summary>
+    /// <param name="userIds">要移除的用户ID列表</param>
+    public void RemoveUsers(List<int> userIds)
+    {
+        if (userIds == null || userIds.Count == 0)
+            return;
+
+        foreach (int id in userIds)
+        {
+            RemoveUser(id);
+        }
+    }
+
+    /// <summary>
     /// 修改用户视线显示状态
     /// 抓取物体时隐藏射线
     /// </summary>
