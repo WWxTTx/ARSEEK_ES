@@ -129,6 +129,7 @@ public class UISmallSceneMasterComputerPanel : MonoBase
         SmallFlowCtrl flowCtrl = ModelManager.Instance?.modelGo?.GetComponent<SmallFlowCtrl>();
         if (flowCtrl != null)
         {
+            GlobalInfo.WaitUiOq = false;
             SpeechManager.Instance.PlayImmediate(flowCtrl.CurrentStep().ID, 0, TipType.StepComplete);
             flowCtrl.RecordCurrentStepOperations();
             flowCtrl.Next();

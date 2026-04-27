@@ -251,6 +251,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                     arg = new Tuple<string, string, string,string>(GlobalInfo.account.userNo, GlobalInfo.account.nickname, value/*smallFlowCtrl.IsOnOperation()*/ ,GlobalInfo.ServerTimeFormat)
                 });
             }
+            input.gameObject.SetActive(false);
         });
 
         inputCancelBtn.onClick.AddListener(() =>
@@ -295,6 +296,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                     arg = new Tuple<string, string, string, string>(GlobalInfo.account.userNo, GlobalInfo.account.nickname, value/*smallFlowCtrl.IsOnOperation()*/ , GlobalInfo.ServerTimeFormat)
                 });
             }
+            contact.gameObject.SetActive(false);
         });
 
         contactCancelBtn.onClick.AddListener(() =>
@@ -673,9 +675,9 @@ public class UISmallSceneOperationHistory : UIModuleBase
         contactCancelBtn.onClick?.Invoke();
 
         //当前步骤是记录操作
+        MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
         if (smallFlowCtrl.IsOnOperation(SmallFlowCtrl.inputFlag/*value*/))
         {
-            MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
             //发送输入文本消息
             SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
                 string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
@@ -689,6 +691,13 @@ public class UISmallSceneOperationHistory : UIModuleBase
             {
                 data.smallSceneModule.OnErrorShow();
                 FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+            }
+            else if (GlobalInfo.isExam)
+            {
+                //发送输入文本消息
+                SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
+                    string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
+                    msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Input));
             }
         }
     }
@@ -711,9 +720,9 @@ public class UISmallSceneOperationHistory : UIModuleBase
         contactInputField.text = string.Empty;
         contactCancelBtn.onClick?.Invoke();
         //当前步骤是联系操作
+        MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
         if (smallFlowCtrl.IsOnOperation(SmallFlowCtrl.contactFlag))
         {
-            MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
             //发送输入文本消息
             SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
                 string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
@@ -727,6 +736,13 @@ public class UISmallSceneOperationHistory : UIModuleBase
             {
                 data.smallSceneModule.OnErrorShow();
                 FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
+            }
+            else if (GlobalInfo.isExam)
+            {
+                //发送输入文本消息
+                SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
+                    string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
+                    msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Contact));
             }
         }
     }

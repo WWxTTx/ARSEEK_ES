@@ -48,11 +48,12 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
 
     async UniTaskVoid WaitStepInit(MsgSyncCustomUI msgUI)
     {
+        SetImageRaycast(true);
+        GlobalInfo.WaitUiOq = true;
         // 如果步骤列表为空，先初始化流程
         if (steps.Count == 0)
         {
             DealEvent((AvailableStatus)msgUI.status);
-            SetImageRaycast(true);
         }
 
         await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
@@ -64,7 +65,6 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             callback = null;
             currentStepIndex = msgUI.stepIndex;
             SetTip();
-            SetImageRaycast(true);
             return;
         }
 
@@ -77,7 +77,6 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         await UniTask.Yield();
         currentStepIndex = msgUI.stepIndex;
         SetTip();
-        SetImageRaycast(true);
     }
 
     [SerializeField]
@@ -347,8 +346,6 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
 
     public void StartFlow()
     {
-        SmallFlowCtrl.Wait140 = true;
-        
         if(smallSceneModule.ModelState != ModelState.OtherOperating)
             SetImageRaycast(false);
         currentStepIndex = 0;
@@ -389,7 +386,6 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             SetTip();
             if (currentStepIndex >= steps.Count)
             {
-                SmallFlowCtrl.Wait140 = false;
                 callback?.Invoke();
                 DOVirtual.DelayedCall(2, () => {
                     Othercallback?.Invoke();

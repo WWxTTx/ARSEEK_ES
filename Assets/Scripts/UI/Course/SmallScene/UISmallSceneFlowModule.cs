@@ -404,7 +404,6 @@ public class UISmallSceneFlowModule : UIModuleBase
 
 
     /// <summary>
-    /// 安全地选中步骤节点（带边界检查）
     /// 用于协同状态同步
     /// </summary>
     /// <param name="step">任务索引</param>
@@ -412,13 +411,36 @@ public class UISmallSceneFlowModule : UIModuleBase
     /// <returns>是否成功选中</returns>
     public void TrySelectNode(int flow, int step)
     {
+        if (smallFlowCtrl == null || smallFlowCtrl.flows == null)
+        {
+            Log.Warning("TrySelectNode: smallFlowCtrl 或 flows 为 null");
+            return;
+        }
+        if (flow < 0 || flow >= smallFlowCtrl.flows.Length)
+        {
+            Log.Warning($"TrySelectNode: flow 索引越界 {flow}/{smallFlowCtrl.flows.Length}");
+            return;
+        }
+
         var steps = smallFlowCtrl.flows[flow].steps;
+        if (steps == null || step < 0 || step >= steps.Count)
+        {
+            Log.Warning($"TrySelectNode: step 索引越界 {step}/{steps?.Count ?? 0}");
+            return;
+        }
+
         string stepUID = steps[step].ID;
+        if (!viewItemIds.ContainsKey(stepUID))
+        {
+            Log.Warning($"TrySelectNode: viewItemIds 不包含 stepUID {stepUID}");
+            return;
+        }
 
         TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[stepUID]);
         if (stepItem == null)
         {
-            Log.Warning($"stepItem for stepUID {stepUID} 为 null，无法选择步骤节点");
+            Log.Warning($"TrySelectNode: stepItem for stepUID {stepUID} 为 null，无法选择步骤节点");
+            return;
         }
 
         mTreeView.ExpandParent(stepItem);

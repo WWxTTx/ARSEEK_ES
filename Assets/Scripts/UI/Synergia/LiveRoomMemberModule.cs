@@ -674,6 +674,7 @@ public class LiveRoomMemberModule : UIModuleBase
                 popupDic.Add("移出", new PopupButtonData(() =>
                 {
                     NetworkManager.Instance.KickOutUser(info.Id);
+                    PlayerManager.Instance.RemoveUser(info.Id);
                     //todo
                     //UIManager.Instance.OpenModuleUI<LocalTipModule>(ParentPanel, transform.GetChild(0), new LocalTipModule.ModuleData($"您已将{info.Nickname}移出房间"));
                 }, true));
@@ -720,6 +721,7 @@ public class LiveRoomMemberModule : UIModuleBase
                 popupDic.Add("移出", new PopupButtonData(() =>
                 {
                     NetworkManager.Instance.KickOutUser(info.Id);
+                    PlayerManager.Instance.RemoveUser(info.Id);
                     //todo
                     //UIManager.Instance.OpenModuleUI<LocalTipModule>(ParentPanel, transform.GetChild(0), new LocalTipModule.ModuleData($"您已将{info.Nickname}移出房间"));
                 }, true));

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.ServiceRequestData;
+using DG.Tweening;
 
 /// <summary>
 /// 协同服务管理类
@@ -258,18 +259,19 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                     FormMsgManager.Instance.SendMsg(new MsgBase((ushort)RoomChannelEvent.RoomClose));
                 }
                 break;
-            case EVICT://kickedMsg
-                //被踢出时，先尝试发送leave消息，确保服务器能广播member_out给其他成员
-                SendLeaveMessage();
-                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                popupDic.Add("知道了", new PopupButtonData(() =>
+            case EVICT:
+                DOVirtual.DelayedCall(0.1f, () =>
                 {
-                    EnsureLeaveRoom(string.Empty);
-                }, true));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "你已被移出房间", popupDic, () =>
-                {
-                    EnsureLeaveRoom(string.Empty);
-                }));
+                    Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+                    popupDic.Add("知道了", new PopupButtonData(() =>
+                    {
+                        EnsureLeaveRoom(string.Empty);
+                    }, true));
+                    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "你已被移出房间", popupDic, () =>
+                    {
+                        EnsureLeaveRoom(string.Empty);
+                    }));
+                });
                 break;
             case BYE://quitRoomMsg
                 PlayerPrefs.DeleteKey(GlobalInfo.lastSynergiaRoomId);

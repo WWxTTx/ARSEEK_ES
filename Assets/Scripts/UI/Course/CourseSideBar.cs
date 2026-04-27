@@ -412,7 +412,7 @@ public class CourseSideBar : MonoBase
 
             #region 操作列表模块
             case (ushort)CoursePanelEvent.OperationListBtn:
-                OperationListTog.gameObject.SetActive(true);//!GlobalInfo.IsExamMode()
+                OperationListTog.gameObject.SetActive(true);//(!GlobalInfo.IsExamMode());
                 HistoryTog.gameObject.SetActive(true);
                 KnowledgeTog.gameObject.SetActive(false);// !GlobalInfo.IsExamMode()
 #if UNITY_ANDROID || UNITY_IOS

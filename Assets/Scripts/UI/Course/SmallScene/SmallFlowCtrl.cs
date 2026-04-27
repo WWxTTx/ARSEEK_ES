@@ -923,7 +923,7 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
     public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, bool dummy = false)
     {
-        Wait140 = false;
+        GlobalInfo.WaitUiOq = false;
         NetworkManager.Instance.IsIMSync = false;
         if (!dummy)
             ModelManager.Instance.CameraDotween = true;
@@ -978,6 +978,7 @@ public class SmallFlowCtrl : MonoBase
 
     void Over()
     {
+        ModelManager.Instance.CameraDotween = false;
         DOVirtual.DelayedCall(0.1f, () =>
         {
             ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
@@ -995,7 +996,7 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
     {
-        Wait140 = false;
+        GlobalInfo.WaitUiOq = false;
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
         if (!dummy)
             ModelManager.Instance.CameraDotween = true;
@@ -1770,18 +1771,12 @@ public class SmallFlowCtrl : MonoBase
         }
     }
 
-
-    //如果是协同模式，队友在操作有步骤的自定义，那就不能进入下一步，等待140[UI按钮操作]消息去执行下一步
-    public static bool Wait140 = false;
     /// <summary>
     /// 下一步
     /// </summary>
     public void Next()
     {
-        //恢复自由移动
-        ModelManager.Instance.CameraDotween = false;
-
-        if (Wait140)
+        if (GlobalInfo.WaitUiOq)
             return;
 
         if (index_NowFlow <= flows.Length - 1)

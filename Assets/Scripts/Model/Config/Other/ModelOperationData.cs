@@ -2428,8 +2428,11 @@ public class BehavePlayerNavigation : BehaveDotween
     public override void SetFinalState()
     {
         sequence.Kill();
+
+        //目标位置为空
         if (ctrlGO == null)
             return;
+
         PlayerController playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
         if (playerController == null)
             return;
@@ -2572,7 +2575,17 @@ public class BehavePopup : BehaveBase
     {
         //已存在系统级弹窗就不弹了 配置的弹窗都是非系统提示弹窗
         if (GlobalInfo.SysPopup)
+        {
+            ModelManager.Instance.CameraDotween = false;
             return;
+        }
+
+        if(GlobalInfo.isExam)
+        {
+            ModelManager.Instance.CameraDotween = false;
+            callback?.Invoke();
+            return;
+        }
 
         Dictionary<string, PopupButtonData> popupData = new Dictionary<string, PopupButtonData>();
         callback += (() =>

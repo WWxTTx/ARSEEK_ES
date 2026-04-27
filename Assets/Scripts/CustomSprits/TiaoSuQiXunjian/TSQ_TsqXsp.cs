@@ -67,11 +67,12 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
     async UniTaskVoid WaitStepInit(MsgSyncCustomUI msgUI)
     {
+        SetImageRaycast(true);
+        GlobalInfo.WaitUiOq = true;
         //将表现内容和步骤分开 同步时只执行表现内容 不设置步骤 等待操作者使用结束消息触发下一步
         if (steps.Count == 0)
         {
-               DealEvent((AvailableStatus)msgUI.status);
-        SetImageRaycast(true);
+            DealEvent((AvailableStatus)msgUI.status);
         }
         else if(steps.Count <= msgUI.stepIndex)
         {
@@ -91,7 +92,6 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         await UniTask.Yield();
         currentStepIndex = msgUI.stepIndex;
         SetTip();
-        SetImageRaycast(true);
     }
 
     [SerializeField]
@@ -1453,8 +1453,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
     public void StartFlow()
     {
-        SmallFlowCtrl.Wait140 = true;
-        SetImageRaycast(false);
+        if (smallSceneModule.ModelState != ModelState.OtherOperating)
+            SetImageRaycast(false);
         currentStepIndex = 0;
         SetTip();
     }
@@ -1490,7 +1490,6 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             SetTip();
             if (currentStepIndex >= steps.Count)
             {
-                SmallFlowCtrl.Wait140 = false;
                 if (callback != null)
                 {
                     callback.Invoke();
@@ -1573,8 +1572,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
             TextDic["电网频率"].text = "49.93";
             TextDic["残压测频"].text = "49.93";
-            TextDic["齿盘测频"].text = "50.27";
-            TextDic["机组转速"].text = "99.8";
+            TextDic["齿盘测频"].text = "50.00";
+            TextDic["机组转速"].text = "100.0";
 
             TextDic["机组有功"].text = "43.30";
             TextDic["功率目标"].text = "43.30";
@@ -1592,8 +1591,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             TextDic["桨叶开度"].text = "0.00";
             TextDic["桨叶目标值"].text = "0.00";
 
-            TextDic["电网频率"].text = "49.93";
-            TextDic["残压测频"].text = "49.93";
+            TextDic["电网频率"].text = "0.00";
+            TextDic["残压测频"].text = "0.00";
             TextDic["齿盘测频"].text = "0.00";
             TextDic["机组转速"].text = "0.00";
             TextDic["功率目标"].text = "0.00";
@@ -1608,14 +1607,14 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             TextDic["导叶开度"].text = "13.91";
             TextDic["导叶目标"].text = "14.00";
             TextDic["导叶目标值"].text = "14.00";
-            TextDic["机组频率"].text = "50.00";
+            TextDic["机组频率"].text = "49.98";
             TextDic["桨叶开度"].text = "1.49";
             TextDic["桨叶目标值"].text = "1.5";
 
             TextDic["电网频率"].text = "49.93";
-            TextDic["残压测频"].text = "49.93";
-            TextDic["齿盘测频"].text = "0.00";
-            TextDic["机组转速"].text = "99.8";
+            TextDic["残压测频"].text = "49.98";
+            TextDic["齿盘测频"].text = "50.01";
+            TextDic["机组转速"].text = "99.96";
             TextDic["功率目标"].text = "0.00";
             TextDic["机组有功"].text = "0.00";
 

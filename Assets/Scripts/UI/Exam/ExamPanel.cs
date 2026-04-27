@@ -212,11 +212,6 @@ public class ExamPanel : HoverHintPanel
                         ////清空上轮考核的状态信息
                         ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
 
-                        //上轮考核已全部结束答题 清除缓存
-                        OnExamStop();
-                        ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
-                        activeExamId = -1;
-
                         RootCanvasGroup.blocksRaycasts = true;
                         GlobalInfo.waitExam = false;
                         NetworkManager.Instance.IsIMSync = true;
@@ -382,20 +377,14 @@ public class ExamPanel : HoverHintPanel
         {
             ResetRoom(() =>
             {
-                OnExamStop();
-                ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
-                activeExamId = -1;
-                inStop = false;
+                //ResetRoom内部已调用OnExamStop，此处无需重复
             });
         }, (error) =>
         {
             Log.Error($"考核[{activeExamId}]结束答题失败：{error}");
             ResetRoom(() =>
             {
-                OnExamStop();
-                ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
-                activeExamId = -1;
-                inStop = false;
+                //ResetRoom内部已调用OnExamStop，此处无需重复
             });
         });
     }
@@ -406,6 +395,12 @@ public class ExamPanel : HoverHintPanel
     /// <param name="callback"></param>
     private void ResetRoom(UnityAction callback)
     {
+        //先重置UI和标记位，确保与服务器重置消息同步
+        OnExamStop();
+        ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
+        activeExamId = -1;
+        inStop = false;
+
         NetworkManager.Instance.RoomReset(GlobalInfo.roomInfo.Uuid, (roomInfo) =>
         {
             callback?.Invoke();
@@ -440,6 +435,11 @@ public class ExamPanel : HoverHintPanel
         normalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(true);
         this.FindChildByName("InExam").gameObject.SetActive(false);
+        foreach (Transform item in Content)
+        {
+            SetMemberItemState(item, (int)State.Wait);
+        }
+        PlayerManager.Instance.ClearUserIndicators();
     }
 
     /// <summary>
@@ -673,15 +673,47 @@ public class ExamPanel : HoverHintPanel
         if (removedIds.Count > 0)
             PlayerManager.Instance.RemoveUsers(removedIds);
 
+        var nonHostMembers = members.Where(member => member.Id != GlobalInfo.account.id).ToList();
+
+        if (inExam)
+        {
+            //考核中：只更新已有成员 + 添加新成员，保留断连成员不被移除
+            foreach (var member in nonHostMembers)
+            {
+                if (allMemberItem.TryGetValue(member.Id, out var go) && go != null)
+                {
+                    SetOldMember(go.transform, member);
+                }
+                else
+                {
+                    Transform template = Content.GetChild(0);
+                    Transform item = Instantiate(template, Content);
+                    item.name = member.Id.ToString();
+                    item.gameObject.SetActive(true);
+                    SetNewMember(item, member);
+                }
+            }
+            LayoutRebuilder.ForceRebuildLayoutImmediate(Content);
+            RefreshUI();
+        }
+        else
+        {
+            allMemberItem.Clear();
+            Content.UpdateItemsView(nonHostMembers, i => i.Id.ToString(), SetNewMember, SetOldMember);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(Content);
+            RefreshUI();
+        }
+
         MemberCount.text = $"({members.Count - 1}人)";
-        allMemberItem.Clear();
-
-        Content.UpdateItemsView(members.Where(member => member.Id != GlobalInfo.account.id).ToList(), i => i.Id.ToString(), SetNewMember, SetOldMember);
-        LayoutRebuilder.ForceRebuildLayoutImmediate(Content);
-        RefreshUI();
-
         SetTeacher(Bottom, members.Find(member => member.Id == GlobalInfo.account.id));
         WaitHint.SetActive(allMemberItem.Count == 0);
+
+        //非房主成员为0，如果正在考核中且未重置，触发重置
+        if (allMemberItem.Count == 0 && inExam && !inStop)
+        {
+            Log.Debug("成员列表为空，自动结束考核");
+            StopExam();
+        }
     }
     private void SetTeacher(Transform tf, Member info)
     {

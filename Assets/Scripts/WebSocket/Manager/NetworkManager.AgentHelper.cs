@@ -343,8 +343,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
     public void SyncBaikeState()
     {
+        //临时屏蔽考核模式的重连
         IMState currentState = mIMChannelAgent.CurrentStateToSync;
-        if (currentState == null || currentState.baikeState == null)
+        if (currentState == null || currentState.baikeState == null || GlobalInfo.isExam)
         {
             IsIMSyncBaikeState = false;
             return;
@@ -374,7 +375,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         // 如果模型不存在（PreSyncVersion 销毁了模型），等待 stateOps 重建场景
         if (model == null)
         {
-            // 先允许 stateOps 执行（让36号消息等重建场景）
+            // 先允许 stateOps 执行（让36号消息重建场景）
             IsIMSyncBaikeState = false;
 
             // 等待模型加载完成
@@ -409,13 +410,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         if (step != smallSceneBaikeState.stepIndex && smallSceneBaikeState.stepIndex != 0)
              step = smallSceneBaikeState.stepIndex;
 
-        //switch (GlobalInfo.currentBaikeType)
-        //{
-        //    case BaikeType.SmallScene:
-        //    default:
-
-        //        break;
-        //}
         if (smallSceneBaikeState != null && model && !GlobalInfo.SetFanelstate && (step > 0 || flow > 0))
         {
             UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
@@ -503,7 +497,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         var currentOp = mIMChannelAgent.currentOp;
         if (currentOp == null)
             return;
-
 
 
         // 获取UISmallSceneModule

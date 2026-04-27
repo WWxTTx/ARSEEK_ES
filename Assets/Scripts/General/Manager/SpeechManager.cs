@@ -46,7 +46,7 @@ public class SpeechManager : Singleton<SpeechManager>
     /// <summary>
     /// 单行最大显示字数
     /// </summary>
-    private int CharPerLine = 25;
+    private int CharPerLine = 36;
     /// <summary>
     /// 语速：单个字符秒数
     /// </summary>
@@ -123,13 +123,13 @@ public class SpeechManager : Singleton<SpeechManager>
 
 
 
-    public async UniTaskVoid RePlayStart(string ID, CancellationToken ct)
+    public async UniTaskVoid RePlayStart(string ID, int index, TipType tipType, CancellationToken ct)
     {
         await UniTask.Delay(800, cancellationToken: ct);
         await UniTask.WaitUntil(() => !IsAudioPlaying, cancellationToken: ct);
         await UniTask.Delay(200, cancellationToken: ct);
-        lasttype = TipType.StepName;
-        PlayImmediate(ID, 0, TipType.StepName);
+        lasttype = tipType;
+        PlayImmediate(ID, index, tipType);
     }
 
     void OnDestroy()
@@ -386,14 +386,14 @@ public class SpeechManager : Singleton<SpeechManager>
             if (nextCts == null)
             {
                 nextCts = new CancellationTokenSource();
-                RePlayStart(stepId, nextCts.Token).Forget();
+                RePlayStart(stepId, index, tipType, nextCts.Token).Forget();
             }
             else
             {
                 nextCts.Cancel();
                 nextCts.Dispose();
                 nextCts = new CancellationTokenSource();
-                RePlayStart(stepId, nextCts.Token).Forget();
+                RePlayStart(stepId, index, tipType, nextCts.Token).Forget();
             }
         }
         else

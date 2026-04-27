@@ -95,6 +95,13 @@ public class GlobalInfo
     /// </summary>
     public const string courseVoice = "CourseVoice";
     #endregion
+
+
+    /// <summary>
+    /// 如果是协同模式，队友在操作有步骤的自定义，那就不能进入下一步，等待140[UI按钮操作]消息去执行下一步
+    /// </summary>
+    public static bool WaitUiOq = false;
+
     /// <summary>
     /// 标志位，用于每次触发断线重连，只准设置一次最终状态
     /// </summary>
@@ -137,6 +144,7 @@ public class GlobalInfo
     /// </summary>
     public static void SetCourseMode(CourseMode mode)
     {
+        ModelManager.Instance.CameraDotween = false;
         //重连时从房间类型中获得
         if (roomInfo != null)
         {
@@ -165,7 +173,7 @@ public class GlobalInfo
         }
         
         isExam = (mode == CourseMode.Exam || mode == CourseMode.OnlineExam);
-
+        isCooperation = (mode == CourseMode.Collaboration || mode == CourseMode.OnlineExam);
         // 根据模式设置语音模式
         UpdateSpeechMode();
     }
@@ -436,7 +444,10 @@ public class GlobalInfo
     /// 是否考核
     /// </summary>
     public static bool isExam = false;
-
+    /// <summary>
+    /// 是否同步场景
+    /// </summary>
+    public static bool isCooperation = false;
     /// <summary>
     /// 是否启用步骤列表功能
     /// </summary>

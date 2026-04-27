@@ -35,6 +35,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
             // 过滤自己发送的消息
             if (brodcastMsg.senderId == GlobalInfo.account.id) return;
 
+            GlobalInfo.WaitUiOq = true;
             // 检查是否处于有效的操作状态
             if (callback == null) return;
 
@@ -449,12 +450,12 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
         });
 
         // 发送完整的菜单状态给其他用户
-        if (callback != null)
-        {
-            // 序列化菜单状态：index0,index1,index2,depth
-            string menuState = $"{selectIndex[0]},{selectIndex[1]},{selectIndex[2]},{selectNode.Count}";
-            ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, (int)status, 0, menuState), true);
-        }
+        //if (callback != null)
+        //{
+        //    // 序列化菜单状态：index0,index1,index2,depth
+        //    string menuState = $"{selectIndex[0]},{selectIndex[1]},{selectIndex[2]},{selectNode.Count}";
+        //    ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationZlqzz, (int)status, 0, menuState), true);
+        //}
     }
 
     /// <summary>

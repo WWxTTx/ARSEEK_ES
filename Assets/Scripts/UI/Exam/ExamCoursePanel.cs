@@ -171,7 +171,16 @@ public partial class ExamCoursePanel : OPLCoursePanel
             popupDic.Add("取消", new PopupButtonData(null, false));
             popupDic.Add("退出房间", new PopupButtonData(() =>
             {
-                Submit(Quit);
+                selfSumbit = true;
+                Submit(() =>
+                {
+                    Dictionary<string, PopupButtonData> popupDic1 = new Dictionary<string, PopupButtonData>();
+                    popupDic1.Add("确定", new PopupButtonData(() => Quit(), true));
+                    UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "考核提交成功，退出房间", popupDic1, 10, true, () =>
+                    {
+                        Quit();
+                    }));
+                }, false);
             }, true));
             UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核时间还未结束，确定提交考核并退出房间？", popupDic, showCloseBtn: false));
         }
@@ -190,14 +199,37 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
     public override void GotoLogout()
     {
-        Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-        popupDic.Add("取消", new PopupButtonData(null));
-        popupDic.Add("退出登录", new PopupButtonData(() =>
+        if (inExam)
         {
-            logout = true;
-            Quit();
-        }, true));
-        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "确定退出登录？", popupDic, showCloseBtn: false));//\n（退出登录没有考核成绩）
+            Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+            popupDic.Add("取消", new PopupButtonData(null, false));
+            popupDic.Add("退出登录", new PopupButtonData(() =>
+            {
+                logout = true;
+                selfSumbit = true;
+                Submit(() =>
+                {
+                    Dictionary<string, PopupButtonData> popupDic1 = new Dictionary<string, PopupButtonData>();
+                    popupDic1.Add("确定", new PopupButtonData(() => Quit(), true));
+                    UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "考核提交成功，退出房间", popupDic1, 10, true, () =>
+                    {
+                        Quit();
+                    }));
+                }, false);
+            }, true));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核时间还未结束，确定提交考核并退出登录？", popupDic, showCloseBtn: false));
+        }
+        else
+        {
+            Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+            popupDic.Add("取消", new PopupButtonData(null));
+            popupDic.Add("退出登录", new PopupButtonData(() =>
+            {
+                logout = true;
+                Quit();
+            }, true));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "确定退出登录？", popupDic, showCloseBtn: false));
+        }
     }
 
 
@@ -486,6 +518,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="showResult"></param>
     private void Submit(Action callBack = null, bool showResult = true)
     {
+        mCountdownCts?.Cancel();
         SubmitExamRecord(true, true, (submitSuccess) =>
         {
             if (submitSuccess)
@@ -879,6 +912,17 @@ public partial class ExamCoursePanel : OPLCoursePanel
     {
         if (!inExam)
         {
+            // 考核期间异常退出后重新加入（房间已在考核中），不允许继续考核
+            if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.Status == 2)
+            {
+                NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, msgExamStartData.examId))));
+
+                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+                popupDic.Add("好的", new PopupButtonData(() => _Quit(this.GetCancellationTokenOnDestroy()).Forget(), true));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "该房间正在考核中，请等待考核结束", popupDic, showCloseBtn: false));
+                return;
+            }
+
             UIManager.Instance.CloseUI<LoadingPanel>();
             this.FindChildByName("WaitHint").gameObject.SetActive(false);
             inExam = true;
@@ -1092,16 +1136,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
         selfSumbit = true;
         Submit(() =>
         {
-            //var popupDic = new Dictionary<string, PopupButtonData>();
-            //popupDic.Add("知道了", new PopupButtonData(() =>
-            //{
-            //    var popupDic = new Dictionary<string, PopupButtonData>();
-            //    popupDic.Add("确定", new PopupButtonData(Quit, true));
-            //    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核提交成功，退出房间", popupDic, showCloseBtn: false));
-            //}, true));
-            //UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核时间到，考核结束，系统自动提交", popupDic, showCloseBtn: false));
-
-
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("确定", new PopupButtonData(() =>
             {
@@ -1192,6 +1226,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             {
                 inExam = false;
                 ModelManager.Instance.DestroyModels(true);
+                PlayerManager.Instance.ClearUserIndicators();
                 UIManager.Instance.CloseAllModuleUI(this);
                 GlobalInfo.currentWiki = null;
                 if (mCountdownCts != null)
@@ -1207,13 +1242,28 @@ public partial class ExamCoursePanel : OPLCoursePanel
             //小组考核，有成员提交时，其他成员同步提交
             if (GlobalInfo.IsGroupMode() && inExam)
             {
-                Submit(() =>
+                inExam = false;
+                if (mCountdownCts != null)
                 {
-                    Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                    popupDic.Add("确定", new PopupButtonData(() => Quit(), true));
-                    // 使用自动确认弹窗，10秒后自动退出
-                    UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "其他考生已提交考核，系统自动提交", popupDic, 10, true, () => Quit()));
-                }, false);
+                    mCountdownCts.Cancel();
+                    mCountdownCts = null;
+                }
+                UpdateUIWhenExamStop();
+
+                //后台提交考核记录
+                SubmitExamRecord(true, false, (submitSuccess) =>
+                {
+                    if (submitSuccess)
+                    {
+                        PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+                        NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Submit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Submit, examId))));
+                    }
+                });
+
+                //立即显示弹窗，不依赖提交完成
+                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+                popupDic.Add("确定", new PopupButtonData(() => Quit(), true));
+                UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "其他考生已提交考核，系统自动提交", popupDic, 10, true, () => Quit()));
             }
         }
     }

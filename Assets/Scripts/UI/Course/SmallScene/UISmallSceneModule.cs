@@ -1553,8 +1553,9 @@ public class UISmallSceneModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.StartExecute:
                 WaitSelect(true);
                 break;
+            //大部分的状态重置都在这个消息中
             case (ushort)SmallFlowModuleEvent.CompleteStep:
-                if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id && !ModelManager.Instance.CameraDotween)
+                if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id && !ModelManager.Instance.CameraDotween && GlobalInfo.isCooperation)
                 {
                     MsgIntInt completeStepData = ((MsgBrodcastOperate)msg).GetData<MsgIntInt>();
                     int receivedFlow = completeStepData.arg1;
