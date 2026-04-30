@@ -1330,17 +1330,17 @@ namespace UnityFramework.Runtime
             };
             requestBase.TryRequest_List("保存考核结果（操作）", RequestType.POST, ApiData.ExamineResult, JsonTool.Serializable(requestData), (result, message) =>
             {
-                GetRequest(result, message, () =>
-                {
-                    if (totalStepIndex >= 0 && score > 0)
-                    {
-                        SubmitExamineResultCheck(examId, baikeId, totalStepIndex, score, null, (code, msg) =>
-                        {
-                            Log.Warning($"考核ID:{examId} 百科ID:{baikeId} 步骤:{totalStepIndex} 上传得分失败：{msg}");
-                        });
-                    }
-                    successCallBack?.Invoke();
-                }, failureCallBack);
+                //GetRequest(result, message, () =>
+                //{
+                //    if (totalStepIndex >= 0 && score > 0)
+                //    {
+                //        SubmitExamineResultCheck(examId, baikeId, totalStepIndex, score, null, (code, msg) =>
+                //        {
+                //            Log.Warning($"考核ID:{examId} 百科ID:{baikeId} 步骤:{totalStepIndex} 上传得分失败：{msg}");
+                //        });
+                //    }
+                //    successCallBack?.Invoke();
+                //}, failureCallBack);
             }, false);
         }
 

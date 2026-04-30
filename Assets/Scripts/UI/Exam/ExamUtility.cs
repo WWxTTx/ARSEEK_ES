@@ -163,16 +163,17 @@ public class ExamUtility : Singleton<ExamUtility>
                 operations.Enqueue(operation);
                 PediaOperationRecords.Add(baikeId, operations);
             }
+
+
+            //自动提交新增的操作
+            SubmitExamineResult_Operation(examId, record.score, baikeId, modelStates, () =>
+            {
+
+            }, (code, msg) =>
+            {
+                Log.Error($"考核ID:{examId}, 百科ID：{baikeId} 保存考核记录失败：{msg}");
+            }, record.totalStepIndex);
         }
-
-        //自动提交新增的操作
-        SubmitExamineResult_Operation(examId, record.score, baikeId, modelStates, () =>
-        {
-
-        }, (code, msg) =>
-        {
-            Log.Error($"考核ID:{examId}, 百科ID：{baikeId} 保存考核记录失败：{msg}");
-        }, record != null ? record.totalStepIndex : -1);
     }
 
     private bool submitting;
