@@ -422,11 +422,19 @@ namespace UnityFramework.Runtime
         /// 操作类型
         /// </summary>
         public int opType;
+        /// <summary>
+        /// 得分，正确为步骤分数，错误为0
+        /// </summary>
+        public float score;
+        /// <summary>
+        /// 扁平步骤索引（TotalStepIndex），用于上传得分
+        /// </summary>
+        public int totalStepIndex = -1;
 
         public MsgOperatingRecord() { }
 
-        public MsgOperatingRecord(ushort msgId, string stepHint, string opHint, int flowIndex, int stepIndex, int opIndex, 
-            string userNo, string userName, string createTime, OpType opType, bool createHistoryItem = true) : base(msgId)
+        public MsgOperatingRecord(ushort msgId, string stepHint, string opHint, int flowIndex, int stepIndex, int opIndex,
+            string userNo, string userName, string createTime, OpType opType, bool createHistoryItem = true, float score = 0, int totalStepIndex = -1) : base(msgId)
         {
             this.stepHint = stepHint;
             this.opHint = opHint;
@@ -438,6 +446,8 @@ namespace UnityFramework.Runtime
             this.userName = userName;
             this.createTime = createTime;
             this.opType = (int)opType;
+            this.score = score;
+            this.totalStepIndex = totalStepIndex;
         }
 
         public MsgOperatingRecord(ushort msgId, string opHint, string createTime) : base(msgId)

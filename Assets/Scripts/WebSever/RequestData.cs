@@ -1732,7 +1732,6 @@ namespace UnityFramework.Runtime
             public ExamineResultModelState[] modelStates { get; set; }
         }
 
-
         public class ExamineResultOperation
         {
             public int index { get; set; }
@@ -1749,6 +1748,15 @@ namespace UnityFramework.Runtime
 
             public string createTime { get; set; }
             public int type { get; set; }
+
+            /// <summary>
+            /// 分数
+            /// </summary>
+            public float score { get; set; }
+            /// <summary>
+            /// 扁平步骤索引（TotalStepIndex）
+            /// </summary>
+            public int totalStepIndex { get; set; } = -1;
         }
 
 
@@ -1770,6 +1778,36 @@ namespace UnityFramework.Runtime
             /// 附件列表 考核各百科录屏
             /// </summary>
             public List<Accessory> accessoryList;
+        }
+
+        /// <summary>
+        /// 考核操作步骤得分上传请求
+        /// </summary>
+        public class ExamineResultCheckRequest
+        {
+            public bool allChecked = false;
+            public List<ExamineResultCheckResult> checkResults;
+            public int examineId;
+            public int id = 0;
+            public float score = 0;
+        }
+
+        public class ExamineResultCheckResult
+        {
+            public int baikeId;
+            public List<ExamineResultCheckScore> scores;
+        }
+
+        public class ExamineResultCheckScore
+        {
+            /// <summary>
+            /// 扁平步骤索引（TotalStepIndex）
+            /// </summary>
+            public int index;
+            /// <summary>
+            /// 步骤得分
+            /// </summary>
+            public float score;
         }
 
         /// <summary>

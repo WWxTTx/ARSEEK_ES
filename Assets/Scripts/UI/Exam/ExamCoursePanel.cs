@@ -765,7 +765,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="callBack"></param>
     private void SubmitOperationEncyclopedia(int baikeId, bool showToast, bool submitRecording, Action<bool> callBack)
     {
-        ExamUtility.Instance.SubmitExamineResult_Operation(examId, baikeId, GetExamineModelStates(), () =>
+        ExamUtility.Instance.SubmitExamineResult_Operation(examId, 0, baikeId, GetExamineModelStates(), () =>
         {
             Log.Debug($"考核{examId} 百科:{baikeId} 考核记录提交成功");
 

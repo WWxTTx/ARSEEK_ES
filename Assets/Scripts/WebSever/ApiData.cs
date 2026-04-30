@@ -414,6 +414,10 @@ namespace UnityFramework.Runtime
         /// 保存考核结果附件
         /// </summary>
         public static string ExamineResultAccessory { get { return contentAddress + "examine/result/accessory"; } }
+        /// <summary>
+        /// 上传考核操作步骤得分
+        /// </summary>
+        public static string ExamineResultCheckV2 { get { return contentAddress + "examine/result/check/v2"; } }
 
         #region 旧接口
         ///// <summary>

@@ -52,10 +52,12 @@ public class UISmallSceneOperationHistory : UIModuleBase
         public string msg;
         public string createTime;
         public int type;
+        public float score;
+        public int totalStepIndex = -1;
 
         public OpRecordData() { }
 
-        public OpRecordData(int index, string userNo, string userName, string msg, string createTime, OpType opType)
+        public OpRecordData(int index, string userNo, string userName, string msg, string createTime, OpType opType, float score = 0, int totalStepIndex = -1)
         {
             this.index = index;
             this.userNo = userNo;
@@ -63,6 +65,8 @@ public class UISmallSceneOperationHistory : UIModuleBase
             this.msg = msg;
             this.createTime = createTime;
             this.type = (int)opType;
+            this.score = score;
+            this.totalStepIndex = totalStepIndex;
         }
 
         public ExamineResultOperation ToExamineResult()
@@ -74,7 +78,9 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 userName = userName,
                 msg = msg,
                 createTime = createTime,
-                type = type
+                type = type,
+                score = score,
+                totalStepIndex = totalStepIndex
             };
         }
     }
@@ -520,9 +526,9 @@ public class UISmallSceneOperationHistory : UIModuleBase
     }
 
 
-    private void ProcessMsg(int index, string userNo, string userName, string hint, string createTime, int opType)
+    private void ProcessMsg(int index, string userNo, string userName, string hint, string createTime, int opType, float score = 0, int totalStepIndex = -1)
     {
-        OpRecordData opRecord = new OpRecordData(index, userNo, userName, hint, createTime, (OpType)opType);
+        OpRecordData opRecord = new OpRecordData(index, userNo, userName, hint, createTime, (OpType)opType, score, totalStepIndex);
 
         if (opRecords.Count > 0 && index < opRecords.Count)
         {
@@ -562,16 +568,17 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 MsgOperatingRecord opMsg = msg as MsgOperatingRecord;
                 if (opMsg.createHistoryItem && canCreateHistoryItem)
                 {
-                    ProcessMsg(opRecords.Count, opMsg.userNo, opMsg.userName, opMsg.opHint, opMsg.createTime, opMsg.opType);
+                    Debug.Log("执行分数上传，当前操作得分：" + opMsg.score);
+                    ProcessMsg(opRecords.Count, opMsg.userNo, opMsg.userName, opMsg.opHint, opMsg.createTime, opMsg.opType, opMsg.score, opMsg.totalStepIndex);
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.OperatingRecordInput:
                 MsgOperatingRecord opInput = msg as MsgOperatingRecord;
-                ProcessMsg(opRecords.Count, opInput.userNo, opInput.userName, opInput.opHint, opInput.createTime, opInput.opType);
+                ProcessMsg(opRecords.Count, opInput.userNo, opInput.userName, opInput.opHint, opInput.createTime, opInput.opType, opInput.score, opInput.totalStepIndex);
                 break;
             case (ushort)SmallFlowModuleEvent.OperatingRecordChange:
                 MsgOperatingRecord opInputChange = ((MsgBrodcastOperate)msg).GetData<MsgOperatingRecord>();
-                ProcessMsg(opInputChange.opIndex, opInputChange.userNo, opInputChange.userName, opInputChange.opHint, opInputChange.createTime, opInputChange.opType);
+                ProcessMsg(opInputChange.opIndex, opInputChange.userNo, opInputChange.userName, opInputChange.opHint, opInputChange.createTime, opInputChange.opType, opInputChange.score, opInputChange.totalStepIndex);
                 break;
             case (ushort)SmallFlowModuleEvent.OperatingRecordClear:
                 MsgIntInt msgIntInt = msg as MsgIntInt;
@@ -582,7 +589,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 if (NetworkManager.Instance.IsIMSyncState || !canCreateHistoryItem)
                     return;
                 MsgOperatingRecord opSystem = msg as MsgOperatingRecord;
-                ProcessMsg(opRecords.Count, opSystem.userNo, opSystem.userName, opSystem.opHint, opSystem.createTime, opSystem.opType);
+                ProcessMsg(opRecords.Count, opSystem.userNo, opSystem.userName, opSystem.opHint, opSystem.createTime, opSystem.opType, opSystem.score, opSystem.totalStepIndex);
                 break;
             case (ushort)SmallFlowModuleEvent.StartExecute:
                 //协同/考核非本人操作

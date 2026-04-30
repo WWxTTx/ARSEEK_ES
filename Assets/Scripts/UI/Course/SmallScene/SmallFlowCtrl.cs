@@ -945,7 +945,7 @@ public class SmallFlowCtrl : MonoBase
                 {
                     if (!string.IsNullOrEmpty(op.hint_success))
                     {
-                        SendOperatingRecordMsg(data, op, userNo, userName, string.Empty);
+                        SendOperatingRecordMsg(data, op, userNo, userName, string.Empty, isOnOperation);
                     }
                     // 先构建联动操作列表，判断是否需要等待联动完成
                     List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
@@ -1012,7 +1012,7 @@ public class SmallFlowCtrl : MonoBase
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
-                    SendOperatingRecordMsg(data, op, userNo, userName);
+                    SendOperatingRecordMsg(data, op, userNo, userName, null, correctOp);
                     WaitUadioToNext(() =>
                     {
                         SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
@@ -1855,7 +1855,8 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="userNo">操作人工号</param>
     /// <param name="userName">操作人姓名</param>
     /// <param name="stepHint">步骤提示，为null时使用当前步骤的hint_success</param>
-    private void SendOperatingRecordMsg(SmallOp1 data, OperationBase op, string userNo, string userName, string stepHint = null)
+    /// <param name="isCorrect">是否正确操作</param>
+    private void SendOperatingRecordMsg(SmallOp1 data, OperationBase op, string userNo, string userName, string stepHint = null, bool isCorrect = false)
     {
         string hint;
         if (op != null && !string.IsNullOrEmpty(op.hint_success))
@@ -1874,6 +1875,8 @@ public class SmallFlowCtrl : MonoBase
             }
         }
 
+        float score = GetStepScore(isCorrect);
+
         FormMsgManager.Instance.SendMsg(new MsgOperatingRecord(
             (ushort)SmallFlowModuleEvent.OperatingRecord,
             stepHint ?? nowFlowStep?.hint_success ?? string.Empty,
@@ -1884,7 +1887,34 @@ public class SmallFlowCtrl : MonoBase
             userNo,
             userName,
             GlobalInfo.ServerTimeFormat,
-            UISmallSceneOperationHistory.OpType.Operation));
+            UISmallSceneOperationHistory.OpType.Operation,
+            true,
+            score,
+            TotalStepIndex));
+    }
+
+    /// <summary>
+    /// 获取当前步骤分数（正确操作时从服务端数据按索引取步骤分数）
+    /// </summary>
+    /// <param name="isCorrect">是否正确操作</param>
+    /// <returns></returns>
+    private float GetStepScore(bool isCorrect)
+    {
+        if (!isCorrect)
+            return 0;
+
+        EncyclopediaOperation encyclopediaOp = GlobalInfo.currentWiki as EncyclopediaOperation;
+        if (encyclopediaOp == null || encyclopediaOp.flows == null)
+            return 0;
+
+        if (index_NowFlow < 0 || index_NowFlow >= encyclopediaOp.flows.Count)
+            return 0;
+
+        Flow flow = encyclopediaOp.flows[index_NowFlow];
+        if (flow.children == null || index_NowStep < 0 || index_NowStep >= flow.children.Count)
+            return 0;
+
+        return flow.children[index_NowStep].score;
     }
 
     /// <summary>
