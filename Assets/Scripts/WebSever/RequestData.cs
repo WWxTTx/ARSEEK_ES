@@ -1785,11 +1785,8 @@ namespace UnityFramework.Runtime
         /// </summary>
         public class ExamineResultCheckRequest
         {
-            public bool allChecked = false;
-            public List<ExamineResultCheckResult> checkResults;
-            public int examineId;
-            public int id = 0;
-            public float score = 0;
+            public int id;
+            public List<ExamineResultCheckResult> scores;
         }
 
         public class ExamineResultCheckResult
