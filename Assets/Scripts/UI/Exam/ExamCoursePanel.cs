@@ -393,7 +393,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 //提交考核记录
                 smallSceneModule.operationHistoryModule.OnRecordChanged.RemoveAllListeners();
                 smallSceneModule.smallFlowCtrl.OnFreeOperationInvoked.RemoveAllListeners();
-                smallSceneModule.operationHistoryModule.OnRecordChanged.AddListener(( recordData) =>
+                smallSceneModule.operationHistoryModule.OnRecordChanged.AddListener((recordData) =>
                 {
                     ExamUtility.Instance.EnqueueOperation(examId, GlobalInfo.currentWiki.id, recordData, GetExamineModelStates());
                 });
@@ -765,59 +765,63 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="callBack"></param>
     private void SubmitOperationEncyclopedia(int baikeId, bool showToast, bool submitRecording, Action<bool> callBack)
     {
-        ExamUtility.Instance.SubmitExamineResult_Operation(examId, 0, baikeId, GetExamineModelStates(), () =>
-        {
-            Log.Debug($"考核{examId} 百科:{baikeId} 考核记录提交成功");
+        if (showToast)
+            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
+        callBack?.Invoke(true);
 
-            if (!GlobalInfo.ExamRecording)
-            {
-                if (showToast)
-                    UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
-                callBack?.Invoke(true);
-                return;
-            }
+        //ExamUtility.Instance.SubmitExamineResult_Operation(examId, 0, baikeId, GetExamineModelStates(), () =>
+        //{
+        //    Log.Debug($"考核{examId} 百科:{baikeId} 考核记录提交成功");
 
-            #region 提交考核附件
-            //每次提交 检查是否存在已上传成功但未记录的监控视频
-            //List<Accessory> accessoryList = videoDic.Where(v => !v.Value)
-            //    .Select(v => new Accessory() { encyclopediaId = v.Key.Item1, filePath = v.Key.Item2 }).ToList();
-            //RequestManager.Instance.SubmitExamAccessory(examId, accessoryList, () =>
-            //{
-            //    //标记已成功提交的视频
-            //    foreach (var accessory in accessoryList)
-            //    {
-            //        var video = videoDic.FirstOrDefault(v => v.Key.Item2.Equals(accessory.filePath));
-            //        if (videoDic.ContainsKey(video.Key))
-            //            videoDic[video.Key] = true;
-            //    }
+        //    if (!GlobalInfo.ExamRecording)
+        //    {
+        //        if (showToast)
+        //            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
+        //        callBack?.Invoke(true);
+        //        return;
+        //    }
 
-            //    if (showToast)
-            //        UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
-            //    callBack?.Invoke(true);
-            //}, (errorCode, errorMsg) =>
-            //{
-            //    Log.Error($"考核{examId} 百科:{baikeId} 考核附件提交失败");
-            //    if (showToast)
-            //        UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
-            //    callBack?.Invoke(true);
-            //});
-            #endregion
-        },
-         (errorCode, errorMsg) =>
-         {
-             Log.Error($"考核{examId} 百科:{baikeId} 考核记录提交失败：{errorMsg}");
-             //TODO待完善异常处理
-             if (showToast)
-             {
-                 var popupDic = new Dictionary<string, PopupButtonData>();
-                 popupDic.Add("重新提交", new PopupButtonData(() =>
-                 {
-                     SubmitExamRecord(submitRecording, showToast, callBack);
-                 }, false));
-                 popupDic.Add("退出房间", new PopupButtonData(Quit, true));
-                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("错误提示", "考核记录提交失败！", popupDic, showCloseBtn: false));
-             }
-         });
+        //    #region 提交考核附件
+        //    //每次提交 检查是否存在已上传成功但未记录的监控视频
+        //    //List<Accessory> accessoryList = videoDic.Where(v => !v.Value)
+        //    //    .Select(v => new Accessory() { encyclopediaId = v.Key.Item1, filePath = v.Key.Item2 }).ToList();
+        //    //RequestManager.Instance.SubmitExamAccessory(examId, accessoryList, () =>
+        //    //{
+        //    //    //标记已成功提交的视频
+        //    //    foreach (var accessory in accessoryList)
+        //    //    {
+        //    //        var video = videoDic.FirstOrDefault(v => v.Key.Item2.Equals(accessory.filePath));
+        //    //        if (videoDic.ContainsKey(video.Key))
+        //    //            videoDic[video.Key] = true;
+        //    //    }
+
+        //    //    if (showToast)
+        //    //        UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
+        //    //    callBack?.Invoke(true);
+        //    //}, (errorCode, errorMsg) =>
+        //    //{
+        //    //    Log.Error($"考核{examId} 百科:{baikeId} 考核附件提交失败");
+        //    //    if (showToast)
+        //    //        UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录提交成功！"));
+        //    //    callBack?.Invoke(true);
+        //    //});
+        //    #endregion
+        //},
+        // (errorCode, errorMsg) =>
+        // {
+        //     Log.Error($"考核{examId} 百科:{baikeId} 考核记录提交失败：{errorMsg}");
+        //     //TODO待完善异常处理
+        //     if (showToast)
+        //     {
+        //         var popupDic = new Dictionary<string, PopupButtonData>();
+        //         popupDic.Add("重新提交", new PopupButtonData(() =>
+        //         {
+        //             SubmitExamRecord(submitRecording, showToast, callBack);
+        //         }, false));
+        //         popupDic.Add("退出房间", new PopupButtonData(Quit, true));
+        //         UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("错误提示", "考核记录提交失败！", popupDic, showCloseBtn: false));
+        //     }
+        // });
     }
 
     /// <summary>
@@ -1007,16 +1011,18 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     /// <param name="callBack"></param>
     private void StartTiming(UnityAction callBack)
-    {
+    {      
+        // 状态同步，跳过倒计时
+        //if (NetworkManager.Instance.IsIMSyncState)
+        //{
+        //    startTimingTrans.gameObject.SetActive(false);
+        //    callBack?.Invoke();
+        //    return;
+        //}
+
         Transform startTimingTrans = this.FindChildByName("StartTiming");
         var text = this.GetComponentByChildName<Text>("StartTimingText");
-        // 状态同步，跳过倒计时
-        if (NetworkManager.Instance.IsIMSyncState)
-        {
-            startTimingTrans.gameObject.SetActive(false);
-            callBack?.Invoke();
-            return;
-        }
+ 
         Log.Debug("开始倒计时");
         startTimingTrans.gameObject.SetActive(true);
         float index = 0;

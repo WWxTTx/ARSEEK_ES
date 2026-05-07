@@ -2573,26 +2573,22 @@ public class BehavePopup : BehaveBase
     //弹窗默认将确定和关闭事件都加上回调
     public override void Execute(UnityAction callback = null)
     {
+        //刷新自由移动标志位 
+        ModelManager.Instance.CameraDotween = false;
+
         //已存在系统级弹窗就不弹了 配置的弹窗都是非系统提示弹窗
         if (GlobalInfo.SysPopup)
         {
-            ModelManager.Instance.CameraDotween = false;
             return;
         }
 
         if(GlobalInfo.isExam)
         {
-            ModelManager.Instance.CameraDotween = false;
             callback?.Invoke();
             return;
         }
 
         Dictionary<string, PopupButtonData> popupData = new Dictionary<string, PopupButtonData>();
-        callback += (() =>
-        {
-            //刷新自由移动标志位 
-            ModelManager.Instance.CameraDotween = false;
-        });
         popupData.Add("确定", new PopupButtonData(callback, true));
         UIPopupData uIPopup = new UIPopupData("提示", message, popupData, callback);
         uIPopup.isSystem = false;

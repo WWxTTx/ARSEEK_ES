@@ -943,12 +943,12 @@ public class ExamPanel : HoverHintPanel
                 ExamUtility.Instance.ExamineeRecords
             ), true);
 
-            // 发送当前百科选择
-            ToolManager.SendBroadcastMsg(new MsgInt()
-            {
-                msgId = (ushort)BaikeSelectModuleEvent.BaikeSelect,
-                arg = GlobalInfo.currentWiki?.id ?? (GlobalInfo.currentWikiList?[0]?.id ?? 0)
-            }, true);
+            // 发送当前百科选择 由于房间中不能切换百科了，所以无需发送了
+            //ToolManager.SendBroadcastMsg(new MsgInt()
+            //{
+            //    msgId = (ushort)BaikeSelectModuleEvent.BaikeSelect,
+            //    arg = GlobalInfo.currentWiki?.id ?? (GlobalInfo.currentWikiList?[0]?.id ?? 0)
+            //}, true);
         }
     }
     /// <summary>
@@ -959,6 +959,7 @@ public class ExamPanel : HoverHintPanel
     private void OnOtherLeave(int leavedUserId, string leavedUserName)
     {
         UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{leavedUserName}退出考核"));
+        RemoveView(leavedUserId);
         RemoveMember(leavedUserId);
     }
 
@@ -1053,6 +1054,14 @@ public class ExamPanel : HoverHintPanel
             target.label = int.Parse(label);
             NetworkManager.Instance.AddUserVideo(label, target);
         }
+    }
+
+    /// <summary>
+    /// 成员离开时移除对应的视频画面
+    /// </summary>
+    private void RemoveView(int userId)
+    {
+        NetworkManager.Instance.RemoveUserVideo(userId);
     }
     #endregion
 

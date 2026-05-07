@@ -150,23 +150,41 @@ public class PlayerController : MonoBase
     private void Rotate()
     {
 #if UNITY_ANDROID || UNITY_IOS
-        //横向轴
-        transform.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
-
-        // 计算新的旋转角度
-        tempFloat = verticalPoint.localEulerAngles.x - rotateJoystick.Vertical * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
-
-        // 将角度转换到[-180, 180]范围
-        if (tempFloat > 180)
+        if (rotateJoystick is VariableJoystick vj && vj.IsTapRotation)
         {
-            tempFloat -= 360;
+            if (!hasTapTarget)
+            {
+                Ray ray = mainCamera.GetComponent<Camera>().ScreenPointToRay(vj.TapScreenPos);
+                if (Physics.Raycast(ray, out RaycastHit hit))
+                    tapTargetPoint = hit.point;
+                else
+                    tapTargetPoint = ray.GetPoint(100f);
+                hasTapTarget = true;
+            }
+            RotateTowardsTarget();
         }
+        else
+        {
+            hasTapTarget = false;
 
-        // 限制在(-90, 90)度范围（不包含90度）
-        float clampedAngle = Mathf.Clamp(tempFloat, -89.999f, 89.999f);
+            //横向轴
+            transform.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
 
-        // 应用限制后的角度
-        verticalPoint.localEulerAngles = new Vector3(clampedAngle, 0f, 0f);
+            // 计算新的旋转角度
+            tempFloat = verticalPoint.localEulerAngles.x - rotateJoystick.Vertical * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
+
+            // 将角度转换到[-180, 180]范围
+            if (tempFloat > 180)
+            {
+                tempFloat -= 360;
+            }
+
+            // 限制在(-90, 90)度范围（不包含90度）
+            float clampedAngle = Mathf.Clamp(tempFloat, -89.999f, 89.999f);
+
+            // 应用限制后的角度
+            verticalPoint.localEulerAngles = new Vector3(clampedAngle, 0f, 0f);
+        }
 #else
         //横向轴
         transform.localEulerAngles += Vector3.up * Input.GetAxis("Mouse X") * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
@@ -183,6 +201,50 @@ public class PlayerController : MonoBase
             verticalPoint.localEulerAngles = Vector3.right * tempFloat;
         }
 #endif
+    }
+
+    /// <summary>
+    /// 以默认旋转速度转向点击目标点
+    /// </summary>
+    private void RotateTowardsTarget()
+    {
+        float rotSpeed = GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
+
+        // 水平旋转（Y轴）
+        Vector3 flatDir = new Vector3(tapTargetPoint.x - transform.position.x, 0, tapTargetPoint.z - transform.position.z);
+        if (flatDir.sqrMagnitude > 0.001f)
+        {
+            float targetY = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
+            float deltaY = Mathf.DeltaAngle(transform.localEulerAngles.y, targetY);
+            if (Mathf.Abs(deltaY) > 0.01f)
+            {
+                float step = Mathf.Sign(deltaY) * rotSpeed;
+                if (Mathf.Abs(step) >= Mathf.Abs(deltaY))
+                    step = deltaY;
+                transform.localEulerAngles += Vector3.up * step;
+            }
+        }
+
+        // 垂直旋转（X轴），在transform本地坐标系中计算
+        Vector3 localDir = transform.InverseTransformDirection(tapTargetPoint - verticalPoint.position);
+        float horizDist = new Vector2(localDir.x, localDir.z).magnitude;
+        if (horizDist > 0.001f)
+        {
+            float targetPitch = -Mathf.Atan2(localDir.y, horizDist) * Mathf.Rad2Deg;
+            targetPitch = Mathf.Clamp(targetPitch, -89.999f, 89.999f);
+
+            float currentPitch = verticalPoint.localEulerAngles.x;
+            if (currentPitch > 180) currentPitch -= 360;
+
+            float deltaPitch = targetPitch - currentPitch;
+            if (Mathf.Abs(deltaPitch) > 0.01f)
+            {
+                float step = Mathf.Sign(deltaPitch) * rotSpeed;
+                if (Mathf.Abs(step) >= Mathf.Abs(deltaPitch))
+                    step = deltaPitch;
+                verticalPoint.localEulerAngles = new Vector3(currentPitch + step, 0f, 0f);
+            }
+        }
     }
 
     private float mVertical;
@@ -427,6 +489,10 @@ public class PlayerController : MonoBase
     private Joystick rotateJoystick;
     private float moveRatio;
     private float rotateRatio;
+
+    // 点击旋转目标点
+    private Vector3 tapTargetPoint;
+    private bool hasTapTarget;
 
     public void SetJoystick(Joystick moveJoystick, Joystick rotateJoystick, float moveRatio, float rotateRatio)
     {

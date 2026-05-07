@@ -703,7 +703,7 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 选择任务 
     /// </summary>
-    public void SelectFlow(int index_Flow)
+    public void SelectFlow(int index_Flow, bool refresh = true)
     {
         foreach (var operation in operationIDs)
         {
@@ -754,7 +754,8 @@ public class SmallFlowCtrl : MonoBase
                     {
                         SetFinalState(op.operation, op.optionName);
                     }
-                    RefreshOpHistory(operation.operation, operation.optionName, indexFlow, indexStep);
+                    if (refresh)
+                        RefreshOpHistory(operation.operation, operation.optionName, indexFlow, indexStep);
                 }
             }
         }
@@ -786,11 +787,66 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 选择小步骤
     /// </summary>
-    public void SelectStep(int stepIndex)
+    public void SelectStep(int stepIndex,bool refresh = true)
     {
         // 清空操作记录
-        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
-        DoSelectStep(stepIndex);
+        if (refresh)
+        {
+            FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
+
+            // 先恢复之前 flow 的操作记录
+            int indexFlow = -1;
+            int prevFlowStep = -1;
+            foreach (var flow in flows.Take(index_NowFlow))
+            {
+                indexFlow += 1;
+                prevFlowStep = -1;
+                foreach (var step in flow.steps)
+                {
+                    prevFlowStep += 1;
+                    foreach (var operation in step.ops)
+                    {
+                        RefreshOpHistory(operation.operation, operation.optionName, indexFlow, prevFlowStep);
+                    }
+                }
+            }
+
+            // todo 未配置初始视角的步骤，采用上一个步骤的视角？=> 在index_NowStep setter中执行
+            // 漫游模式不采用，操作表现可能包含导航
+            if (useGuide && stepView.ContainsKey(index_NowFlow) && stepView[index_NowFlow].ContainsKey(stepIndex))
+            {
+                if (stepView[index_NowFlow][stepIndex] != stepIndex)
+                {
+                    SmallStepState cameraState = GetPreviousCamState(index_NowFlow, stepIndex);
+                    if (cameraState != null)
+                    {
+                        SetFinalState(cameraState.operation, cameraState.optionName);
+                    }
+                }
+            }
+        }
+        else
+        {
+            //步骤同步，仅刷新最后一步
+            var steps = flows[index_NowFlow].steps;
+            var operation = steps[stepIndex].ops[0];
+            RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, stepIndex);
+        }
+
+        int indexStep = -1;
+        foreach (var step in nowFlowSteps.Take(stepIndex))
+        {
+            indexStep += 1;
+            foreach (var operation in step.ops)
+            {
+                SetFinalState(operation.operation, operation.optionName, true, true, !refresh);
+                if (refresh)
+                    RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, indexStep);
+            }
+        }
+
+        // 设置当前步骤索引
+        index_NowStep = stepIndex;
     }
 
     private SmallStepState GetPreviousCamState(int flowIndex, int stepIndex)
@@ -813,62 +869,6 @@ public class SmallFlowCtrl : MonoBase
         }
         return cameraState;
     }
-
-    private void DoSelectStep(int stepIndex)
-    {
-        // 清空操作记录
-        FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
-
-        // 先恢复之前 flow 的操作记录
-        int indexFlow = -1;
-        int prevFlowStep = -1;
-        foreach (var flow in flows.Take(index_NowFlow))
-        {
-            indexFlow += 1;
-            prevFlowStep = -1;
-            foreach (var step in flow.steps)
-            {
-                prevFlowStep += 1;
-                foreach (var operation in step.ops)
-                {
-                    RefreshOpHistory(operation.operation, operation.optionName, indexFlow, prevFlowStep);
-                }
-            }
-        }
-
-        // todo 未配置初始视角的步骤，采用上一个步骤的视角？=> 在index_NowStep setter中执行
-        // 漫游模式不采用，操作表现可能包含导航
-        if (useGuide && stepView.ContainsKey(index_NowFlow) && stepView[index_NowFlow].ContainsKey(stepIndex))
-        {
-            if (stepView[index_NowFlow][stepIndex] != stepIndex)
-            {
-                SmallStepState cameraState = GetPreviousCamState(index_NowFlow, stepIndex);
-                if (cameraState != null)
-                {
-                    SetFinalState(cameraState.operation, cameraState.optionName);
-                }
-            }
-        }
-
-        int indexStep = -1;
-        foreach (var step in nowFlowSteps.Take(stepIndex))
-        {
-            indexStep += 1;
-            foreach (var operation in step.ops)
-            {
-                SetFinalState(operation.operation, operation.optionName);
-                foreach (var op in operation.actions)
-                {
-                    SetFinalState(op.operation, op.optionName);
-                }
-                RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, indexStep);
-            }
-        }
-
-        // 设置当前步骤索引
-        index_NowStep = stepIndex;
-    }
-
 
     public string GetStep(int stepIndex)
     {
@@ -912,6 +912,7 @@ public class SmallFlowCtrl : MonoBase
         }
     }
 
+    public Action AddOpHistory;
     /// <summary>
     /// 执行自由操作
     /// </summary>
@@ -1361,6 +1362,7 @@ public class SmallFlowCtrl : MonoBase
     private static readonly HashSet<BehaveType> DummySkipBehaveTypes_link = new HashSet<BehaveType>
     {
         BehaveType.PlayerNavigation,// 角色寻路
+        BehaveType.Pose
     };
 
     private bool IsDummySkipBehavior(BehaveType behaveType, bool link)
@@ -1605,7 +1607,10 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     /// <param name="operation">设置物体</param>
     /// <param name="optionName">设置操作</param>
-    public void SetFinalState(ModelOperation operation, string optionName, bool ignoreCondition = false, bool processLinkages = true)
+    /// 是否跳过操作前置条件检查。  
+    /// 是否递归处理联动操作
+    /// 是否跳过角色位移
+    public void SetFinalState(ModelOperation operation, string optionName, bool ignoreCondition = false, bool processLinkages = true, bool ignoreMove = false)
     {
         if (operation && !string.IsNullOrEmpty(optionName))
         {
@@ -1645,6 +1650,8 @@ public class SmallFlowCtrl : MonoBase
                     {
                         try
                         {
+                            if (ignoreMove && op.behaveBases[k].behaveType == BehaveType.Pose)
+                                continue;
                             op.behaveBases[k].SetFinalState();
                         }
                         catch
@@ -1798,6 +1805,7 @@ public class SmallFlowCtrl : MonoBase
                 }
             }
         }
+
         //服务器记录当前步骤完成
         ToolManager.SendBroadcastMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowFlow, index_NowStep));
         Over();
@@ -2068,8 +2076,7 @@ public class SmallFlowCtrl : MonoBase
 
             // 添加到工具字典
             toolIDs.Add(schematicSprite.name, modelInfo);
-            // 触发图纸添加事件 进入下一步会刷新工具栏状态，需要先刷再生成，才能隐藏工具栏
-            DOVirtual.DelayedCall(0.1f, () =>
+            DOVirtual.DelayedCall(0.3f, () =>
             {
                 onSchematicAdded.Invoke(modelInfo);
             });
@@ -2077,7 +2084,7 @@ public class SmallFlowCtrl : MonoBase
         else
         {
             // 触发图纸添加事件 进入下一步会刷新工具栏状态，需要先刷再生成，才能隐藏工具栏
-            DOVirtual.DelayedCall(0.1f, () =>
+            DOVirtual.DelayedCall(0.3f, () =>
             {
                 onSchematicAdded.Invoke(toolIDs[schematicSprite.name]);
             });

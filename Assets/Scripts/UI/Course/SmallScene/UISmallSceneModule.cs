@@ -1555,7 +1555,7 @@ public class UISmallSceneModule : UIModuleBase
                 break;
             //大部分的状态重置都在这个消息中
             case (ushort)SmallFlowModuleEvent.CompleteStep:
-                if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id && !ModelManager.Instance.CameraDotween && GlobalInfo.isCooperation)
+                if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id && GlobalInfo.isCooperation && ModelState == ModelState.OtherOperating)
                 {
                     MsgIntInt completeStepData = ((MsgBrodcastOperate)msg).GetData<MsgIntInt>();
                     int receivedFlow = completeStepData.arg1;
@@ -1564,8 +1564,8 @@ public class UISmallSceneModule : UIModuleBase
                     if (receivedFlow != smallFlowCtrl.index_NowFlow || receivedStep != smallFlowCtrl.index_NowStep)
                     {
                         UIManager.Instance.CloseUI<PopupPanel>();
-                        smallFlowCtrl.SelectFlow(receivedFlow);
-                        smallFlowCtrl.SelectStep(receivedStep);
+                        smallFlowCtrl.SelectFlow(receivedFlow, false);
+                        smallFlowCtrl.SelectStep(receivedStep, false);
                         Log.Debug("执行跳步骤 任务选中" + receivedFlow + "步骤选中" + receivedStep);
                     }
                 }

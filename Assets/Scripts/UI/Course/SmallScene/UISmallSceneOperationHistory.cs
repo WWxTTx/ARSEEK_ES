@@ -258,6 +258,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 });
             }
             input.gameObject.SetActive(false);
+            FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.SelectInput, string.Empty, false));
         });
 
         inputCancelBtn.onClick.AddListener(() =>

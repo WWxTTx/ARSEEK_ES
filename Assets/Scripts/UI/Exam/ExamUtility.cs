@@ -134,14 +134,7 @@ public class ExamUtility : Singleton<ExamUtility>
     /// <param name="operateMsg"></param>
     public void EnqueueOperation(int examId, int baikeId, OpRecordData record, ExamineResultModelState[] modelStates)
     {
-        StartCoroutine(_enqueue(examId, baikeId, record, modelStates));
-    }
-
-    private IEnumerator _enqueue(int examId, int baikeId, OpRecordData record, ExamineResultModelState[] modelStates)
-    {
-        yield return new WaitUntil(() => !submitting);
-
-        if(record != null)
+        if (record != null)
         {
             var operation = new ExamineResultOperation()
             {
@@ -163,20 +156,17 @@ public class ExamUtility : Singleton<ExamUtility>
                 operations.Enqueue(operation);
                 PediaOperationRecords.Add(baikeId, operations);
             }
-
-
-            //自动提交新增的操作
-            SubmitExamineResult_Operation(examId, record.score, baikeId, modelStates, () =>
-            {
-
-            }, (code, msg) =>
-            {
-                Log.Error($"考核ID:{examId}, 百科ID：{baikeId} 保存考核记录失败：{msg}");
-            }, record.totalStepIndex);
         }
+
+        //自动提交新增的操作
+        SubmitExamineResult_Operation(examId, record != null ? record.score : 0, baikeId, modelStates, () =>
+        {
+        }, (code, msg) =>
+        {
+            Log.Error($"考核ID:{examId}, 百科ID：{baikeId} 保存考核记录失败：{msg}");
+        }, record != null ? record.totalStepIndex : -1);
     }
 
-    private bool submitting;
 
     /// <summary>
     /// 保存操作百科考核记录
@@ -189,29 +179,33 @@ public class ExamUtility : Singleton<ExamUtility>
     /// <param name="totalStepIndex">扁平步骤索引，用于上传得分</param>
     public void SubmitExamineResult_Operation(int examId, float score, int baikeId, ExamineResultModelState[] modelStates, UnityAction success, UnityAction<int, string> failure, int totalStepIndex = -1)
     {
-        submitting = true;
-
         ExamineResultOperation[] operations = null;
-        if (PediaOperationRecords.ContainsKey(baikeId))
+        try
         {
-           operations = PediaOperationRecords[baikeId].ToArray();
-        }
-        else
-        {
-            operations = new ExamineResultOperation[0];
-        }
+            if (PediaOperationRecords.ContainsKey(baikeId))
+            {
+               operations = PediaOperationRecords[baikeId].ToArray();
+            }
+            else
+            {
+                operations = new ExamineResultOperation[0];
+            }
 
-        RequestManager.Instance.SubmitExamineResult_Operation(examId, score, baikeId, operations, modelStates, () =>
+            RequestManager.Instance.SubmitExamineResult_Operation(examId, score, baikeId, operations, modelStates, () =>
+            {
+                if(PediaOperationRecords.ContainsKey(baikeId))
+                    PediaOperationRecords[baikeId].Clear();
+                success?.Invoke();
+            }, (errorCode, errorMsg) =>
+            {
+                failure.Invoke(errorCode, errorMsg);
+            }, totalStepIndex);
+        }
+        catch (Exception e)
         {
-            if(PediaOperationRecords.ContainsKey(baikeId))
-                PediaOperationRecords[baikeId].Clear();
-            submitting = false;
-            success?.Invoke();
-        }, (errorCode, errorMsg) =>
-        {
-            submitting = false;
-            failure.Invoke(errorCode, errorMsg);
-        }, totalStepIndex);
+            Log.Error($"提交考核记录异常：{e}");
+            failure?.Invoke(-1, e.Message);
+        }
     }
 
     /// <summary>
@@ -223,25 +217,29 @@ public class ExamUtility : Singleton<ExamUtility>
     /// <param name="failure"></param>
     public void SubmitExamineResult_Exercise(int examId, int baikeId, string operation, UnityAction success, UnityAction<int, string> failure)
     {
-        submitting = true;
-
-        var operations = new List<ExamineResultOperation>
+        try
         {
-            new ExamineResultOperation()
+            var operations = new List<ExamineResultOperation>
             {
-                index = 0,
-                operation = operation,
-            }
-        };
-        RequestManager.Instance.SubmitExamineResult_Excercise(examId, baikeId, operations.ToArray(), () =>
+                new ExamineResultOperation()
+                {
+                    index = 0,
+                    operation = operation,
+                }
+            };
+            RequestManager.Instance.SubmitExamineResult_Excercise(examId, baikeId, operations.ToArray(), () =>
+            {
+                success?.Invoke();
+            }, (errorCode, errorMsg) =>
+            {
+                failure.Invoke(errorCode, errorMsg);
+            });
+        }
+        catch (Exception e)
         {
-            submitting = false;
-            success?.Invoke();
-        }, (errorCode, errorMsg) =>
-        {
-            submitting = false;
-            failure.Invoke(errorCode, errorMsg);
-        });
+            Log.Error($"提交习题考核记录异常：{e}");
+            failure?.Invoke(-1, e.Message);
+        }
     }
 
     /// <summary>

@@ -136,7 +136,7 @@ public class PlayerManager : MonoBase
     }
 
     /// <summary>
-    /// 移除用户视线标记
+    /// 移除用户模型
     /// </summary>
     /// <param name="id"></param>
     public void RemoveUser(int id)

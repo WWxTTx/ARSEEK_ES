@@ -1328,19 +1328,25 @@ namespace UnityFramework.Runtime
                 operations = operations,
                 modelStates = modelStates
             };
+            if (totalStepIndex >= 0 && totalStepIndex < operations .Length && score > 0)
+            {
+                operations[totalStepIndex].score = score;
+                operations[totalStepIndex].totalStepIndex = totalStepIndex;
+            }
+
             requestBase.TryRequest_List("保存考核结果（操作）", RequestType.POST, ApiData.ExamineResult, JsonTool.Serializable(requestData), (result, message) =>
             {
-                //GetRequest(result, message, () =>
-                //{
-                //    if (totalStepIndex >= 0 && score > 0)
-                //    {
-                //        SubmitExamineResultCheck(examId, baikeId, totalStepIndex, score, null, (code, msg) =>
-                //        {
-                //            Log.Warning($"考核ID:{examId} 百科ID:{baikeId} 步骤:{totalStepIndex} 上传得分失败：{msg}");
-                //        });
-                //    }
-                //    successCallBack?.Invoke();
-                //}, failureCallBack);
+                GetRequest(result, message, () =>
+                {
+                    //if (totalStepIndex >= 0 && score > 0)
+                    //{
+                    //    SubmitExamineResultCheck(examId, baikeId, totalStepIndex, score, null, (code, msg) =>
+                    //    {
+                    //        Log.Warning($"考核ID:{examId} 百科ID:{baikeId} 步骤:{totalStepIndex} 上传得分失败：{msg}");
+                    //    });
+                    //}
+                    successCallBack?.Invoke();
+                }, failureCallBack);
             }, false);
         }
 
@@ -1353,32 +1359,32 @@ namespace UnityFramework.Runtime
         /// <param name="score">步骤得分</param>
         /// <param name="successCallBack"></param>
         /// <param name="failureCallBack"></param>
-        public void SubmitExamineResultCheck(int examId, int baikeId, int totalStepIndex, float score, UnityAction successCallBack, UnityAction<int, string> failureCallBack)
-        {
-            ExamineResultCheckRequest requestData = new ExamineResultCheckRequest()
-            {
-                examineId = examId,
-                checkResults = new List<ExamineResultCheckResult>
-                {
-                    new ExamineResultCheckResult()
-                    {
-                        baikeId = baikeId,
-                        scores = new List<ExamineResultCheckScore>
-                        {
-                            new ExamineResultCheckScore()
-                            {
-                                index = totalStepIndex,
-                                score = score
-                            }
-                        }
-                    }
-                }
-            };
-            requestBase.TryRequest_List("上传考核操作步骤得分", RequestType.POST, ApiData.ExamineResultCheckV2, JsonTool.Serializable(requestData), (result, message) =>
-            {
-                GetRequest(result, message, successCallBack, failureCallBack);
-            }, false);
-        }
+        //public void SubmitExamineResultCheck(int examId, int baikeId, int totalStepIndex, float score, UnityAction successCallBack, UnityAction<int, string> failureCallBack)
+        //{
+        //    ExamineResultCheckRequest requestData = new ExamineResultCheckRequest()
+        //    {
+        //        examineId = examId,
+        //        checkResults = new List<ExamineResultCheckResult>
+        //        {
+        //            new ExamineResultCheckResult()
+        //            {
+        //                baikeId = baikeId,
+        //                scores = new List<ExamineResultCheckScore>
+        //                {
+        //                    new ExamineResultCheckScore()
+        //                    {
+        //                        index = totalStepIndex,
+        //                        score = score
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    };
+        //    requestBase.TryRequest_List("上传考核操作步骤得分", RequestType.POST, ApiData.ExamineResultCheckV2, JsonTool.Serializable(requestData), (result, message) =>
+        //    {
+        //        GetRequest(result, message, successCallBack, failureCallBack);
+        //    }, false);
+        //}
 
         /// <summary>
         /// 保存考核结果（习题等）

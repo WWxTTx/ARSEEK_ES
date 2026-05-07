@@ -22,8 +22,6 @@ public class ImageViewerIndicator : MonoBehaviour
     private bool _currentShow = true;
 
     private string formatter = "{0:N0}%";
-    private string maxMsg = "�ѷŵ����";
-    private string minMsg = "��������С";
 
     private float _minScale;
     private float _maxScale;
@@ -55,12 +53,7 @@ public class ImageViewerIndicator : MonoBehaviour
     public void Show(float scale = 0)
     {
         string msg = string.Empty;
-        if (scale == _maxScale)
-            msg = maxMsg;
-        else if (scale == _minScale)
-            msg = minMsg;
-        else
-            msg = string.Format(formatter, (1 + scale) * 100f);
+        msg = string.Format(formatter, (1 + scale) * 100f);
 
         if (_currentShow)
         {

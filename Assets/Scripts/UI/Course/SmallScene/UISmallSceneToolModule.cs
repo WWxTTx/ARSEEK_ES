@@ -403,7 +403,6 @@ public class UISmallSceneToolModule : UIModuleBase
         SchematicPanel.Over.gameObject.SetActive(true);
         RefreshDrawingToggle();
         SchematicPanel.ShowView();
-        ShowTool(false);  // 隐藏工具栏（无延迟）
     }
 
     /// <summary>

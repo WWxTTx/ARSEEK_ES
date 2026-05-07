@@ -1895,7 +1895,7 @@ MonoBehaviour:
     m_AlignByGeometry: 0
     m_RichText: 0
     m_HorizontalOverflow: 0
-    m_VerticalOverflow: 0
+    m_VerticalOverflow: 1
     m_LineSpacing: 1
   m_Text: 
 --- !u!1 &9063466031331907593
@@ -2017,8 +2017,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 78, y: 0}
-  m_SizeDelta: {x: 542, y: 0}
+  m_AnchoredPosition: {x: 79, y: 0}
+  m_SizeDelta: {x: 540, y: 0}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!222 &9063466031512828258
 CanvasRenderer:
@@ -2109,7 +2109,7 @@ MonoBehaviour:
   m_LineType: 2
   m_HideMobileInput: 0
   m_CharacterValidation: 0
-  m_CharacterLimit: 100
+  m_CharacterLimit: 150
   m_OnEndEdit:
     m_PersistentCalls:
       m_Calls: []
@@ -2137,7 +2137,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_IgnoreLayout: 0
-  m_MinWidth: 542
+  m_MinWidth: 540
   m_MinHeight: -1
   m_PreferredWidth: -1
   m_PreferredHeight: -1

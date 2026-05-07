@@ -1,9 +1,10 @@
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityFramework.Runtime;
-using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// rti同步通道代理类
@@ -21,7 +22,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public int ReceivedOpCount => opsReceive.Count;
 
     /// <summary>
-    /// 本地同步总开关 关闭期间消息仅接收不处理
+    /// 本地房间内操作消息 同步总开关 关闭期间消息仅接收不处理
     /// </summary>
     public bool IsStartSync
     {
@@ -149,6 +150,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
     }
 
+    bool dontHistory;
     /// <summary>
     /// 处理操作消息
     /// </summary>
@@ -158,9 +160,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
             return;
 
         deltaTime += Time.deltaTime;
+        //两个条件：1.当前还没有开始考核  2.开始考核了，是房主 此时不进行历史状态同步
+        dontHistory = GlobalInfo.waitExam || (GlobalInfo.waitExam && GlobalInfo.roomInfo.creatorId == GlobalInfo.account.id);
 
-        //执行状态同步消息
-        while (stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
+        //执行状态同步消息 
+        while (stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !dontHistory)
         {
             deltaTime = 0;
             GlobalInfo.SetFanelstate = false;
@@ -173,14 +177,14 @@ public class IMChannelAgent : NetworkChannelAgentBase
             TryExecuteCurrentOp();
         }
 
-        //等待2s还是处于等待中，判断为本地执行错误，标志位没有正确恢复，手动打开消息处理
-        if (!IsStartSync && deltaTime > 2)
+        //等待3s还是处于等待中，判断为本地执行错误，标志位没有正确恢复，手动打开消息处理
+        if (deltaTime > 3)
         {
             IsStartSync = true;
             UIManager.Instance.CloseUI<LoadingPanel>();
         }
         
-        //本地拒绝消息时暂停消息处理
+        //本地拒绝消息时 暂停消息处理
         if (!IsStartSync)
             return;
 
