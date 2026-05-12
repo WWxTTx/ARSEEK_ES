@@ -76,13 +76,9 @@ public class ExamTrainingPanel : UIPanelBase
     /// </summary>
     private string quickJoinRoomID;
     /// <summary>
-    /// 是否正在进入房间
-    /// </summary>
-    private bool joiningRoom;
-    /// <summary>
     /// 是否创建房间
     /// </summary>
-    public static bool creatingRoom;
+    public bool creatingRoom;
     /// <summary>
     /// 是否首次成功获取到房间列表
     /// </summary>
@@ -96,8 +92,6 @@ public class ExamTrainingPanel : UIPanelBase
         "小组"
     };
     private const string defaultCourseType = "未选择课程";
-
-    private Dictionary<string, int> cachedRoomUUidUserId;
 
     public const string flag = "ExamTrainingPanel";
 
@@ -165,18 +159,6 @@ public class ExamTrainingPanel : UIPanelBase
         this.GetComponentByChildName<Button>("Setting")?.onClick.AddListener(() => UIManager.Instance.OpenUI<OptionPanel>(UILevel.Fixed));
 
         this.GetComponentByChildName<Button>("Record").onClick.AddListener(() => { UIManager.Instance.OpenUI<RecordPanel>(); UIManager.Instance.CloseUI<ExamTrainingPanel>(); });
-
-        if (PlayerPrefs.HasKey(flag))
-        {
-            try
-            {
-                cachedRoomUUidUserId = JsonTool.DeSerializable<Dictionary<string, int>>(PlayerPrefs.GetString(flag));
-            }
-            catch
-            {
-                cachedRoomUUidUserId = null;
-            }
-        }
     }
 
     /// <summary>
@@ -186,6 +168,7 @@ public class ExamTrainingPanel : UIPanelBase
     {
         RequestManager.Instance.GetExamABPackageList((courseABData) =>
         {
+            if (this == null) return;
             GlobalInfo.SaveExamABInfo(courseABData);
 
             base.Show();
@@ -194,6 +177,7 @@ public class ExamTrainingPanel : UIPanelBase
             isAutoRefresh = true;
         }, (msg) =>
         {
+            if (this == null) return;
             Log.Error($"获取考核AB包失败！原因为：{msg}");
 
             base.Show();
@@ -206,27 +190,13 @@ public class ExamTrainingPanel : UIPanelBase
     public override void Previous()
     {
         base.Previous();
-        ForceAbortConnection();
         Exit();
     }
 
     public override void GotoLogout()
     {
         searchKeyword = string.Empty;
-        ForceAbortConnection();
         base.GotoLogout();
-    }
-
-    /// <summary>
-    /// 确保加入房间过程中退出登录或返回上一页时断开连接
-    /// </summary>
-    private void ForceAbortConnection()
-    {
-        if (joiningRoom)
-        {
-            BestHTTP.HTTPManager.OnQuit();
-            NetworkManager.Instance.StopAllCoroutines();
-        }
     }
 
     private void Exit()
@@ -260,36 +230,25 @@ public class ExamTrainingPanel : UIPanelBase
     /// </summary>
     private void LastRoomCheck()
     {
-        //之前这里是检测是否有该账号创建的房间，如果有就必须选择进入房间和删除
-        //if (roomInfos.TryGetValue(PlayerPrefs.GetInt(GlobalInfo.lastSynergiaRoomId), out RoomInfoModel roomInfo))
-        //{
-        //    if (GlobalInfo.isExam ^ roomInfo.examType != null)
-        //        return;
-
-        //    if (roomInfo.hostId == GlobalInfo.account.id)
-        //    {
-        //        Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-        //        popupDic.Add("是", new PopupButtonData(() =>
-        //        {
-        //            joiningRoom = true;
-        //            JoinRoom(roomInfo.roomId, roomInfo.roomPassword);
-        //        }, true));
-        //        popupDic.Add("否", new PopupButtonData(() =>
-        //        {
-        //            NetworkManager.Instance.DeleteRoom(roomInfo.roomId,
-        //                () =>
-        //                {
-        //                    RefreshRoomList();
-        //                },
-        //                (failureMsg) =>
-        //                {
-        //                    Log.Error($"删除房间失败 {failureMsg}");
-        //                });
-        //        }));
-        //        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？\n （若不进入，房间将被删除）", popupDic, null, false));
-        //        return;
-        //    }
-        //}
+        //检测到用户之前参与的考核房间存在 尝试加入
+        foreach (var item in roomInfos.Values)
+        {
+            if(IsCachedRoom(item.Uuid))
+            {
+                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+                popupDic.Add("是", new PopupButtonData(() =>
+                {
+                    creatingRoom = false;
+                    GlobalInfo.currentCourseID = item.CourseId;
+                    JoinRoom(item.Uuid, item.Password);
+                }, true));
+                popupDic.Add("否", new PopupButtonData(() =>
+                {
+                    PlayerPrefs.DeleteKey(flag);
+                }));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？", popupDic, null, false));
+            }
+        }
     }
 
     /// <summary>
@@ -363,7 +322,7 @@ public class ExamTrainingPanel : UIPanelBase
             return;
         }
 
-        Empty.SetActive(false);
+        Empty?.SetActive(false);
         currentItems.Clear();
 
         rooms = UpdateRoomListOrder(rooms);
@@ -430,20 +389,6 @@ public class ExamTrainingPanel : UIPanelBase
         var inExam = tf.GetComponentByChildName<Button>("inExam");
         inExam.gameObject.SetActive(false);
 
-        //当前版本都走快捷房间 没有等待开放
-        //var inReserve = tf.GetComponentByChildName<Button>("inReserve");
-        //inReserve.onClick.RemoveAllListeners();
-        //inReserve.onClick.AddListener(() =>
-        //{
-        //    if (info.creatorId != GlobalInfo.account.id)
-        //        UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo("未到房间开放时间，不能进入"));
-        //});
-
-        //inReserve.gameObject.SetActive(!info.AllowIn);
-        ////避免重叠显示
-        //if (inReserve.gameObject.activeSelf)
-        //    tf.FindChildByName("NeedPwd").gameObject.SetActive(false);
-        //tf.FindChildByName("CourseImage").gameObject.SetActive(!inReserve.gameObject.activeSelf);
 
         if (info.AllowIn)
         {
@@ -478,40 +423,6 @@ public class ExamTrainingPanel : UIPanelBase
                 RoomItemBtnClick(info.Uuid);
             }
         });
-
-        #region 房主可取消未开放的考核 现在进入或解散在弹窗中弃用
-        //GameObject deletePanel = tf.FindChildByName("Delete").gameObject;
-        //deletePanel.GetComponentInChildren<Button>().onClick.AddListener(() =>
-        //{
-        //    Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-        //    popupDic.Add("取消", new PopupButtonData(() => deletePanel.gameObject.SetActive(false)));
-        //    popupDic.Add("确定", new PopupButtonData(() =>
-        //    {
-        //        deletePanel.gameObject.SetActive(false);
-        //        NetworkManager.Instance.DeleteRoom(info.Uuid, () =>
-        //        {
-        //            RefreshRoomList();
-        //            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核已取消"));
-        //        }, (errorCode, errorMsg) =>
-        //        {
-        //            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("取消考核失败"));
-        //        });
-        //    }, true));
-        //    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "确定要取消考核吗?", popupDic));
-        //});
-        //EventTrigger eventTrigger = tf.AutoComponent<EventTrigger>();
-        //eventTrigger.AddEvent(EventTriggerType.PointerEnter, (ed) =>
-        //{
-        //    if (info.creatorId == GlobalInfo.account.id)// && inReserve.gameObject.activeSelf)
-        //    {
-        //        deletePanel.gameObject.SetActive(true);
-        //    }
-        //});
-        //eventTrigger.AddEvent(EventTriggerType.PointerExit, (ed) =>
-        //{
-        //    deletePanel.gameObject.SetActive(false);
-        //});
-        #endregion
     }
     /// <summary>
     /// 房间按钮事件
@@ -519,7 +430,6 @@ public class ExamTrainingPanel : UIPanelBase
     /// <param name="uuid">房间uuid</param>
     private void RoomItemBtnClick(string uuid)
     {
-        if (joiningRoom) return;
         if (!roomInfos.ContainsKey(uuid)) return;
 
         creatingRoom = false;
@@ -562,7 +472,7 @@ public class ExamTrainingPanel : UIPanelBase
                 }, false));
                 popupDic.Add("进入", new PopupButtonData(() =>
                 {
-                    joiningRoom = true;
+                    
                     JoinRoom(uuid, room.Password);
                     GlobalInfo.currentCourseID = room.CourseId;
                 }, true));
@@ -573,13 +483,12 @@ public class ExamTrainingPanel : UIPanelBase
             {
                 ConfirmAndJoinRoom(uuid, () =>
                 {
-                    joiningRoom = true;
                     JoinRoom(uuid, roomInfos[uuid].Password);
                 });
             }
             else
             {
-                joiningRoom = true;
+                
                 quickJoinRoomID = uuid;
                 //输入密码弹窗
                 JoinRoomPanel.SetActive(true);
@@ -699,7 +608,7 @@ public class ExamTrainingPanel : UIPanelBase
     /// <returns></returns>
     private bool IsCachedRoom(string roomUuid)
     {
-        return cachedRoomUUidUserId != null && cachedRoomUUidUserId.ContainsKey(roomUuid) && cachedRoomUUidUserId[roomUuid] == GlobalInfo.account.id;
+        return PlayerPrefs.GetString(flag, " ") == roomUuid;
     }
 
     /// <summary>
@@ -769,7 +678,7 @@ public class ExamTrainingPanel : UIPanelBase
             sequence.OnComplete(() =>
             {
                 JoinRoomPanel.SetActive(false);
-                joiningRoom = false;
+                
             });
         });
         EnterBtn.onClick.AddListener(() =>
@@ -786,7 +695,7 @@ public class ExamTrainingPanel : UIPanelBase
             }
             ConfirmAndJoinRoom(quickJoinRoomID, () =>
             {
-                joiningRoom = true;
+                
                 JoinRoom(quickJoinRoomID, RoomPassword.text);
             });
         });
@@ -815,7 +724,6 @@ public class ExamTrainingPanel : UIPanelBase
     /// <param name="info"></param>
     private void JoinRoomCallback()
     {
-        joiningRoom = false;
         RoomPassword.text = string.Empty;
         JoinRoomPanel.SetActive(false);
 
@@ -838,7 +746,7 @@ public class ExamTrainingPanel : UIPanelBase
         GlobalInfo.roomInfo = null;
         UIManager.Instance.CloseUI<TransitionPanel>();
         UIManager.Instance.CloseUI<LoadingPanel>();
-        joiningRoom = false;
+        
         RoomPassword.text = string.Empty;
         JoinRoomPanel.SetActive(false);
         if (!string.IsNullOrEmpty(msg))
@@ -867,7 +775,7 @@ public class ExamTrainingPanel : UIPanelBase
         if (isAutoRefresh)
         {
             RoomTabTime += Time.deltaTime;
-            if (RoomTabTime >= GlobalInfo.roomListRefreshTime && !joiningRoom && !IsFiltering())
+            if (RoomTabTime >= GlobalInfo.roomListRefreshTime && !IsFiltering())
             {
                 RoomTabTime = 0;
                 RefreshRoomList();

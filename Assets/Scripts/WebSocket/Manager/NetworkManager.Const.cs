@@ -16,7 +16,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// <summary>
     /// 超时
     /// </summary>
-    private static int Timeout = 10;
+    private static int Timeout = 3;
     /// <summary>
     /// 重连延时
     /// </summary>

@@ -509,7 +509,7 @@ public class CreateRoomModule : ResourcesModule
             NetworkManager.Instance.GetRoomInfo(roomUuid, (roomInfoModel) =>
             {
                 thisRoomInfo = roomInfoModel;
-                joiningRoom = true;
+                
                 JoinRoom(roomPassword); ;
             }, (errCode, errMsg) =>
             {
@@ -576,7 +576,7 @@ public class CreateRoomModule : ResourcesModule
     {
         UIManager.Instance.CloseUI<TransitionPanel>();
         UIManager.Instance.CloseUI<LoadingPanel>();
-        joiningRoom = false;
+        
 
         if (!string.IsNullOrEmpty(msg))
         {

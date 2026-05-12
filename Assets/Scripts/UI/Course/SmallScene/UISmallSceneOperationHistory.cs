@@ -465,7 +465,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 {
                     //发送文本修改消息
                     ToolManager.SendBroadcastMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordChange,
-                        string.Empty, str, -1, -1, index, GlobalInfo.account.userNo, GlobalInfo.account.nickname, createTime, opType), true);
+                         str, index, GlobalInfo.account.userNo, GlobalInfo.account.nickname, opType), true);
 
                     LayoutRebuilder.ForceRebuildLayoutImmediate(input.textComponent.rectTransform);
                     LayoutRebuilder.ForceRebuildLayoutImmediate(content.GetComponent<RectTransform>());
@@ -688,8 +688,8 @@ public class UISmallSceneOperationHistory : UIModuleBase
         {
             //发送输入文本消息
             SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
-                string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
-                msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Input));
+                 msgTupleString.arg.Item3,  -1,
+                msgTupleString.arg.Item1, msgTupleString.arg.Item2, OpType.Input));
             GotoNextStep();
         }
         else
@@ -704,8 +704,8 @@ public class UISmallSceneOperationHistory : UIModuleBase
             {
                 //发送输入文本消息
                 SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
-                    string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
-                    msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Input));
+                    msgTupleString.arg.Item3, -1,
+                    msgTupleString.arg.Item1, msgTupleString.arg.Item2, OpType.Input));
             }
         }
     }
@@ -733,8 +733,8 @@ public class UISmallSceneOperationHistory : UIModuleBase
         {
             //发送输入文本消息
             SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
-                string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
-                msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Contact));
+                msgTupleString.arg.Item3,  -1,
+                msgTupleString.arg.Item1, msgTupleString.arg.Item2, OpType.Contact));
             GotoNextStep();
         }
         else
@@ -749,8 +749,8 @@ public class UISmallSceneOperationHistory : UIModuleBase
             {
                 //发送输入文本消息
                 SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
-                    string.Empty, msgTupleString.arg.Item3, smallFlowCtrl.index_NowFlow, smallFlowCtrl.index_NowStep, -1,
-                    msgTupleString.arg.Item1, msgTupleString.arg.Item2, msgTupleString.arg.Item4, OpType.Contact));
+                    msgTupleString.arg.Item3,  -1,
+                    msgTupleString.arg.Item1, msgTupleString.arg.Item2, OpType.Contact));
             }
         }
     }

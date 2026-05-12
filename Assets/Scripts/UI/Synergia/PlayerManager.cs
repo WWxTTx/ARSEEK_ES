@@ -44,6 +44,7 @@ public class PlayerManager : MonoBase
             (ushort)GazeEvent.UserPose,
             (ushort)RoomChannelEvent.OtherJoin,
             (ushort)RoomChannelEvent.OtherLeave,
+            (ushort)RoomChannelEvent.OtherDisconnect,
             (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.LeaveRoom,
             (ushort)StateEvent.PreSyncVersion
@@ -73,6 +74,7 @@ public class PlayerManager : MonoBase
                 removedUsers.Remove(((MsgIntString)msg).arg1);
                 break;
             case (ushort)RoomChannelEvent.OtherLeave:
+            case (ushort)RoomChannelEvent.OtherDisconnect:
                 //移除离线成员
                 RemoveUser(((MsgIntString)msg).arg1);
                 break;

@@ -2,7 +2,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityFramework.Runtime;
 
@@ -86,13 +85,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
     private Coroutine sendCoroutine = null;
     private WaitUntil sendCondition;
-    private byte[] versionByte;
-    private byte[] dataByte;
-    private byte[] sendByte;
-    private byte[] recvDataByte;
 
     private bool _isStartSync = false;
-    private bool _isSyncState = false;
     private bool _isSyncBaikeState = false;
     private bool _isWaitingResponse = false;
     /// <summary>
@@ -160,12 +154,13 @@ public class IMChannelAgent : NetworkChannelAgentBase
             return;
 
         deltaTime += Time.deltaTime;
-        //两个条件：1.当前还没有开始考核  2.开始考核了，是房主 此时不进行历史状态同步
-        dontHistory = GlobalInfo.waitExam || (GlobalInfo.waitExam && GlobalInfo.roomInfo.creatorId == GlobalInfo.account.id);
+        //两个条件：1.当前还没有开始考核  2.开始考核了，但是房主 不进行历史状态同步
+        dontHistory = GlobalInfo.waitExam || (!GlobalInfo.waitExam && GlobalInfo.roomInfo.creatorId == GlobalInfo.account.id);
 
         //执行状态同步消息 
         while (stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !dontHistory)
         {
+            IsStartSync = false;
             deltaTime = 0;
             GlobalInfo.SetFanelstate = false;
             if (GlobalInfo.playTimeRatio > 0)
@@ -177,8 +172,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
             TryExecuteCurrentOp();
         }
 
-        //等待3s还是处于等待中，判断为本地执行错误，标志位没有正确恢复，手动打开消息处理
-        if (deltaTime > 3)
+        //等待6s还是处于等待中，判断为本地执行错误，标志位没有正确恢复，手动打开消息处理
+        if (deltaTime > 6)
         {
             IsStartSync = true;
             UIManager.Instance.CloseUI<LoadingPanel>();
@@ -189,7 +184,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             return;
 
         //执行单条操作同步消息
-        while (ReceivedOpCount > 0 && deltaTime > 0.01f && !GlobalInfo.waitExam)
+        while (ReceivedOpCount > 0 && deltaTime > 0.01f)
         {
             deltaTime = 0;
 
@@ -198,7 +193,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
     }
 
-    private static string stateLog = "<color=#C02C24>执行状态消息:</color>";
     private static string opLog = "<color=#14A857>执行消息:</color>";
 
     /// <summary>
@@ -228,34 +222,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             Log.Error($"执行消息错误: {e.Message}");
             IsStartSync = false;
             UIManager.Instance.OpenUI<LoadingPanel>();
-            //Invoke("Delayed", 2);
             return;
-        }
-    }
-
-    /// <summary>
-    /// 重新广播
-    /// </summary>
-    private void Delayed()
-    {
-        Log.Debug("重新广播消息:" + JsonTool.Serializable(currentOp));
-
-        try
-        {
-            FormMsgManager.Instance.SendMsg(currentOp);
-        }
-        catch (Exception e)
-        {
-            Log.Error("重新广播消息失败，错误为:" + e);
-
-            if (networkManager.IsLeavingRoom)
-            {
-                return;
-            }
-        }
-        finally
-        {
-            IsStartSync = true;
         }
     }
 
@@ -337,9 +304,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         CurrentStateToSync = packet.state;
         stateHelper.UpdateStateVersion(packet);
-
-        //IsSyncBaikeState = true;
-        //NetworkManager.Instance.SyncBaikeState();
     }
 
     /// <summary>

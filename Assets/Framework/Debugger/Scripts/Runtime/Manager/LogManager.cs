@@ -97,7 +97,7 @@ namespace UnityFramework.Runtime
         {
             FrameworkLog.SetLogHelper(new DefaultLogHelper());
             Application.logMessageReceivedThreaded += CaptureLogThread;
-            gameObject.AddComponent<DebuggerSave>();
+            //gameObject.AddComponent<DebuggerSave>();
         }
         /// <summary>
         /// 缓存日志

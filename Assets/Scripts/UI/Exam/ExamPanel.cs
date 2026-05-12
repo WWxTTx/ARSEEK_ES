@@ -36,14 +36,6 @@ public class ExamPanel : HoverHintPanel
     /// </summary>
     private Button ExamBtn;
     private GameObject WaitHint;
-    /// <summary>
-    /// 是否在考核中
-    /// </summary>
-    private bool inExam;
-    /// <summary>
-    /// 是否已经结束考核
-    /// </summary>
-    private bool inStop = false;
 
     /// <summary>
     /// 当前考核结束时间
@@ -69,8 +61,9 @@ public class ExamPanel : HoverHintPanel
     {
         base.Open(uiData);
 
-        GlobalInfo.canEditUserInfo = false;
         GlobalInfo.waitExam = true;
+        activeExamId = ExamUtility.Instance.GetHostExamCache(GlobalInfo.roomInfo.Uuid);
+        GlobalInfo.canEditUserInfo = false;
         NetworkManager.Instance.IsIMSync = false;
 
         AddMsg(
@@ -82,7 +75,7 @@ public class ExamPanel : HoverHintPanel
         );
 
         RootCanvasGroup = transform.GetComponent<CanvasGroup>();
-        RootCanvasGroup.blocksRaycasts = false;
+        RootCanvasGroup.blocksRaycasts = true;
         TopNavigation = transform.GetComponentByChildName<RectTransform>("TopNavigation");
         Title = TopNavigation.transform.GetComponentByChildName<Text>("Title");
         SideBar = transform.GetComponentByChildName<RectTransform>("SideBar");
@@ -106,7 +99,7 @@ public class ExamPanel : HoverHintPanel
             var popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("是", new PopupButtonData(() => EndExamBeforeExitRoom(() => ExitRoom(true)), false));
             popupDic.Add("否", new PopupButtonData(() => ExitRoom(false), true));
-            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", inExam ? "考核时间还未结束，退出房间时是否结束考核并解散房间？" : "退出房间时是否解散房间？", popupDic));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", GlobalInfo.waitExam ? "退出房间时是否解散房间？" : "考核时间还未结束，退出房间时是否结束考核并解散房间？", popupDic));
         });
 
         Title.text = GlobalInfo.roomInfo.RoomName;
@@ -115,7 +108,7 @@ public class ExamPanel : HoverHintPanel
         {
             ExamBtn.onClick.AddListener(() =>
             {
-                if (!inExam)
+                if (GlobalInfo.waitExam)
                 {
                     if (CanStart())
                     {
@@ -190,19 +183,39 @@ public class ExamPanel : HoverHintPanel
     /// <summary>
     /// 检查是否存在异常退出的考核
     /// </summary>
-
     private void CheckLastExam()
     {
-        activeExamId = ExamUtility.Instance.GetHostExamCache(GlobalInfo.roomInfo.Uuid);
+        // 根据服务器房间状态修正waitExam：Status==2表示考核进行中
+        if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.Status == 2)
+            GlobalInfo.waitExam = false;
+
         if (activeExamId != -1)
         {
             ExamUtility.Instance.InitSubmitCache(activeExamId, () =>
             {
-                if (!ExamUtility.Instance.AllSubmit())
+                if (!GlobalInfo.waitExam)
                 {
-                    OnExamStart();
-                    RootCanvasGroup.blocksRaycasts = true;
-                    GlobalInfo.waitExam = false;
+                    // 恢复考核倒计时
+                    var cachedEndTime = ExamUtility.Instance.GetHostExamEndTime(GlobalInfo.roomInfo.Uuid);
+                    if (cachedEndTime.HasValue && cachedEndTime.Value > GlobalInfo.ServerTime)
+                    {
+                        examEndTime = cachedEndTime.Value;
+                        countdownCts = new System.Threading.CancellationTokenSource();
+                        Timing(examEndTime, countdownCts.Token).Forget();
+
+                        OnExamStart();
+
+                        // 恢复考核成员列表
+                        var members = NetworkManager.Instance.GetRoomMemberList();
+                        if (members != null && members.Count > 0)
+                            UpdateMemberList(members);
+                    }
+                    else
+                    {
+                        StopExam();
+                        return;
+                    }
+
                     NetworkManager.Instance.IsIMSync = true;
                 }
                 else
@@ -211,11 +224,8 @@ public class ExamPanel : HoverHintPanel
                     {
                         ////清空上轮考核的状态信息
                         ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
-
-                        RootCanvasGroup.blocksRaycasts = true;
-                        GlobalInfo.waitExam = false;
                         NetworkManager.Instance.IsIMSync = true;
-                    });                
+                    });
                 }
             }, (error) =>
             {
@@ -227,8 +237,6 @@ public class ExamPanel : HoverHintPanel
         }
         else
         {
-            RootCanvasGroup.blocksRaycasts = true;
-            GlobalInfo.waitExam = false;
             NetworkManager.Instance.IsIMSync = true;
         }
     }
@@ -272,8 +280,6 @@ public class ExamPanel : HoverHintPanel
             case (ushort)ExamPanelEvent.Submit:
                 MsgBrodcastOperate submitData = msg as MsgBrodcastOperate;
                 {
-                    if (inExam && submitData.GetData<MsgInt>().arg != activeExamId)
-                        return;
                     SetMemberItemState(Content.FindChildByName(submitData.senderId.ToString()), (int)State.Submit);
                     ExamUtility.Instance.UpdateSubmitCache(submitData.senderId);
                     if (ExamUtility.Instance.AllSubmit())
@@ -282,19 +288,29 @@ public class ExamPanel : HoverHintPanel
                     }
                 }
                 break;
-            case (ushort)ExamPanelEvent.Quit://todo
+            case (ushort)ExamPanelEvent.Quit:
                 MsgBrodcastOperate quitData = msg as MsgBrodcastOperate;
                 {
-                    if (inExam && quitData.GetData<MsgInt>().arg != activeExamId)
-                        return;
                     int quitMemberId = quitData.senderId;
-                    normalQuitMembers.Add(quitMemberId);  // 记录正常退出的成员
-                    SetMemberItemState(Content.FindChildByName(quitMemberId.ToString()), (int)State.Wait);
+                    normalQuitMembers.Add(quitMemberId);
+                    // 考核中：标记等待状态，保留成员（可能重连）
+                    // 考核结束：移除成员
+                    if (GlobalInfo.waitExam)
+                    {
+                        RemoveView(quitMemberId);
+                        RemoveMember(quitMemberId);
+                    }
+                    else
+                    {
+                        SetMemberItemState(Content.FindChildByName(quitMemberId.ToString()), (int)State.Wait);
+                        // 已提交或离开的成员不再参与考核，检查是否还有考核中的成员
+                        CheckActiveMembersAndStop();
+                    }
                 }
                 break;
             case (ushort)ExamPanelEvent.Resume:
                 // 房主异常退出重进时，先恢复UI和标志位
-                if (!inExam && activeExamId != -1)
+                if (GlobalInfo.waitExam && activeExamId != -1)
                 {
                     OnExamStart();
                 }
@@ -333,15 +349,12 @@ public class ExamPanel : HoverHintPanel
 
         DateTime startTime = GlobalInfo.ServerTime;
         DateTime endTime = startTime.AddMinutes(GlobalInfo.currentCourseInfo.duration).AddSeconds(3);
-        examEndTime = endTime;  // 存储考核结束时间，用于重进成员恢复状态
+        examEndTime = endTime;
+        ExamUtility.Instance.SetHostExamCache(GlobalInfo.roomInfo.Uuid, id, endTime);
         ToolManager.SendBroadcastMsg(new MsgExamStart((ushort)ExamPanelEvent.Start, id, startTime, endTime, ExamUtility.Instance.ExamineeRecords),true);
-        ToolManager.SendBroadcastMsg(new MsgInt()
-        {
-            msgId = (ushort)BaikeSelectModuleEvent.BaikeSelect,
-            arg = GlobalInfo.currentWikiList?[0]?.id ?? 0
-        }, true);
-
-        #region 开始3秒无法操作
+     
+        //开始倒计时 停止新成员加入考核房间 禁止房主操作
+        GlobalInfo.waitExam = false;
         RootCanvasGroup.blocksRaycasts = false;
         this.WaitTime(3f, () =>
         {
@@ -355,7 +368,6 @@ public class ExamPanel : HoverHintPanel
             Timing(endTime, countdownCts.Token).Forget();
             RootCanvasGroup.blocksRaycasts = true;
         });
-        #endregion
     }
 
     /// <summary>
@@ -364,42 +376,21 @@ public class ExamPanel : HoverHintPanel
     /// <param name="msgId"></param>
     private void StopExam(ushort msgId = (ushort)ExamPanelEvent.Stop)
     {
-        //避免重复发送终止考核消息
-        if (!inExam || inStop)
-            return;
-
-        inStop = true;
-
         ToolManager.SendBroadcastMsg(new MsgInt(msgId, activeExamId), true);
         ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
-
-        RequestManager.Instance.EndExam(activeExamId, () =>
-        {
-            ResetRoom(() =>
-            {
-                //ResetRoom内部已调用OnExamStop，此处无需重复
-            });
-        }, (error) =>
-        {
-            Log.Error($"考核[{activeExamId}]结束答题失败：{error}");
-            ResetRoom(() =>
-            {
-                //ResetRoom内部已调用OnExamStop，此处无需重复
-            });
-        });
+        EndExamBeforeExitRoom(null);
     }
 
     /// <summary>
     /// 考核结束 重置房间状态
     /// </summary>
     /// <param name="callback"></param>
-    private void ResetRoom(UnityAction callback)
+    private void ResetRoom(UnityAction callback = null)
     {
         //先重置UI和标记位，确保与服务器重置消息同步
         OnExamStop();
         ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
         activeExamId = -1;
-        inStop = false;
 
         NetworkManager.Instance.RoomReset(GlobalInfo.roomInfo.Uuid, (roomInfo) =>
         {
@@ -416,7 +407,6 @@ public class ExamPanel : HoverHintPanel
     /// </summary>
     private void OnExamStart()
     {
-        inExam = true;
         normalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(false);
         this.FindChildByName("InExam").gameObject.SetActive(true);
@@ -431,7 +421,8 @@ public class ExamPanel : HoverHintPanel
     /// </summary>
     private void OnExamStop()
     {
-        inExam = false;
+        GlobalInfo.waitExam = true;
+        countdownCts?.Cancel();
         normalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(true);
         this.FindChildByName("InExam").gameObject.SetActive(false);
@@ -584,11 +575,11 @@ public class ExamPanel : HoverHintPanel
                 break;
             case (ushort)RoomChannelEvent.OtherLeave:
                 MsgIntString leavedMember = (MsgIntString)msg;
-                OnOtherLeave(leavedMember.arg1, leavedMember.arg2);
+                OnOtherLeave(leavedMember.arg1, leavedMember.arg2, false);
                 break;
             case (ushort)RoomChannelEvent.OtherDisconnect:
-                MsgIntString disconnectedMember = (MsgIntString)msg;
-                OnOtherDisconnect(disconnectedMember.arg1, disconnectedMember.arg2);
+                MsgIntString disconnectMember = (MsgIntString)msg;
+                OnOtherLeave(disconnectMember.arg1, disconnectMember.arg2, true);
                 break;
             case (ushort)RoomChannelEvent.TalkState:
                 UpdateAllVoiceOffBtn(((MsgBoolBool)msg).arg2);
@@ -675,7 +666,14 @@ public class ExamPanel : HoverHintPanel
 
         var nonHostMembers = members.Where(member => member.Id != GlobalInfo.account.id).ToList();
 
-        if (inExam)
+        if (GlobalInfo.waitExam)
+        {
+            allMemberItem.Clear();
+            Content.UpdateItemsView(nonHostMembers, i => i.Id.ToString(), SetNewMember, SetOldMember);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(Content);
+            RefreshUI();
+        }
+        else
         {
             //考核中：只更新已有成员 + 添加新成员，保留断连成员不被移除
             foreach (var member in nonHostMembers)
@@ -696,20 +694,14 @@ public class ExamPanel : HoverHintPanel
             LayoutRebuilder.ForceRebuildLayoutImmediate(Content);
             RefreshUI();
         }
-        else
-        {
-            allMemberItem.Clear();
-            Content.UpdateItemsView(nonHostMembers, i => i.Id.ToString(), SetNewMember, SetOldMember);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(Content);
-            RefreshUI();
-        }
+      
 
         MemberCount.text = $"({members.Count - 1}人)";
         SetTeacher(Bottom, members.Find(member => member.Id == GlobalInfo.account.id));
         WaitHint.SetActive(allMemberItem.Count == 0);
 
         //非房主成员为0，如果正在考核中且未重置，触发重置
-        if (allMemberItem.Count == 0 && inExam && !inStop)
+        if (allMemberItem.Count == 0 && !GlobalInfo.waitExam)
         {
             Log.Debug("成员列表为空，自动结束考核");
             StopExam();
@@ -728,10 +720,10 @@ public class ExamPanel : HoverHintPanel
     private void SetNewMember(Transform tf, Member info)
     {
         //防止重复利用旧资源的时候没清除状态
-        if (inExam)
-            SetMemberItemState(tf, (int)State.InExam);
-        else
+        if (GlobalInfo.waitExam)
             SetMemberItemState(tf, (int)State.Wait);
+        else
+            SetMemberItemState(tf, (int)State.InExam);
 
         SetAccountInfo(tf, info);
         RegistMemberUIEvent(tf, info);
@@ -805,7 +797,7 @@ public class ExamPanel : HoverHintPanel
                 popupDic.Add("移出", new PopupButtonData(() =>
                 {
                     NetworkManager.Instance.KickOutUser(info.Id);
-                    OnOtherLeave(info.Id, info.Nickname);
+                    OnOtherLeave(info.Id, info.Nickname, false);
                 }, true));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", $"将<color=#F6533F>{info.Nickname}</color>移出考核?", popupDic));
             });
@@ -870,21 +862,13 @@ public class ExamPanel : HoverHintPanel
             if (!GlobalInfo.IsHomeowner() && info.Id != GlobalInfo.account.id)
                 voiceToggle.interactable = false;
         }
+
         //全屏用户同时更新全屏UI状态
         if (info.Id == FullScreenUserId)
         {
             var fullVoiceToggle = FullScene.GetComponentByChildName<Button>("VoiceControlTog");
             {
                 ButtonImageChange(fullVoiceToggle, !info.IsTalk, info.IsChat);
-            }
-        }
-
-        if (GlobalInfo.IsExamMode() && info.Id != GlobalInfo.account.id)
-        {
-            tf.FindChildByName("State").gameObject.SetActive(true);
-            if (inExam)
-            {
-                SetMemberItemState(tf, (int)State.InExam);
             }
         }
     }
@@ -927,12 +911,13 @@ public class ExamPanel : HoverHintPanel
     {
         if (GlobalInfo.account.id == newJoinedId)
             return;
+
         UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{newJoinedName}加入考核"));
         if (GlobalInfo.IsGroupMode())
             NetworkManager.Instance.SetUserColor(newJoinedId);
 
         // 考核中成员重进时，发送考核数据让其恢复状态
-        if (inExam && newJoinedId != GlobalInfo.roomInfo.creatorId && activeExamId != -1)
+        if (!GlobalInfo.waitExam && newJoinedId != GlobalInfo.roomInfo.creatorId && activeExamId != -1)
         {
             // 发送开始考核消息
             ToolManager.SendBroadcastMsg(new MsgExamStart(
@@ -942,13 +927,6 @@ public class ExamPanel : HoverHintPanel
                 examEndTime,
                 ExamUtility.Instance.ExamineeRecords
             ), true);
-
-            // 发送当前百科选择 由于房间中不能切换百科了，所以无需发送了
-            //ToolManager.SendBroadcastMsg(new MsgInt()
-            //{
-            //    msgId = (ushort)BaikeSelectModuleEvent.BaikeSelect,
-            //    arg = GlobalInfo.currentWiki?.id ?? (GlobalInfo.currentWikiList?[0]?.id ?? 0)
-            //}, true);
         }
     }
     /// <summary>
@@ -956,40 +934,23 @@ public class ExamPanel : HoverHintPanel
     /// </summary>
     /// <param name="leavedUserId"></param>
     /// <param name="leavedUserName"></param>
-    private void OnOtherLeave(int leavedUserId, string leavedUserName)
+    /// <param name="isDisconnect">是否为异常断连</param>
+    private void OnOtherLeave(int leavedUserId, string leavedUserName, bool isDisconnect)
     {
-        UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{leavedUserName}退出考核"));
+        if (isDisconnect)
+            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{leavedUserName}连接中断"));
+        else
+            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{leavedUserName}退出考核"));
+
         RemoveView(leavedUserId);
+
+        // 断连且考核中：保留成员（可能重连）
+        // 其他情况（正常退出 或 考核结束后断连）：移除成员
+        if (isDisconnect && !GlobalInfo.waitExam)
+            return;
+
         RemoveMember(leavedUserId);
     }
-
-    /// <summary>
-    /// 成员断连回调（可能是异常退出，可能重进）
-    /// </summary>
-    /// <param name="disconnectedUserId"></param>
-    /// <param name="disconnectedUserName"></param>
-    private void OnOtherDisconnect(int disconnectedUserId, string disconnectedUserName)
-    {
-        // 考核中收到断连消息，需要判断是正常Quit还是异常断连
-        if (inExam)
-        {
-            if (normalQuitMembers.Contains(disconnectedUserId))
-            {
-                // 正常Quit后离开，移除成员
-                normalQuitMembers.Remove(disconnectedUserId);
-                UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{disconnectedUserName}退出考核"));
-                RemoveMember(disconnectedUserId);
-            }
-            // else: 异常断连，保留成员在列表中，后续可能重进
-        }
-        else
-        {
-            // 非考核状态，直接移除
-            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{disconnectedUserName}退出考核"));
-            RemoveMember(disconnectedUserId);
-        }
-    }
-
     /// <summary>
     /// 移除成员
     /// </summary>
@@ -1014,19 +975,29 @@ public class ExamPanel : HoverHintPanel
         WaitHint.SetActive(allMemberItem.Count == 0);
 
         //检查是否所有考生都已离开，如果是则自动结束考核
-        CheckAndStopExamWhenNoExaminee();
-    }
-
-    /// <summary>
-    /// 检查是否所有考生都已离开，如果是则自动结束考核
-    /// </summary>
-    private void CheckAndStopExamWhenNoExaminee()
-    {
-        if (inExam && allMemberItem.Count == 0)
+        if (!GlobalInfo.waitExam && allMemberItem.Count == 0)
         {
             Log.Debug("所有考生已离开，自动结束考核");
             StopExam();
         }
+    }
+
+    /// <summary>
+    /// 检查是否还有考核中的成员，没有则自动结束考核
+    /// </summary>
+    private void CheckActiveMembersAndStop()
+    {
+        if (GlobalInfo.waitExam || allMemberItem.Count == 0)
+            return;
+
+        foreach (var kvp in allMemberItem)
+        {
+            if (!normalQuitMembers.Contains(kvp.Key))
+                return;
+        }
+
+        Log.Debug("所有考生已离开，自动结束考核");
+        StopExam();
     }
 
     /// <summary>
@@ -1099,20 +1070,20 @@ public class ExamPanel : HoverHintPanel
     }
 
     /// <summary>
-    /// 解散房间前，对正在进行的考核结束答题
+    /// 解散房间前，对正在进行的考核结束
     /// </summary>
     /// <param name="callback"></param>
 
     private void EndExamBeforeExitRoom(UnityAction callback)
     {
-        if (inExam && activeExamId != -1)
+        if (!GlobalInfo.waitExam && activeExamId != -1)
         {
             RequestManager.Instance.EndExam(activeExamId, () =>
             {
                 callback?.Invoke();
             }, (error) =>
             {
-                Log.Error($"考核[{activeExamId}]结束答题失败：{error}");
+                Log.Error($"考核[{activeExamId}]结束失败：{error}");
                 callback?.Invoke();
             });
         }
@@ -1141,7 +1112,7 @@ public class ExamPanel : HoverHintPanel
             {
                 time.text = $"考核倒计时：{(endTime - GlobalInfo.ServerTime).ToString(@"hh\:mm\:ss")}";
 
-                if (!inExam)
+                if (GlobalInfo.waitExam)
                 {
                     time.gameObject.SetActive(false);
                     return;

@@ -341,11 +341,30 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         mIMChannelAgent.SyncCachedVersion();
     }
 
+    /// <summary>
+    /// 获取当前IM百科状态（房主用于发送给重连考生）
+    /// </summary>
+    public IMState GetCurrentIMState()
+    {
+        if (mIMChannelAgent == null)
+            return null;
+        return mIMChannelAgent.CurrentStateToSync;
+    }
+
+    /// <summary>
+    /// 获取当前IM最新操作消息（考核重连恢复进度用）
+    /// </summary>
+    public MsgBrodcastOperate GetCurrentOp()
+    {
+        if (mIMChannelAgent == null)
+            return null;
+        return mIMChannelAgent.currentOp;
+    }
+
     public void SyncBaikeState()
     {
-        //临时屏蔽考核模式的重连
         IMState currentState = mIMChannelAgent.CurrentStateToSync;
-        if (currentState == null || currentState.baikeState == null || GlobalInfo.isExam)
+        if (currentState == null || currentState.baikeState == null)
         {
             IsIMSyncBaikeState = false;
             return;

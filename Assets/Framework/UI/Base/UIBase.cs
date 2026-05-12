@@ -109,7 +109,7 @@ namespace UnityFramework.Runtime
             JoinSequence.SetAutoKill(false);
             JoinSequence.Pause();
 
-            gameObject.SetActive(true);
+            gameObject?.SetActive(true);
             if (UIMask)
                 SendMsg(new MsgBase((ushort)UIAnimEvent.ShowAnimMask));
             JoinAnim(() =>

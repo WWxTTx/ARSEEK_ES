@@ -1,7 +1,9 @@
+using Cysharp.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.ServiceRequestData;
@@ -33,7 +35,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// <summary>
     /// 等待连接成功
     /// </summary>
-    private Coroutine waitConnectCo;
+    private CancellationTokenSource waitConnectCts;
     /// <summary>
     /// 重连
     /// </summary>
@@ -42,11 +44,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// 强制结束协同
     /// </summary>
     private Coroutine forceShutdownCo;
-
-    /// <summary>
-    /// 是否正在加入房间
-    /// </summary>
-    private bool joiningRoom;
     /// <summary>
     /// 是否正在离开房间
     /// </summary>
@@ -85,29 +82,26 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         attemptCount = 0;
         lastRoomUuid = roomInfo.Uuid;
         lastRoomPassword = roomInfo.Password;
-        joiningRoom = true;
+        
         IsLeavingRoom = false;
 
-        this.WaitTime(2f, () =>
-        {
-            mRoomChannelAgent.Connect(this, ServiceApiData.rtm_url, roomInfo.Uuid);
-            mIMChannelAgent.Connect(this, ServiceApiData.rti_url, roomInfo.Uuid);
-            mAudioChannelAgent.Connect(this, ServiceApiData.rta_url, roomInfo.Uuid);
-            mVideoChannelAgent.Connect(this, ServiceApiData.rtv_url, roomInfo.Uuid);
-            mFrameChannelAgent.Connect(this, ServiceApiData.rtc_url, roomInfo.Uuid);
+        mRoomChannelAgent.Connect(this, ServiceApiData.rtm_url, roomInfo.Uuid);
+        mIMChannelAgent.Connect(this, ServiceApiData.rti_url, roomInfo.Uuid);
+        mAudioChannelAgent.Connect(this, ServiceApiData.rta_url, roomInfo.Uuid);
+        mVideoChannelAgent.Connect(this, ServiceApiData.rtv_url, roomInfo.Uuid);
+        mFrameChannelAgent.Connect(this, ServiceApiData.rtc_url, roomInfo.Uuid);
 
-            waitConnectCo = StartCoroutine(WaitConnectUntilTimeout());
-        });
+        waitConnectCts = new CancellationTokenSource();
+        WaitConnectUntilTimeout(waitConnectCts.Token).Forget();
     }
 
     /// <summary>
     /// 等待全部通道连接成功直至超时
     /// </summary>
-    /// <returns></returns>
-    private IEnumerator WaitConnectUntilTimeout()
+    private async UniTaskVoid WaitConnectUntilTimeout(CancellationToken ct)
     {
         DateTime start = DateTime.Now;
-        yield return new WaitUntil(() => IsAllChannelConnect() || IsTimeout(start));
+        await UniTask.WaitUntil(() => IsAllChannelConnect() || IsTimeout(start), cancellationToken: ct);
 
         UIManager.Instance.CloseUI<LoadingPanel>();
         lockReconnect = false;
@@ -116,16 +110,12 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         if (!IsAllChannelConnect())
         {
             TimeoutPopup();
-            yield break;
+            return;
         }
 
         attemptCount = 0;
-        if (joiningRoom)
-        {
-            Log.Debug("加入房间成功");
-            FormMsgManager.Instance.SendMsg(new MsgBase((ushort)RoomChannelEvent.JoinRoomSuccess));
-            joiningRoom = false;
-        }
+        Log.Debug("加入房间成功");
+        FormMsgManager.Instance.SendMsg(new MsgBase((ushort)RoomChannelEvent.JoinRoomSuccess));
     }
 
     /// <summary>
@@ -338,7 +328,8 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         mIMChannelAgent.Reconnect(ServiceApiData.rti_url, lastRoomUuid);
         mRoomChannelAgent.Reconnect(ServiceApiData.rtm_url, lastRoomUuid);
 
-        waitConnectCo = StartCoroutine(WaitConnectUntilTimeout());
+        waitConnectCts = new CancellationTokenSource();
+        WaitConnectUntilTimeout(waitConnectCts.Token).Forget();
     }
 
     /// <summary>
@@ -352,10 +343,11 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             StopCoroutine(delayReconnectCo);
             delayReconnectCo = null;
         }
-        if (waitConnectCo != null)
+        if (waitConnectCts != null)
         {
-            StopCoroutine(waitConnectCo);
-            waitConnectCo = null;
+            waitConnectCts.Cancel();
+            waitConnectCts.Dispose();
+            waitConnectCts = null;
         }
         UIManager.Instance.CloseUI<LoadingPanel>();
     }
@@ -394,20 +386,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// </summary>
     private void TimeoutPopup()
     {
-        if (joiningRoom)//GlobalInfo.roomInfo == null
-        {
-            if(attemptCount >= MaxReconnectAttempt)
-            {
-                BestHTTP.HTTPManager.OnQuit();
-                FormMsgManager.Instance.SendMsg(new MsgString((ushort)RoomChannelEvent.JoinRoomFail, "网络异常，加入房间失败"));
-            }
-            else
-            {
-                DelayReconnect();
-            }
-            return;
-        }
-
         if (attemptCount >= MaxReconnectAttempt)
         {
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();

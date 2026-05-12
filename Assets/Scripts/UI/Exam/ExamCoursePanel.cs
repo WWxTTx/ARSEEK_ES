@@ -43,21 +43,13 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
     private bool wikiInitialized = false;
 
-    private Func<bool> sendOpZeroPredicate = () => NetworkManager.Instance.SendOpCount == 0;
-
     private CancellationTokenSource submitCts;
     private CancellationTokenSource mCountdownCts;
 
     private bool logout;
 
-    /// <summary>
-    /// 暂存的百科ID，用于BaikeSelect消息在百科列表加载完成前到达时暂存
-    /// </summary>
-    private int pendingBaikeId = -1;
-
     public override void Open(UIData uiData = null)
     {
-        GlobalInfo.waitExam = true;
         GlobalInfo.canEditUserInfo = false;
         base.Open(uiData);
         InitExam();
@@ -75,7 +67,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             NetworkManager.Instance.EnableLocalVideo(true);
 
             UIManager.Instance.CloseUI<LoadingPanel>();
-            GlobalInfo.waitExam = false;
             NetworkManager.Instance.IsIMSync = true;
         });
     }
@@ -110,32 +101,22 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     private void Quit()
     {
-        if (inExam && ExamUtility.Instance.AllSubmit() && !NetworkManager.Instance.IsUserOnline(GlobalInfo.roomInfo.creatorId))
+        if (!GlobalInfo.waitExam && ExamUtility.Instance.AllSubmit() && !NetworkManager.Instance.IsUserOnline(GlobalInfo.roomInfo.creatorId))
         {
             NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Flush, JsonTool.Serializable(new MsgBase((ushort)ExamPanelEvent.Flush))));
             NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
-
-            RequestManager.Instance.EndExam(examId, () =>
-            {
-                _Quit(this.GetCancellationTokenOnDestroy()).Forget();
-            }, (error) =>
-            {
-                Log.Error($"考核结束答题失败：{error}");
-                _Quit(this.GetCancellationTokenOnDestroy()).Forget();
-            });
         }
         else
         {
             NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
-            _Quit(this.GetCancellationTokenOnDestroy()).Forget();
         }
+        DoQuit();
     }
 
-    private async UniTaskVoid _Quit(CancellationToken ct)
+    private void DoQuit()
     {
-        //等待消息发送完成
-        await UniTask.WaitUntil(sendOpZeroPredicate, cancellationToken: ct);
         NetworkManager.Instance.ReleaseMicrophone();
+        ExitRoom();
         NetworkManager.Instance.LeaveRoom();
     }
 
@@ -165,13 +146,22 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
     public override void Previous()
     {
-        if (inExam)
+        if (GlobalInfo.waitExam)
         {
             var popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("取消", new PopupButtonData(null, false));
             popupDic.Add("退出房间", new PopupButtonData(() =>
             {
-                selfSumbit = true;
+                Quit();
+            }, true));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "确定退出房间？", popupDic, showCloseBtn: false));
+        }
+        else
+        {
+            var popupDic = new Dictionary<string, PopupButtonData>();
+            popupDic.Add("取消", new PopupButtonData(null, false));
+            popupDic.Add("退出房间", new PopupButtonData(() =>
+            {
                 Submit(() =>
                 {
                     Dictionary<string, PopupButtonData> popupDic1 = new Dictionary<string, PopupButtonData>();
@@ -184,29 +174,29 @@ public partial class ExamCoursePanel : OPLCoursePanel
             }, true));
             UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核时间还未结束，确定提交考核并退出房间？", popupDic, showCloseBtn: false));
         }
-        else
-        {
-            var popupDic = new Dictionary<string, PopupButtonData>();
-            popupDic.Add("取消", new PopupButtonData(null, false));
-            popupDic.Add("退出房间", new PopupButtonData(() =>
-            {
-                Quit();
-            }, true));
-            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "确定退出房间？", popupDic, showCloseBtn: false));
-        }
     }
 
 
     public override void GotoLogout()
     {
-        if (inExam)
+        if (GlobalInfo.waitExam)
+        {
+            Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+            popupDic.Add("取消", new PopupButtonData(null));
+            popupDic.Add("退出登录", new PopupButtonData(() =>
+            {
+                logout = true;
+                Quit();
+            }, true));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "确定退出登录？", popupDic, showCloseBtn: false));
+        }
+        else
         {
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("取消", new PopupButtonData(null, false));
             popupDic.Add("退出登录", new PopupButtonData(() =>
             {
                 logout = true;
-                selfSumbit = true;
                 Submit(() =>
                 {
                     Dictionary<string, PopupButtonData> popupDic1 = new Dictionary<string, PopupButtonData>();
@@ -219,17 +209,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             }, true));
             UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核时间还未结束，确定提交考核并退出登录？", popupDic, showCloseBtn: false));
         }
-        else
-        {
-            Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-            popupDic.Add("取消", new PopupButtonData(null));
-            popupDic.Add("退出登录", new PopupButtonData(() =>
-            {
-                logout = true;
-                Quit();
-            }, true));
-            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "确定退出登录？", popupDic, showCloseBtn: false));
-        }
+      
     }
 
 
@@ -255,70 +235,12 @@ public partial class ExamCoursePanel : OPLCoursePanel
         callBack?.Invoke();      
     }
 
-    protected override void OnBaikeSelectEventReceived(MsgBase msg)
-    {
-        //未开始考核时，不切换百科
-        if (!inExam)
-        {
-            NetworkManager.Instance.IsIMSync = true;
-            return;
-        }
-
-        int baikeId = ((MsgBrodcastOperate)msg).GetData<MsgInt>().arg;
-
-        // 百科列表未加载完成（GetExamination异步请求未返回），暂存百科ID
-        if (GlobalInfo.currentWikiList == null)
-        {
-            pendingBaikeId = baikeId;
-            return;
-        }
-
-        if (!NetworkManager.Instance.IsIMSyncState)
-        {
-            UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
-            //切换百科前，提交考核记录
-            SubmitExamRecord(true, false, (submitSuccess) =>
-            {
-                UIManager.Instance.CloseUI<LoadingPanel>();
-                ChangeBaike(baikeId);
-            });
-        }
-        else
-        {
-            ChangeBaike(baikeId);
-        }
-    }
-
-    /// <summary>
-    /// 加载百科
-    /// </summary>
-    /// <param name="baikeId"></param>
-    private void ChangeBaike(int baikeId)
-    {
-        Log.Debug("选择百科");
-        OnBaikeChanged(baikeId);
-
-        this.WaitTime(0.1f, () =>
-        {
-            wikiInitialized = false;
-            LoadEncyclopedia(baikeId);
-            //还原考核百科状态
-            RecoveryExamWiki(this.GetCancellationTokenOnDestroy()).Forget();
-        });
-    }
-
     /// <summary>
     /// 加载百科（习题、模拟操作）
     /// </summary>
     /// <param name="encyclopediaId">百科id</param>
     private void LoadEncyclopedia(int encyclopediaId)
     {
-        //if (!wikiDic.ContainsKey(encyclopediaId))
-        //{
-        //    Log.Error($"未找到百科: {encyclopediaId}");
-        //    return;
-        //}
-        //GlobalInfo.currentWiki = wikiDic[encyclopediaId];
         GlobalInfo.currentWiki = GlobalInfo.currentWikiList.Find(w => w.id == encyclopediaId);
         if (GlobalInfo.currentWiki == null)
         {
@@ -364,7 +286,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 return;
             }
 
-            firstBaike = false;
             go.name = go.name.Replace("(Clone)", string.Empty);
 
             //考核模拟操作不需要模型节点、知识点数据
@@ -385,22 +306,18 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
             encyclopediaModelLoaded = true;
 
-            NetworkManager.Instance.SyncBaikeState();
-
-            //等待FlowModule操作列表初始化完成
-            this.WaitTime(0.15f, () =>
+            //多人联机或是多人考核 从此处开始还原状态
+            if(GlobalInfo.isCooperation)
             {
-                //提交考核记录
-                smallSceneModule.operationHistoryModule.OnRecordChanged.RemoveAllListeners();
-                smallSceneModule.smallFlowCtrl.OnFreeOperationInvoked.RemoveAllListeners();
-                smallSceneModule.operationHistoryModule.OnRecordChanged.AddListener((recordData) =>
-                {
-                    ExamUtility.Instance.EnqueueOperation(examId, GlobalInfo.currentWiki.id, recordData, GetExamineModelStates());
-                });
-                smallSceneModule.smallFlowCtrl.OnFreeOperationInvoked.AddListener(() =>
-                {
-                    ExamUtility.Instance.EnqueueOperation(examId, GlobalInfo.currentWiki.id, null, GetExamineModelStates());
-                });
+                Debug.Log("执行联机或多人考核状态恢复");
+                NetworkManager.Instance.SyncBaikeState();
+            }
+
+            //提交考核记录事件绑定
+            smallSceneModule.operationHistoryModule.OnRecordChanged.RemoveAllListeners();
+            smallSceneModule.operationHistoryModule.OnRecordChanged.AddListener((recordData) =>
+            {
+                ExamUtility.Instance.EnqueueOperation(examId, GlobalInfo.currentWiki.id, recordData, GetExamineModelStates());
             });
         });
     }
@@ -437,10 +354,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     public bool InSync;
     /// <summary>
-    /// 是否开始考核
-    /// </summary>
-    private bool inExam;
-    /// <summary>
     /// 考核结束时间
     /// </summary>
     private DateTime endTime;
@@ -453,11 +366,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// 剩余时长
     /// </summary>
     private int remainingSeconds;
-
-    /// <summary>
-    /// 考生是否主动提交(主动提交、退出房间或本地计时结束)
-    /// </summary>
-    private bool selfSumbit;
 
     private void InitExam()
     {
@@ -474,7 +382,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
         {
             submit.onClick.AddListener(() =>
             {
-                selfSumbit = true;
                 if (endTime > GlobalInfo.ServerTime)
                 {
                     var popupDic = new Dictionary<string, PopupButtonData>();
@@ -518,7 +425,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="showResult"></param>
     private void Submit(Action callBack = null, bool showResult = true)
     {
+        if (GlobalInfo.waitExam) return;
+
         mCountdownCts?.Cancel();
+        GlobalInfo.waitExam = true;
+        UpdateUIWhenExamStop();
         SubmitExamRecord(true, true, (submitSuccess) =>
         {
             if (submitSuccess)
@@ -526,98 +437,127 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
                 NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Submit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Submit, examId))));
             }
-            callBack?.Invoke();
-            inExam = false;
         });
+        callBack?.Invoke();
     }
 
     /// <summary>
-    /// 恢复百科状态
+    /// 恢复操作记录 和对应 模型状态
     /// </summary>
-    /// <returns></returns>
-    private async UniTaskVoid RecoveryExamWiki(CancellationToken ct)
+    private async UniTaskVoid RecoveryExam(CancellationToken ct)
     {
-        //等待百科初始化完成
-        await UniTask.WaitUntil(() => wikiInitialized, cancellationToken: ct);
+        UIManager.Instance.OpenUI<LoadingPanel>();
+        Canvas canvas = UIManager.Instance.canvas;
 
+        await UniTask.WaitUntil(() => canvas.GetComponentInChildren<UISmallSceneModule>(true) != null, cancellationToken: ct);
+        smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
+        NetworkManager.Instance.IsIMSync = false;
+
+        int flow = 0, step = 0;
+        {
+            //通过操作记录的 msg（hint_success）与 flows 步骤对比，推导进度
+            if (GlobalInfo.currentWiki != null && answersDic.ContainsKey(GlobalInfo.currentWiki.id))
+            {
+                AnswerOp savedAnswer = answersDic[GlobalInfo.currentWiki.id] as AnswerOp;
+                if (savedAnswer != null && savedAnswer.operations != null && savedAnswer.operations.Count > 0)
+                {
+                    //从最后一条操作记录往前找，匹配到有效的 hint_success 为止
+                    for (int i = savedAnswer.operations.Count - 1; i >= 0; i--)
+                    {
+                        string msg = savedAnswer.operations[i].msg;
+                        if (!string.IsNullOrEmpty(msg) && MatchProgressByHint(msg, out flow, out step))
+                            break;
+                    }
+                }
+            }
+        }
+        
+        Log.Debug($"考核重连恢复进度 flow:{flow} step:{step}");
+
+        List<OpRecordData> opRecordData = null; 
+        AnswerOp answerOp = null;
         if (GlobalInfo.currentWiki != null && answersDic.ContainsKey(GlobalInfo.currentWiki.id))
         {
-            switch (GlobalInfo.currentWiki.typeId)
+            answerOp = (answersDic[GlobalInfo.currentWiki.id] as AnswerOp);
+            if (answerOp != null)
             {
-                case (int)PediaType.Operation:
-                    AnswerOp answerOp = (answersDic[GlobalInfo.currentWiki.id] as AnswerOp);
-                    if (answerOp != null)
+                //同步操作记录列表
+                opRecordData = answerOp.operations?.Select(data => new OpRecordData()
+                {
+                    index = data.index,
+                    msg = data.msg,
+                    userNo = data.userNo,
+                    userName = data.userName,
+                    createTime = data.createTime,
+                    type = data.type,
+                    score = data.score,
+                    totalStepIndex = data.totalStepIndex
+                }).ToList();
+
+               
+            }
+        }
+
+        //同步操作对象状态 恢复步骤
+        if (answerOp.modelStates != null)
+        {
+            smallSceneModule.smallFlowCtrl.SelectFlow(flow, false);
+            smallSceneModule.smallFlowCtrl.SelectStep(step, false);
+
+            //用服务器的历史记录覆盖当前记录
+            smallSceneModule.operationHistoryModule.UpdateOpRecordList(opRecordData);
+        }
+
+        //完成恢复，打开消息处理
+        await UniTask.Delay(TimeSpan.FromSeconds(0.1));
+        UIManager.Instance.CloseUI<LoadingPanel>();
+        NetworkManager.Instance.IsIMSync = true;
+    }
+
+    /// <summary>
+    /// 用 hint_success 匹配 flows 中的步骤，推导出 (flow, step) 进度
+    /// </summary>
+    private bool MatchProgressByHint(string hint, out int flow, out int step)
+    {
+        flow = 0;
+        step = 0;
+        var flows = smallSceneModule.smallFlowCtrl.flows;
+        if (flows == null) return false;
+
+        for (int f = 0; f < flows.Length; f++)
+        {
+            for (int s = 0; s < flows[f].steps.Count; s++)
+            {
+                SmallStep1 stepData = flows[f].steps[s];
+
+                //优先匹配 SmallStep1.hint_success
+                if (!string.IsNullOrEmpty(stepData.hint_success) && stepData.hint_success == hint)
+                {
+                    flow = f;
+                    step = s;
+                    return true;
+                }
+
+                //hint_success 为空时，遍历 ops[0].operation.operations 逐一匹配
+                if (string.IsNullOrEmpty(stepData.hint_success) && stepData.ops != null && stepData.ops.Count > 0)
+                {
+                    var opList = stepData.ops[0].operation?.operations;
+                    if (opList != null)
                     {
-                        //同步操作记录列表
-                        List<OpRecordData> opRecordData = answerOp.operations?.Select(data => new OpRecordData()
+                        for (int i = 0; i < opList.Count; i++)
                         {
-                            index = data.index,
-                            msg = data.msg,
-                            userNo = data.userNo,
-                            userName = data.userName,
-                            createTime = data.createTime,
-                            type = data.type
-                        }).ToList();
-                        if (opRecordData != null)
-                        {
-                            smallSceneModule.operationHistoryModule.UpdateOpRecordList(opRecordData);
-                        }
-                        //同步操作对象状态
-                        //if (answerOp.modelStates != null)
-                        //{
-                        //    smallSceneModule.smallFlowCtrl.SetFinalState(answerOp.modelStates.Select(s=>new OpDicData()
-                        //    {
-                        //        id = s.id,
-                        //        optionName = s.optionName,
-                        //        uiTargetModelEulerZ = float.Parse(s.uiTargetModelEulerZ)
-                        //    }).ToList(), 0, 0);
-                        //}
-                        //同步仿真系统状态
-                        //if (answerOp.modelStates != null)
-                        //{
-                            //var systemState = answerOp.modelStates.Find(s => s.id.Equals("SimuSystemState"));
-                            //if (systemState != null && !string.IsNullOrEmpty(systemState.optionName))
-                            //{
-                            //    smallSceneModule.simuSystem?.RecoverSystem(systemState.optionName);
-                            //}
-                            //var fatal = answerOp.modelStates.Find(s => s.id.Equals("FatalFinishMessage"));
-                            //if (fatal != null)
-                            //{
-                            //    smallSceneModule.FatalFinishMessage = fatal.optionName;
-                            //}
-                        //}
-                    }
-                    break;
-                case (int)PediaType.Exercise:
-                    AnswerExercise answerExercise = (answersDic[GlobalInfo.currentWiki.id] as AnswerExercise);
-                    if (answerExercise != null && !string.IsNullOrEmpty(answerExercise.operation))
-                    {
-                        OPLExerciseModule exerciseModule = GetComponentInChildren<OPLExerciseModule>();
-                        if(exerciseModule != null)
-                        {
-                            switch ((GlobalInfo.currentWiki as EncyclopediaExercise).data.exercise.type)
+                            if (opList[i].hint_success == hint)
                             {
-                                case 1://选择题(单选;多选)
-                                    List<int> ints = new List<int>();
-                                    foreach (var str in answerExercise.operation)
-                                        ints.Add((int)str - 65);
-                                    exerciseModule.SelectAnswerToggles(ints);
-                                    break;
-                                case 2://判断题
-                                    exerciseModule.SelectAnswerToggles(new List<int>() { answerExercise.operation.Equals("正确") ? 0 : 1 });
-                                    break;
+                                flow = f;
+                                step = s;
+                                return true;
                             }
                         }
                     }
-                    break;
+                }
             }
         }
-        else
-        {
-            Log.Error($"还原考核状态失败 {GlobalInfo.currentWiki?.id}");
-        }
-        //还原考核提交状态后，再恢复执行后续状态同步操作（未提交）
-        NetworkManager.Instance.IsIMSync = true;
+        return false;
     }
 
     private void SubmitExamRecord(bool submitRecording = true, bool showToast = true, Action<bool> callBack = null)
@@ -633,39 +573,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             callBack?.Invoke(false);
             return;
         }
-
         SaveWikiRecord();
-
-
-        //手机热闪退 暂时停用该功能
-        #region 结束录屏并上传
-        //if (GlobalInfo.currentWiki.typeId == (int)PediaType.Operation && submitRecording && GlobalInfo.ExamRecording)
-        //{
-        //    int uploadingBaikeId = GlobalInfo.currentWiki.id;
-        //    ExamScreenRecording.Instance.StopRecordMovie();
-        //    // 等待停止录制、文件写入完成后再合并视频，避免文件无法访问导致合并失败
-        //    yield return new WaitUntil(() => !ExamScreenRecording.Instance.FileWriting && !ExamScreenRecording.Instance.Merging);
-        //    string uploadFilePath = ExamScreenRecording.Instance.MergeVideo();
-
-        //    //上传视频文件到阿里云/MinIO
-        //    ExamScreenRecording.Instance.Upload(examId, uploadingBaikeId, uploadFilePath, (baikeId, objectName) =>
-        //    {
-        //        if (!string.IsNullOrEmpty(objectName))
-        //        {
-        //            var key = new Tuple<int, string>(baikeId, objectName);
-        //            if (!videoDic.ContainsKey(key))
-        //                videoDic.Add(key, false);
-        //        }
-        //    });
-        //}
-        ////等待全部文件合并、上传完成
-        //if (submitRecording && GlobalInfo.ExamRecording && showToast)
-        //{
-        //    UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading, new LoadingPanel.LoadingData() { msg = "提交中" });
-        //    yield return new WaitUntil(() => ExamScreenRecording.Instance.TaskCompleted);
-        //    UIManager.Instance.CloseUI<LoadingPanel>();
-        //}
-        #endregion
 
         await UniTask.WaitForEndOfFrame(this, ct);
 
@@ -876,13 +784,15 @@ public partial class ExamCoursePanel : OPLCoursePanel
         }
         //modelStates.Add(new OpDicData("FatalFinishMessage", smallSceneModule.FatalFinishMessage));
 
-        return modelStates.Select(m => new ExamineResultModelState()
+        var results = modelStates.Select(m => new ExamineResultModelState()
         {
             id = m.id,
             index = modelStates.IndexOf(m),
             optionName = m.optionName,
             uiTargetModelEulerZ = m.uiTargetModelEulerZ.ToString()
-        }).ToArray();
+        }).ToList();
+
+        return results.ToArray();
     }
 
     /// <summary>
@@ -914,96 +824,80 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     private void OnExamStart(MsgExamStart msgExamStartData)
     {
-        if (!inExam)
+        GlobalInfo.waitExam = false;
+
+        UIManager.Instance.CloseUI<LoadingPanel>();
+        this.FindChildByName("WaitHint").gameObject.SetActive(false);
+        RequestManager.Instance.GetExamination(msgExamStartData.examId, (examination) =>
         {
-            // 考核期间异常退出后重新加入（房间已在考核中），不允许继续考核
-            if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.Status == 2)
+            GlobalInfo.SaveExaminationInfo(examination);
+            GlobalInfo.currentWikiList = examination.encyclopediaList;
+
+            if (GlobalInfo.currentWikiList == null || GlobalInfo.currentWikiList.Count == 0)
             {
-                NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, msgExamStartData.examId))));
-
-                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                popupDic.Add("好的", new PopupButtonData(() => _Quit(this.GetCancellationTokenOnDestroy()).Forget(), true));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "该房间正在考核中，请等待考核结束", popupDic, showCloseBtn: false));
-                return;
-            }
-
-            UIManager.Instance.CloseUI<LoadingPanel>();
-            this.FindChildByName("WaitHint").gameObject.SetActive(false);
-            inExam = true;
-            RequestManager.Instance.GetExamination(msgExamStartData.examId, (examination) =>
-            {
-                GlobalInfo.SaveExaminationInfo(examination);
-                GlobalInfo.currentWikiList = examination.encyclopediaList;
-
-                if (GlobalInfo.currentWikiList == null || GlobalInfo.currentWikiList.Count == 0)
+                var popupDic = new Dictionary<string, PopupButtonData>();
                 {
-                    var popupDic = new Dictionary<string, PopupButtonData>();
-                    {
-                        popupDic.Add("确定", new PopupButtonData(Quit, true));
-                        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "该考核未添加习题", popupDic, null, false));
-                    }
+                    popupDic.Add("确定", new PopupButtonData(Quit, true));
+                    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "该考核未添加", popupDic, null, false));
                 }
-                else
+            }
+            else
+            {
+                ExamUtility.Instance.InitSubmitCache(msgExamStartData.examineeRecords);
+                PlayerPrefs.SetString(ExamTrainingPanel.flag, GlobalInfo.roomInfo.Uuid);
+                //先获取已提交的考核记录，根据结果判断是否重连
+                ExamUtility.Instance.GetExamineResult(msgExamStartData.examId, (id, answers, accessories) =>
                 {
-                    ExamUtility.Instance.InitSubmitCache(msgExamStartData.examineeRecords);
+                    if (answers != null)
+                    {
+                        foreach (var answer in answers)
+                        {
+                            if (answersDic.ContainsKey(answer.baikeId))
+                                answersDic[answer.baikeId] = answer;
+                            else
+                                answersDic.Add(answer.baikeId, answer);
+                        }
+                    }
+
+                    bool isRecovery = answers != null && answers.Any(a =>
+                        a is AnswerOp op && op.operations != null && op.operations.Count > 0);
+
+                    if (isRecovery)
+                    {
+                        //重连：跳过倒计时，直接开始考核并恢复状态
+                        this.FindChildByName("StartTiming").gameObject.SetActive(false);
+                        StartExam(msgExamStartData);
+                        if (GlobalInfo.courseMode == CourseMode.Exam)
+                        {
+                            //如果是联机考核，直接获取最终步骤来获取进度 这里是单独处理单人考核这种特殊类型 同一个房间，但是有各自的进度
+                            Debug.Log("执行单人考核状态恢复");
+                            RecoveryExam(this.GetCancellationTokenOnDestroy()).Forget();
+                        }
+                    }
+                    else
+                    {
+                        //正常开始：保存房间信息，走倒计时流程
+                        StartTiming(() =>
+                        {
+                            StartExam(msgExamStartData);
+                        });
+                    }
+                }, error =>
+                {
+                    Log.Error($"获取考核[{examId}]结果失败 {error}");
                     StartTiming(() =>
                     {
                         StartExam(msgExamStartData);
-
-                        // 加载待处理或第一个百科（BaikeSelect消息可能在倒计时期间被跳过）
-                        int baikeToLoad = pendingBaikeId > 0 ? pendingBaikeId : (GlobalInfo.currentWikiList?[0]?.id ?? 0);
-                        if (baikeToLoad > 0 && GlobalInfo.currentWiki == null)
-                        {
-                            pendingBaikeId = -1;
-                            ChangeBaike(baikeToLoad);
-                        }
-
-                        //获取已提交的考核记录，用于还原百科操作记录列表
-                        if (GlobalInfo.IsGroupMode())
-                        {
-                            ExamUtility.Instance.GetExamineResult(examId, OnExamRecordFetched, error =>
-                            {
-                                Log.Error($"获取考核[{examId}]结果失败, {error}");
-                                NetworkManager.Instance.IsIMSync = true;
-                            });
-                        }
-                        else
-                        {
-                            int recordId = ExamUtility.Instance.GetUserRecordId(GlobalInfo.account.id);
-                            if(recordId != -1)
-                            {
-                                ExamUtility.Instance.GetExamineResultByRecordId(recordId, OnExamRecordFetched, error =>
-                                {
-                                    Log.Error($"获取考核[{examId}]结果失败, {error}");
-                                    NetworkManager.Instance.IsIMSync = true;
-                                });
-                            }
-                            else
-                            {
-                                //未参与考核？
-                                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                                popupDic.Add("好的", new PopupButtonData(Quit, true));
-                                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("错误", "请确认是否已经参加该次考核", popupDic, showCloseBtn: false));
-                            }
-                        }
                     });
-                }
-            }, (error) =>{
-                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                popupDic.Add("好的", new PopupButtonData(Quit, true));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("错误", "获取考试信息失败！请重新加入房间", popupDic, showCloseBtn: false));
-                Log.Error($"获取考试[{msgExamStartData.examId}]信息失败！原因为：{error}");
-            });
-        }
-        else
-        {
-            NetworkManager.Instance.IsIMSync = true;
-        }
+                });
+            }
+        }, (error) => {
+            Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+            popupDic.Add("好的", new PopupButtonData(Quit, true));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("错误", "获取考试信息失败！请重新加入房间", popupDic, showCloseBtn: false));
+            Log.Error($"获取考试[{msgExamStartData.examId}]信息失败！原因为：{error}");
+        });
 
-        PlayerPrefs.SetString(ExamTrainingPanel.flag, JsonTool.Serializable(new Dictionary<string, int>()
-        {
-            { GlobalInfo.roomInfo.Uuid, GlobalInfo.account.id }
-        }));
     }
 
     /// <summary> 
@@ -1011,18 +905,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     /// <param name="callBack"></param>
     private void StartTiming(UnityAction callBack)
-    {      
-        // 状态同步，跳过倒计时
-        //if (NetworkManager.Instance.IsIMSyncState)
-        //{
-        //    startTimingTrans.gameObject.SetActive(false);
-        //    callBack?.Invoke();
-        //    return;
-        //}
-
+    {
         Transform startTimingTrans = this.FindChildByName("StartTiming");
         var text = this.GetComponentByChildName<Text>("StartTimingText");
- 
+
         Log.Debug("开始倒计时");
         startTimingTrans.gameObject.SetActive(true);
         float index = 0;
@@ -1042,57 +928,25 @@ public partial class ExamCoursePanel : OPLCoursePanel
     }
 
     /// <summary>
-    /// 考核结果获取成功回调
-    /// </summary>
-    /// <param name="examId"></param>
-    /// <param name="answers"></param>
-    /// <param "accessories"></param>
-    private void OnExamRecordFetched(int examId, List<Answer> answers, List<Accessory> accessories)
-    {
-        if (answers != null)
-        {
-            foreach (var answer in answers)
-            {
-                if (answersDic.ContainsKey(answer.baikeId))
-                    answersDic[answer.baikeId] = answer;
-                else
-                    answersDic.Add(answer.baikeId, answer);
-            }
-        }
-        else
-        {
-            //清空缓存的非本场考核的操作记录
-            var keys = answersDic.Keys.ToList();
-            for (int i = 0; i < keys.Count; i++)
-            {
-                if (answersDic[keys[i]] is AnswerOp)
-                {
-                    (answersDic[keys[i]] as AnswerOp).operations = null;
-                }
-            }
-        }
-
-        if (accessories != null)
-        {
-            //记录已提交的监控视频
-            foreach (var accessory in accessories)
-            {
-                var key = new Tuple<int, string>(accessory.encyclopediaId, accessory.filePath);
-                if (videoDic.ContainsKey(key))
-                    videoDic[key] = true;
-                else
-                    videoDic.Add(key, true);
-            }
-        }
-        NetworkManager.Instance.IsIMSync = true;
-    }
-
-    /// <summary>
     /// 开始考核
     /// </summary>
     /// <param name="data"></param>
     private void StartExam(MsgExamStart data)
     {
+        //主动加载百科模型（现在不在房间内切百科了，房主重连时不发送百科选择消息了）
+        int baikeId = 0;
+        var activeAnswer = answersDic.Values.FirstOrDefault(a => a is AnswerOp op && op.operations?.Count > 0);
+        if (activeAnswer != null)
+            baikeId = activeAnswer.baikeId;
+        else if (GlobalInfo.currentWikiList?.Count > 0)
+            baikeId = GlobalInfo.currentWikiList[0].id;
+
+        if (baikeId != 0)
+        {
+            wikiInitialized = false;
+            LoadEncyclopedia(baikeId);
+        }
+
         submit.gameObject.SetActive(true);
         examId = data.examId;
         endTime = data.endTime;
@@ -1130,7 +984,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             time.text = $"考核倒计时：{remainingTime.ToString(@"hh\:mm\:ss")}";
             remainingSeconds = (int)remainingTime.TotalSeconds;
             //停止计时
-            if (!inExam || ct.IsCancellationRequested)
+            if (!GlobalInfo.waitExam || ct.IsCancellationRequested)
                 return;
             await UniTask.Delay(TimeSpan.FromSeconds(1), cancellationToken: ct);
         }
@@ -1139,7 +993,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
         SendMsg(new MsgBase((ushort)ExamPanelEvent.LocalTimeout));
 
-        selfSumbit = true;
+        UIManager.Instance.OpenUI<LoadingPanel>();
+
         Submit(() =>
         {
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
@@ -1165,24 +1020,15 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="stopExamId"></param>
     private void OnExamStop(int stopExamId)
     {
-        if (!inExam || stopExamId != examId || selfSumbit)
-            return;
-        if (inExam)
+        Submit(() =>
         {
-            Submit(() =>
+            Dictionary<string, PopupButtonData> popupDic1 = new Dictionary<string, PopupButtonData>();
+            popupDic1.Add("退出房间", new PopupButtonData(Quit, true));
+            UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "房主已结束考核，系统自动提交", popupDic1, 10, true, () =>
             {
-                //var popupDic = new Dictionary<string, PopupButtonData>();
-                //popupDic.Add("退出房间", new PopupButtonData(Quit, true));
-                //UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "房主已结束考核，系统自动提交", popupDic, showCloseBtn: false));//考卷。\n去往【考核记录】查看成绩
-
-                Dictionary<string, PopupButtonData> popupDic1 = new Dictionary<string, PopupButtonData>();
-                popupDic1.Add("退出房间", new PopupButtonData(Quit, true));
-                UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "房主已结束考核，系统自动提交", popupDic1, 10, true, () =>
-                {
-                    Quit();
-                }));
-            }, false);
-        }
+                Quit();
+            }));
+        }, false);
     }
 
     /// <summary>
@@ -1190,9 +1036,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     private void OnHostTimeout(int timeoutExamId)
     {
-        if (!inExam || timeoutExamId != examId)
-            return;
-
         Submit(() =>
         {
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
@@ -1230,7 +1073,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         {
             if (GlobalInfo.IsGroupMode() || submitUserId == GlobalInfo.account.id)
             {
-                inExam = false;
+                
                 ModelManager.Instance.DestroyModels(true);
                 PlayerManager.Instance.ClearUserIndicators();
                 UIManager.Instance.CloseAllModuleUI(this);
@@ -1246,9 +1089,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
         else
         {
             //小组考核，有成员提交时，其他成员同步提交
-            if (GlobalInfo.IsGroupMode() && inExam)
+            if (GlobalInfo.IsGroupMode() && !GlobalInfo.waitExam)
             {
-                inExam = false;
+                
                 if (mCountdownCts != null)
                 {
                     mCountdownCts.Cancel();
@@ -1337,7 +1180,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 }
                 break;
             case (ushort)RoomChannelEvent.OtherJoin:
-                if (inExam)
+                if (!GlobalInfo.waitExam)
                 {
                     int joinedUser = ((MsgIntString)msg).arg1;
                     if (joinedUser == GlobalInfo.roomInfo.creatorId)
@@ -1356,18 +1199,12 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 }
                 break;
             case (ushort)RoomChannelEvent.LeaveRoom:
+                if (GlobalInfo.roomInfo == null) break;
                 ExamScreenRecording.Instance.StopRecordMovie();
-                if (inExam)
-                {
-                    //被踢出时正在考核中，通知房主退出并清理
-                    inExam = false;
+                PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+                if (!GlobalInfo.waitExam)
                     NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
-                    _Quit(this.GetCancellationTokenOnDestroy()).Forget();
-                }
-                else
-                {
-                    ExitRoom();
-                }
+                DoQuit();
                 break;
             case (ushort)RoomChannelEvent.RoomInfo:
                 Title.text = (msg as MsgBrodcastOperate).GetData<MsgString>().arg;
@@ -1426,7 +1263,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     private void OnRoomClose()
     {
-        if (inExam)
+        if (GlobalInfo.waitExam)
+            LeaveClosedRoom();
+        else
         {
             Submit(() =>
             {
@@ -1437,7 +1276,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
                         LeaveClosedRoom();
                     }, (error) =>
                     {
-                        Log.Warning($"考核结束答题失败：{error}");
+                        Log.Warning($"考核结束失败：{error}");
                         LeaveClosedRoom();
                     });
                 }
@@ -1446,10 +1285,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     LeaveClosedRoom();
                 }
             });
-        }
-        else
-        {
-            LeaveClosedRoom();
         }
     }
 
@@ -1460,7 +1295,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
         UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "房主已解散房间", popupDic1, 10, true, () =>
         {
             Quit();
-            //NetworkManager.Instance.EnsureLeaveRoom(string.Empty);
         }));
     }
     #endregion

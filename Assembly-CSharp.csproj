@@ -3016,6 +3016,14 @@
       <Project>{CA04786A-613B-D8C4-DB09-B94B9E7CC7AF}</Project>
       <Name>RenderHeads.AVProMovieCapture.Editor</Name>
     </ProjectReference>
+    <ProjectReference Include="IngameDebugConsole.Editor.csproj">
+      <Project>{A9EB3B93-94F7-86DF-20CA-BF98C28F7A03}</Project>
+      <Name>IngameDebugConsole.Editor</Name>
+    </ProjectReference>
+    <ProjectReference Include="IngameDebugConsole.Runtime.csproj">
+      <Project>{730C3997-0A6B-F87E-3A19-9C8B00375ADF}</Project>
+      <Name>IngameDebugConsole.Runtime</Name>
+    </ProjectReference>
     <ProjectReference Include="UniTask.TextMeshPro.csproj">
       <Project>{E8255FDA-5AB6-0A8C-ED82-C5E3193319B3}</Project>
       <Name>UniTask.TextMeshPro</Name>
@@ -3047,14 +3055,6 @@
     <ProjectReference Include="RenderHeads.AVProMovieCapture.Runtime.csproj">
       <Project>{EA95622F-CBA7-2A56-4894-2340B4761F82}</Project>
       <Name>RenderHeads.AVProMovieCapture.Runtime</Name>
-    </ProjectReference>
-    <ProjectReference Include="IngameDebugConsole.Editor.csproj">
-      <Project>{A9EB3B93-94F7-86DF-20CA-BF98C28F7A03}</Project>
-      <Name>IngameDebugConsole.Editor</Name>
-    </ProjectReference>
-    <ProjectReference Include="IngameDebugConsole.Runtime.csproj">
-      <Project>{730C3997-0A6B-F87E-3A19-9C8B00375ADF}</Project>
-      <Name>IngameDebugConsole.Runtime</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

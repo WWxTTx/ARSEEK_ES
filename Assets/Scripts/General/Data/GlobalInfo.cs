@@ -145,6 +145,7 @@ public class GlobalInfo
     public static void SetCourseMode(CourseMode mode)
     {
         ModelManager.Instance.CameraDotween = false;
+        
         //重连时从房间类型中获得
         if (roomInfo != null)
         {
@@ -174,6 +175,10 @@ public class GlobalInfo
         
         isExam = (mode == CourseMode.Exam || mode == CourseMode.OnlineExam);
         isCooperation = (mode == CourseMode.Collaboration || mode == CourseMode.OnlineExam);
+
+        if(isExam)
+            waitExam = true;
+
         // 根据模式设置语音模式
         UpdateSpeechMode();
     }
@@ -286,8 +291,10 @@ public class GlobalInfo
     /// 是否课编辑用户信息
     /// </summary>
     public static bool canEditUserInfo = true;
-    public static bool waitExam;
-
+    /// <summary>
+    /// 考核房间是在等待开始阶段还是考核中
+    /// </summary>
+    public static bool waitExam = true;
     /// <summary>
     /// 操作完成提示默认显示时长
     /// </summary>

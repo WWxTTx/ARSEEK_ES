@@ -158,19 +158,7 @@ public partial class IMStateHelper
                     }
 
                     Log.Debug("执行状态添加 flowIndex" + smallSceneBaikeState.flowIndex + " stepIndex" + smallSceneBaikeState.stepIndex);
-                    //smallSceneBaikeState.modelStates = smallFlowCtrl.GetModelStates();
-                    //smallSceneBaikeState.successOpDatas = smallFlowCtrl.successOPs.Select(o => new SuccessOpData()
-                    //{
-                    //    id = o.operation.GetComponent<ModelInfo>().ID,
-                    //    optionName = o.optionName,
-                    //    propId = o.prop?.ID
-                    //}).ToList();
                 }
-
-                //UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>();
-                //if (smallSceneModule != null)
-                //    smallSceneBaikeState.simSystemState = smallSceneModule.simuSystem?.GetSystemState();
-
                 UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>();
                 if(historyModule != null)
                     smallSceneBaikeState.operations = historyModule.OpRecordList;

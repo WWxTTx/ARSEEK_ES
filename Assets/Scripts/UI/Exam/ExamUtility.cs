@@ -143,7 +143,9 @@ public class ExamUtility : Singleton<ExamUtility>
                 userName = record.userName,
                 msg = record.msg,
                 type = record.type,
-                createTime = record.createTime,
+                createTime = GlobalInfo.ServerTimeFormat,
+                score = record.score,
+                totalStepIndex = record.totalStepIndex,
             };
 
             if (PediaOperationRecords.ContainsKey(baikeId))
@@ -277,73 +279,71 @@ public class ExamUtility : Singleton<ExamUtility>
     }
 
     #region 房主考核房间缓存
-    public int GetHostExamCache(string roomUuid)
+    [Serializable]
+    private class ExamCacheData
     {
-        Dictionary<int, Dictionary<string, int>> examHistory = null;
+        public int examId;
+        public string endTime;
+    }
+
+    private Dictionary<int, Dictionary<string, ExamCacheData>> GetExamHistory()
+    {
         try
         {
-            examHistory = JsonTool.DeSerializable<Dictionary<int, Dictionary<string, int>>>(PlayerPrefs.GetString(GlobalInfo.lastExamId));
+            return JsonTool.DeSerializable<Dictionary<int, Dictionary<string, ExamCacheData>>>(PlayerPrefs.GetString(GlobalInfo.lastExamId));
         }
         catch
         {
-            examHistory = null;
-        }
-
-        if (examHistory != null && examHistory.TryGetValue(GlobalInfo.account.id, out var roomExams) && roomExams.TryGetValue(roomUuid, out int examId))
-        {
-            return examId;
-        }
-        else
-        {
-            return -1;
+            return null;
         }
     }
 
-    public void SetHostExamCache(string roomUuid, int examId)
+    private void SaveExamHistory(Dictionary<int, Dictionary<string, ExamCacheData>> examHistory)
     {
-        Dictionary<int, Dictionary<string, int>> examHistory = null;
-        try
-        {
-            examHistory = JsonTool.DeSerializable<Dictionary<int, Dictionary<string, int>>>(PlayerPrefs.GetString(GlobalInfo.lastExamId));
-        }
-        catch
-        {
-            examHistory = null;
-        }
+        PlayerPrefs.SetString(GlobalInfo.lastExamId, JsonTool.Serializable(examHistory));
+    }
 
-        if (examHistory == null)
-            examHistory = new Dictionary<int, Dictionary<string, int>>();
+    public int GetHostExamCache(string roomUuid)
+    {
+        var examHistory = GetExamHistory();
+        if (examHistory != null && examHistory.TryGetValue(GlobalInfo.account.id, out var roomExams) && roomExams.TryGetValue(roomUuid, out var data))
+            return data.examId;
+        return -1;
+    }
+
+    public DateTime? GetHostExamEndTime(string roomUuid)
+    {
+        var examHistory = GetExamHistory();
+        if (examHistory != null && examHistory.TryGetValue(GlobalInfo.account.id, out var roomExams) && roomExams.TryGetValue(roomUuid, out var data))
+        {
+            if (!string.IsNullOrEmpty(data.endTime))
+                return DateTime.Parse(data.endTime);
+        }
+        return null;
+    }
+
+    public void SetHostExamCache(string roomUuid, int examId, DateTime? endTime = null)
+    {
+        var examHistory = GetExamHistory() ?? new Dictionary<int, Dictionary<string, ExamCacheData>>();
+        var entry = new ExamCacheData { examId = examId, endTime = endTime?.ToString("o") };
 
         if (!examHistory.ContainsKey(GlobalInfo.account.id))
         {
-            examHistory.Add(GlobalInfo.account.id, new Dictionary<string, int>() { { roomUuid, examId } });
+            examHistory.Add(GlobalInfo.account.id, new Dictionary<string, ExamCacheData>() { { roomUuid, entry } });
         }
         else
         {
             if (examHistory[GlobalInfo.account.id].ContainsKey(roomUuid))
-            {
-                examHistory[GlobalInfo.account.id][roomUuid] = examId;
-            }
+                examHistory[GlobalInfo.account.id][roomUuid] = entry;
             else
-            {
-                examHistory[GlobalInfo.account.id].Add(roomUuid, examId);
-            }
+                examHistory[GlobalInfo.account.id].Add(roomUuid, entry);
         }
-        PlayerPrefs.SetString(GlobalInfo.lastExamId, JsonTool.Serializable(examHistory));
+        SaveExamHistory(examHistory);
     }
 
     public void DeleteHostExamCache(string roomUuid)
     {
-        Dictionary<int, Dictionary<string, int>> examHistory;
-        try
-        {
-            examHistory = JsonTool.DeSerializable<Dictionary<int, Dictionary<string, int>>>(PlayerPrefs.GetString(GlobalInfo.lastExamId));
-        }
-        catch
-        {
-            examHistory = null;
-        }
-
+        var examHistory = GetExamHistory();
         if (examHistory == null)
             return;
 
@@ -355,7 +355,7 @@ public class ExamUtility : Singleton<ExamUtility>
             if (examHistory[GlobalInfo.account.id] == null || examHistory[GlobalInfo.account.id].Count == 0)
                 examHistory.Remove(GlobalInfo.account.id);
         }
-        PlayerPrefs.SetString(GlobalInfo.lastExamId, JsonTool.Serializable(examHistory));
+        SaveExamHistory(examHistory);
     }
     #endregion
 }

@@ -243,7 +243,7 @@ public class TrainingPanel : UIPanelBase
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("是", new PopupButtonData(() =>
                 {
-                    joiningRoom = true;
+                    
                     JoinRoom(roomInfo.Uuid, roomInfo.Password);
                 }, true));
                 popupDic.Add("否", new PopupButtonData(() =>
@@ -544,7 +544,7 @@ public class TrainingPanel : UIPanelBase
             return;
         }
 
-        joiningRoom = true;
+        
         //加入前获取最新房间信息
         NetworkManager.Instance.GetRoomInfo(/*GlobalInfo.roomInfo.uuid*/uuid, (roomInfo) =>
         {
@@ -659,7 +659,7 @@ public class TrainingPanel : UIPanelBase
             sequence.OnComplete(() =>
             {
                 JoinRoomPanel.SetActive(false);
-                joiningRoom = false;
+                
             });
         });
         EnterBtn.onClick.AddListener(() =>
@@ -706,7 +706,7 @@ public class TrainingPanel : UIPanelBase
     /// <param name="info"></param>
     private void JoinRoomCallback()
     {
-        joiningRoom = false;
+        
         JoinRoomPanel.SetActive(false);
 
         GlobalInfo.SetCourseMode(CourseMode.Collaboration);
@@ -724,7 +724,7 @@ public class TrainingPanel : UIPanelBase
     public void JoinRoomFailed(string msg, float toastShowTime = 1.5f)
     {
         UIManager.Instance.CloseUI<LoadingPanel>();
-        joiningRoom = false;
+        
         GlobalInfo.roomInfo = null;
 
         if (!string.IsNullOrEmpty(msg))

@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
+using static UISmallSceneOperationHistory;
 using static UnityFramework.Runtime.RequestData;
 
 /// <summary>
@@ -91,6 +92,13 @@ public class SmallFlowCtrl : MonoBase
     public UnityEvent OnFreeOperationInvoked = new UnityEvent();
 
     /// <summary>
+    /// 步骤前进后触发（在Next中，进度已更新后），参数：flow, step
+    /// 也在自由操作完成时触发（Over中，进度不变）
+    /// </summary>
+    public UnityAction<int, int> OnStepAdvanced;
+    private bool nextCalled;
+
+    /// <summary>
     /// 图纸添加事件：参数-添加的图纸ModelInfo
     /// </summary>
     public UnityEvent<ModelInfo> onSchematicAdded = new UnityEvent<ModelInfo>();
@@ -164,6 +172,26 @@ public class SmallFlowCtrl : MonoBase
     /// 总步骤顺序 用于语音数据匹配
     /// </summary>
     public int TotalStepIndex => flows.Take(index_NowFlow).Sum(f => f.steps.Count) + index_NowStep;
+
+    /// <summary>
+    /// 将扁平步骤索引转换为 (flow, step)
+    /// </summary>
+    public void TotalIndexToFlowStep(int totalIndex, out int flow, out int step)
+    {
+        int remaining = totalIndex;
+        for (int f = 0; f < flows.Length; f++)
+        {
+            if (remaining < flows[f].steps.Count)
+            {
+                flow = f;
+                step = remaining;
+                return;
+            }
+            remaining -= flows[f].steps.Count;
+        }
+        flow = 0;
+        step = 0;
+    }
 
     /// <summary>
     /// 当前步骤id
@@ -787,10 +815,10 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 选择小步骤
     /// </summary>
-    public void SelectStep(int stepIndex,bool refresh = true)
+    public void SelectStep(int stepIndex,bool allrefresh = true)
     {
         // 清空操作记录
-        if (refresh)
+        if (allrefresh)
         {
             FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
 
@@ -825,13 +853,6 @@ public class SmallFlowCtrl : MonoBase
                 }
             }
         }
-        else
-        {
-            //步骤同步，仅刷新最后一步
-            var steps = flows[index_NowFlow].steps;
-            var operation = steps[stepIndex].ops[0];
-            RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, stepIndex);
-        }
 
         int indexStep = -1;
         foreach (var step in nowFlowSteps.Take(stepIndex))
@@ -839,8 +860,8 @@ public class SmallFlowCtrl : MonoBase
             indexStep += 1;
             foreach (var operation in step.ops)
             {
-                SetFinalState(operation.operation, operation.optionName, true, true, !refresh);
-                if (refresh)
+                SetFinalState(operation.operation, operation.optionName, true, true, !allrefresh);
+                if (allrefresh)
                     RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, indexStep);
             }
         }
@@ -946,7 +967,7 @@ public class SmallFlowCtrl : MonoBase
                 {
                     if (!string.IsNullOrEmpty(op.hint_success))
                     {
-                        SendOperatingRecordMsg(data, op, userNo, userName, string.Empty, isOnOperation);
+                        SendOperatingRecordMsg(data, op, userNo, userName, isOnOperation);
                     }
                     // 先构建联动操作列表，判断是否需要等待联动完成
                     List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
@@ -979,6 +1000,9 @@ public class SmallFlowCtrl : MonoBase
 
     void Over()
     {
+        if (!nextCalled)
+            OnStepAdvanced?.Invoke(index_NowFlow, index_NowStep);
+        nextCalled = false;
         ModelManager.Instance.CameraDotween = false;
         DOVirtual.DelayedCall(0.1f, () =>
         {
@@ -1013,7 +1037,7 @@ public class SmallFlowCtrl : MonoBase
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
-                    SendOperatingRecordMsg(data, op, userNo, userName, null, correctOp);
+                    SendOperatingRecordMsg(data, op, userNo, userName, correctOp);
                     WaitUadioToNext(() =>
                     {
                         SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
@@ -1698,39 +1722,6 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
-    /// 设置为最终状态
-    /// 协同、考核状态同步
-    /// </summary>
-    public void SetFinalState(List<OpDicData> modelStates, int index_NowFlow, int index_NowStep)
-    {
-        if (modelStates == null)
-            return;
-
-        // 先将所有道具重置到初始状态，确保差量恢复的正确性
-        ResetAllToInitState();
-
-        foreach (var item in modelStates)
-        {
-            if (!operationIDs.ContainsKey(item.id))
-                continue; 
-
-            SetFinalState(operationIDs[item.id], item.optionName, true);
-
-            if (uiRotateModels.TryGetValue(item.id, out Transform model) && model != null)
-            {
-                if ((operationIDs[item.id].GetComponent<ModelInfo>().InfoData.interactData as OpUIData).content != null)
-                {
-                    model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), item.uiTargetModelEulerZ);
-                }
-            }
-        }
-        // 设置流程和步骤索引（无论 EnableFlow 是否为 true 都需要设置）
-        this.index_NowFlow = index_NowFlow;
-        // 直接设置私有字段，避免触发 setter 中的完整逻辑
-        _index_NowStep = index_NowStep;
-    }
-
-    /// <summary>
     /// 执行特殊操作回调
     /// </summary>
     /// <param name="operation"></param>
@@ -1764,17 +1755,15 @@ public class SmallFlowCtrl : MonoBase
         if (operation == null)
             return;
         OperationBase op = operation.operations.Find(value => value.name.Equals(optionName));
+        UISmallSceneOperationHistory.OpType opType = UISmallSceneOperationHistory.OpType.Input;
         if (op != null)
         {
-            if (op.name.Equals(inputFlag))
-                FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput, string.Empty, op.hint_success, index_Flow, index_Step, -1,
-                    string.Empty, string.Empty, GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Input));
-            else if (op.name.Equals(contactFlag))
-                FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput, string.Empty, op.hint_success, index_Flow, index_Step, -1,
-                    string.Empty, string.Empty, GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Contact));
+            if (op.name.Equals(contactFlag)) 
+                opType = UISmallSceneOperationHistory.OpType.Contact;
             else
-                FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecord, string.Empty, op.hint_success, index_Flow, index_Step, ModelOperationIndex(operation),
-                    string.Empty, string.Empty, GlobalInfo.ServerTimeFormat, UISmallSceneOperationHistory.OpType.Operation));
+                opType = UISmallSceneOperationHistory.OpType.Operation;
+            FormMsgManager.Instance.SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput, op.hint_success, -1,
+                      string.Empty, string.Empty, opType));
         }
     }
 
@@ -1807,6 +1796,8 @@ public class SmallFlowCtrl : MonoBase
         }
 
         //服务器记录当前步骤完成
+        nextCalled = true;
+        OnStepAdvanced?.Invoke(index_NowFlow, index_NowStep);
         ToolManager.SendBroadcastMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowFlow, index_NowStep));
         Over();
     }
@@ -1862,15 +1853,10 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="op">操作配置，为null时直接使用道具名称作为提示</param>
     /// <param name="userNo">操作人工号</param>
     /// <param name="userName">操作人姓名</param>
-    /// <param name="stepHint">步骤提示，为null时使用当前步骤的hint_success</param>
     /// <param name="isCorrect">是否正确操作</param>
-    private void SendOperatingRecordMsg(SmallOp1 data, OperationBase op, string userNo, string userName, string stepHint = null, bool isCorrect = false)
+    private void SendOperatingRecordMsg(SmallOp1 data, OperationBase op, string userNo, string userName, bool isCorrect = false)
     {
-        string hint;
-        if (op != null && !string.IsNullOrEmpty(op.hint_success))
-            hint = op.hint_success;
-        else
-            hint = "操作" + data.operation.GetComponent<ModelInfo>().Name;
+        string hint = op.hint_success; 
 
         if (data.prop != null)
         {
@@ -1887,14 +1873,10 @@ public class SmallFlowCtrl : MonoBase
 
         FormMsgManager.Instance.SendMsg(new MsgOperatingRecord(
             (ushort)SmallFlowModuleEvent.OperatingRecord,
-            stepHint ?? nowFlowStep?.hint_success ?? string.Empty,
             hint,
-            index_NowFlow,
-            index_NowStep,
-            ModelOperationIndex(data.operation),
+            -1,
             userNo,
             userName,
-            GlobalInfo.ServerTimeFormat,
             UISmallSceneOperationHistory.OpType.Operation,
             true,
             score,
@@ -1923,21 +1905,6 @@ public class SmallFlowCtrl : MonoBase
             return 0;
 
         return flow.children[index_NowStep].score;
-    }
-
-    /// <summary>
-    /// 获取操作对象在当前步骤并列操作列表中的index
-    /// </summary>
-    /// <param name="modelOperation"></param>
-    /// <returns></returns>
-    private int ModelOperationIndex(ModelOperation modelOperation)
-    {
-        if (nowFlowStep == null)
-            return -1;
-        int index = nowFlowStep.ops.FindIndex(op => op.operation == modelOperation);
-        if (index < 0)
-            return -1;
-        return index/* + 1*/;
     }
 
     public override void ProcessEvent(MsgBase msg)

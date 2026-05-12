@@ -252,163 +252,163 @@ public enum IntegrationModuleEvent
 /// </summary>
 public enum SmallFlowModuleEvent
 {
-    Min = IntegrationModuleEvent.Max + 1,
+    Min = IntegrationModuleEvent.Max + 1,    // ID:101
     /// <summary>
     /// 左侧ui活动
     /// </summary>
-    LeftFlex,
+    LeftFlex,                                // ID:102
     /// <summary>
     /// 右侧ui活动
     /// </summary>
-    RightFlex,
+    RightFlex,                               // ID:103
     /// <summary>
     /// 选择任务
     /// </summary>
-    SelectFlow,
+    SelectFlow,                              // ID:104
     /// <summary>
     /// 选择步骤
     /// </summary>
-    SelectStep,                      // ID:105
+    SelectStep,                              // ID:105
     /// <summary>
     /// 选择下一步骤
     /// </summary>
-    NextStep,
+    NextStep,                                // ID:106
     /// <summary>
     /// 选择工具
     /// </summary>
-    SelectTool,
+    SelectTool,                              // ID:107
     /// <summary>
     /// 切换工具箱道具
     /// </summary>
-    ChangeProp,
+    ChangeProp,                              // ID:108
     /// <summary>
     /// 聚焦对象变化 修改操作权限占用
     /// </summary>
-    FocusChanged,
+    FocusChanged,                            // ID:109
     /// <summary>
     /// 观察
     /// </summary>
-    ClickObj,
-    Look2D,
+    ClickObj,                                // ID:110
+    Look2D,                                  // ID:111
     /// <summary>
     /// 操作
     /// </summary>
-    Operate,                     // ID:112
+    Operate,                                 // ID:112
     /// <summary>
     /// 上位机选中
     /// </summary>
-    MasterComputerSelect,
+    MasterComputerSelect,                    // ID:113
     /// <summary>
     /// 上位机操作
     /// </summary>
-    MasterComputerOperate,
+    MasterComputerOperate,                   // ID:114
     /// <summary>
     /// 输入操作
     /// </summary>
-    Input,
+    Input,                                   // ID:115
     /// <summary>
     /// 联系操作
     /// </summary>
-    Contact,
+    Contact,                                 // ID:116
     /// <summary>
     /// 操作开始执行
     /// </summary>
-    StartExecute,
+    StartExecute,                            // ID:117
     /// <summary>
     /// 同步关闭弹窗
     /// </summary>
-    ClousePop,
+    ClousePop,                               // ID:118
     /// <summary>
     /// 操作执行完成
     /// </summary>
-    CompleteExecute,
+    CompleteExecute,                         // ID:119
     /// <summary>
     /// 步骤完成
     /// </summary>
-    CompleteStep,
+    CompleteStep,                            // ID:120
     /// <summary>
     /// 当前任务全部步骤完成
     /// </summary>
-    CompleteAll,
+    CompleteAll,                             // ID:121
     /// <summary>
     /// 关闭监控
     /// </summary>
-    HideMonitor,
-    UIHighlight,
+    HideMonitor,                             // ID:122
+    UIHighlight,                             // ID:123
     /// <summary>
     /// 操作记录
     /// </summary>
-    OperatingRecord,
+    OperatingRecord,                         // ID:124
     /// <summary>
     /// 输入操作记录
     /// </summary>
-    OperatingRecordInput,
+    OperatingRecordInput,                    // ID:125
     /// <summary>
     /// 修改输入操作记录
     /// </summary>
-    OperatingRecordChange,
+    OperatingRecordChange,                   // ID:126
     /// <summary>
     /// 清除记录
     /// </summary>
-    OperatingRecordClear,
+    OperatingRecordClear,                    // ID:127
     /// <summary>
     /// 小地图最大化
     /// </summary>
-    MaxMap,
+    MaxMap,                                  // ID:128
     /// <summary>
     /// 输入操作记录
     /// </summary>
-    SelectInput,
+    SelectInput,                             // ID:129
     /// <summary>
     /// 联系
     /// </summary>
-    SelectContact,
+    SelectContact,                           // ID:130
     /// <summary>
     /// 执行2D操作
     /// </summary>
-    Operate2D,
-    ShowUIOperation,                        // ID:129
+    Operate2D,                               // ID:131
+    ShowUIOperation,                         // ID:132
     /// <summary>
     /// 道具状态
     /// </summary>
-    OpState,                                // ID:130
+    OpState,                                 // ID:133
     /// <summary>
     /// 关闭相机操作
     /// </summary>
-    CloseCameraOperation,                   // ID:131
+    CloseCameraOperation,                    // ID:134
     /// <summary>
     /// 打开相机操作
     /// </summary>
-    OpenCameraOperation,                    // ID:132
+    OpenCameraOperation,                     // ID:135
     /// <summary>
     /// 视角引导
     /// </summary>
-    Guide,                                  // ID:133
+    Guide,                                   // ID:136
     /// <summary>
     /// 系统记录
     /// </summary>
-    SystemRecord,                           // ID:134
+    SystemRecord,                            // ID:137
     /// <summary>
     /// 工具栏显示
     /// </summary>
-    ShowTool,                               // ID:135
+    ShowTool,                                // ID:138
     /// <summary>
     /// 释放操作权限
     /// </summary>
-    ReleasePermission,                      // ID:136
+    ReleasePermission,                       // ID:139
     /// <summary>
     /// TSQ_TsqXsp 按钮事件同步
     /// </summary>
-    SynchronizationTsq,                    // ID:137
+    SynchronizationTsq,                      // ID:140
     /// <summary>
     /// LCU_mlfsjs 按钮事件同步
     /// </summary>
-    SynchronizationLcu,                    // ID:141
+    SynchronizationLcu,                      // ID:141
     /// <summary>
     /// LC_Zlqzz 按钮事件同步
     /// </summary>
-    SynchronizationZlqzz,                  // ID:142
-    Max,                                   // ID:143
+    SynchronizationZlqzz,                    // ID:142
+    Max,                                     // ID:143
 }
 
 /// <summary>
@@ -416,26 +416,26 @@ public enum SmallFlowModuleEvent
 /// </summary>
 public enum ExercisesModuleEvent
 {
-    Min = SmallFlowModuleEvent.Max + 1,  // ID:141
+    Min = SmallFlowModuleEvent.Max + 1,  // ID:144
     /// <summary>
     /// 选择答案
     /// </summary>
-    ChooseAnswer,                        // ID:138
+    ChooseAnswer,                        // ID:145
     /// <summary>
     /// 查看答案
     /// </summary>
-    ConfirmAnswer,                       // ID:139
+    ConfirmAnswer,                       // ID:146
     /// <summary>
     /// 查看图片
     /// </summary>
-    OpenAnswerImg,                       // ID:140
-    CloseAnswerImg,                      // ID:141
+    OpenAnswerImg,                       // ID:147
+    CloseAnswerImg,                      // ID:148
     /// <summary>
     /// 查看视频
     /// </summary>
-    OpenAnswerVideo,                     // ID:142
-    CloseAnswerVideo,                    // ID:143
-    Max,                                 // ID:144
+    OpenAnswerVideo,                     // ID:149
+    CloseAnswerVideo,                    // ID:150
+    Max,                                 // ID:151
 }
 
 /// <summary>
@@ -443,10 +443,10 @@ public enum ExercisesModuleEvent
 /// </summary>
 public enum GazeEvent
 {
-    Min = ExercisesModuleEvent.Max + 1,  // ID:145
-    SyncCamera,                          // ID:146
-    UserPose,                            // ID:147
-    Max,                                 // ID:148
+    Min = ExercisesModuleEvent.Max + 1,  // ID:152
+    SyncCamera,                          // ID:153
+    UserPose,                            // ID:154
+    Max,                                 // ID:155
 }
 
 /// <summary>
@@ -454,26 +454,26 @@ public enum GazeEvent
 /// </summary>
 public enum HierarchyEvent
 {
-    Min = GazeEvent.Max + 1,             // ID:149
-    Hide,                               // ID:150
+    Min = GazeEvent.Max + 1,             // ID:156
+    Hide,                                // ID:157
     /// <summary>
     /// 展开节点
     /// </summary>
-    Expand,                             // ID:151
+    Expand,                              // ID:158
     /// <summary>
     /// 收起节点
     /// </summary>
-    Collapse,                           // ID:152
+    Collapse,                            // ID:159
     /// <summary>
     /// 点击节点
     /// </summary>
-    Click,                              // ID:153
+    Click,                               // ID:160
     /// <summary>
     /// 更新节点课件资料提示
     /// </summary>
-    UpdateAttachment,                   // ID:154
-    Interactable,                       // ID:155
-    Max,                                // ID:156
+    UpdateAttachment,                    // ID:161
+    Interactable,                        // ID:162
+    Max,                                 // ID:163
 }
 
 /// <summary>
@@ -481,11 +481,11 @@ public enum HierarchyEvent
 /// </summary>
 public enum AdaptiveListEvent
 {
-    Min = HierarchyEvent.Max + 1,        // ID:157
-    Hide,                                // ID:158
-    Select,                              // ID:159
-    SelectWithoutNotify,                 // ID:160
-    Max,                                 // ID:161
+    Min = HierarchyEvent.Max + 1,        // ID:163
+    Hide,                                // ID:164
+    Select,                              // ID:165
+    SelectWithoutNotify,                 // ID:166
+    Max,                                 // ID:167
 }
 
 /// <summary>
@@ -493,11 +493,11 @@ public enum AdaptiveListEvent
 /// </summary>
 public enum OperationListEvent
 {
-    Min = AdaptiveListEvent.Max + 1,     // ID:162
-    Open,                                // ID:163
-    Show,                                // ID:164
-    Hide,                                // ID:165
-    Max,                                 // ID:166
+    Min = AdaptiveListEvent.Max + 1,     // ID:168
+    Open,                                // ID:169
+    Show,                                // ID:170
+    Hide,                                // ID:171
+    Max,                                 // ID:172
 }
 
 /// <summary>
@@ -505,12 +505,12 @@ public enum OperationListEvent
 /// </summary>
 public enum StateEvent
 {
-    Min = OperationListEvent.Max + 1,    // ID:167
+    Min = OperationListEvent.Max + 1,    // ID:173
     /// <summary>
     /// 同步版本准备操作
     /// </summary>
-    PreSyncVersion,                     // ID:168
-    Max,                                // ID:169
+    PreSyncVersion,                      // ID:174
+    Max,                                 // ID:175
 }
 
 /// <summary>
@@ -518,12 +518,12 @@ public enum StateEvent
 /// </summary>
 public enum NetworkChannelEvent
 {
-    Min = StateEvent.Max + 1,            // ID:170
-    Open,                                // ID:171
-    Closed,                              // ID:172
-    Error,                               // ID:173
-    HeartMiss,                           // ID:174
-    Max,                                 // ID:175
+    Min = StateEvent.Max + 1,            // ID:176
+    Open,                                // ID:177
+    Closed,                              // ID:178
+    Error,                               // ID:179
+    HeartMiss,                           // ID:180
+    Max,                                 // ID:181
 }
 
 /// <summary>
@@ -531,34 +531,34 @@ public enum NetworkChannelEvent
 /// </summary>
 public enum RoomChannelEvent
 {
-    Min = NetworkChannelEvent.Max + 1,     // ID:176
-    UpdateRoomList,                       // ID:177
-    JoinRoomSuccess,                      // ID:178
-    JoinRoomFail,                         // ID:179
-    LeaveRoom,                            // ID:180
-    OtherJoin,                            // ID:181
-    OtherLeave,                           // ID:182
-    StartMainScreen,                      // ID:183
-    UpdateMainScreen,                     // ID:184
-    UpdateControl,                        // ID:185
-    TalkState,                            // ID:186
-    UpdateMemberList,                     // ID:187
-    LiveRoomMemberModuleClose,            // ID:188
-    LiveRoomMemberModuleShow,             // ID:189
-    LiveRoomSettingModuleClose,           // ID:190
+    Min = NetworkChannelEvent.Max + 1,     // ID:182
+    UpdateRoomList,                       // ID:183
+    JoinRoomSuccess,                      // ID:184
+    JoinRoomFail,                         // ID:185
+    LeaveRoom,                            // ID:186
+    OtherJoin,                            // ID:187
+    OtherLeave,                           // ID:188
+    StartMainScreen,                      // ID:189
+    UpdateMainScreen,                     // ID:190
+    UpdateControl,                        // ID:191
+    TalkState,                            // ID:192
+    UpdateMemberList,                     // ID:193
+    LiveRoomMemberModuleClose,            // ID:194
+    LiveRoomMemberModuleShow,             // ID:195
+    LiveRoomSettingModuleClose,           // ID:196
     /// <summary>
     /// 更新房间信息
     /// </summary>
-    RoomInfo,                             // ID:191
+    RoomInfo,                             // ID:197
     /// <summary>
     /// 房间解散
     /// </summary>
-    RoomClose,                            // ID:192
+    RoomClose,                            // ID:198
     /// <summary>
     /// 成员断连（可能异常退出，后续可能重进）
     /// </summary>
-    OtherDisconnect,                      // ID:193
-    Max,                                  // ID:194
+    OtherDisconnect,                      // ID:199
+    Max,                                  // ID:200
 }
 
 /// <summary>
@@ -566,46 +566,46 @@ public enum RoomChannelEvent
 /// </summary>
 public enum MediaChannelEvent
 {
-    Min = RoomChannelEvent.Max + 1,    // ID:194
-    AddView,                           // ID:195
-    RemoveView,                        // ID:196
-    ClearView,                         // ID:197
-    MicError,                          // ID:198
-    MicOnAir,                          // ID:199
-    Max,                               // ID:200
+    Min = RoomChannelEvent.Max + 1,       // ID:201
+    AddView,                              // ID:202
+    RemoveView,                           // ID:203
+    ClearView,                            // ID:204
+    MicError,                             // ID:205
+    MicOnAir,                             // ID:206
+    Max,                                  // ID:207
 }
 
 public enum ExamPanelEvent
 {
-    Min = MediaChannelEvent.Max + 1,    // ID:201
-    ExerciseScore,                      // ID:202
+    Min = MediaChannelEvent.Max + 1,      // ID:208
+    ExerciseScore,                        // ID:209
     /// <summary>
-    /// 考核状态 
+    /// 考核状态
     /// </summary>
-    Start,                              // ID:203
-    Resume,                             // ID:204
-    Stop,                               // ID:205
+    Start,                                // ID:210
+    Resume,                               // ID:211
+    Stop,                                 // ID:212
     /// <summary>
     /// 房主计时结束
     /// </summary>
-    Timeout,                            // ID:206
+    Timeout,                              // ID:213
     /// <summary>
     /// 本地计时结束
     /// </summary>
-    LocalTimeout,                       // ID:207
+    LocalTimeout,                         // ID:214
     /// <summary>
     /// 确保结束考核后清空状态消息
     /// </summary>
-    Flush,                              // ID:208
+    Flush,                                // ID:215
     /// <summary>
     /// 提交成绩
     /// </summary>
-    Submit,                             // ID:209
+    Submit,                               // ID:216
     /// <summary>
     /// 退出房间
     /// </summary>
-    Quit,                               // ID:210
-    Max,                                // ID:211
+    Quit,                                 // ID:217
+    Max,                                  // ID:218
 }
 
 /// <summary>
@@ -613,22 +613,22 @@ public enum ExamPanelEvent
 /// </summary>
 public enum JudgeOnlineEvent
 {
-    Min = ExamPanelEvent.Max + 1,     // ID:212
-    Start,                            // ID:213
-    Answer,                           // ID:214
-    Complete,                         // ID:215
-    End,                              // ID:216
-    Max,                              // ID:217
+    Min = ExamPanelEvent.Max + 1,         // ID:219
+    Start,                                // ID:220
+    Answer,                               // ID:221
+    Complete,                             // ID:222
+    End,                                  // ID:223
+    Max,                                  // ID:224
 }
 
 public enum ShortcutEvent
 {
-    Min = JudgeOnlineEvent.Max + 1,   // ID:218
+    Min = JudgeOnlineEvent.Max + 1,       // ID:225
     /// <summary>
     /// 按下任意键 在uibase中已经添加
     /// </summary>
-    PressAnyKey,                      // ID:219
-    Max,                              // ID:220
+    PressAnyKey,                          // ID:226
+    Max,                                  // ID:227
 }
 
 /// <summary>
@@ -636,11 +636,11 @@ public enum ShortcutEvent
 /// </summary>
 public enum HistoryEvent
 {
-    Min = ShortcutEvent.Max + 1,      // ID:221
-    Open,                             // ID:222
-    Show,                             // ID:223
-    Hide,                             // ID:224
-    Max,                              // ID:225
+    Min = ShortcutEvent.Max + 1,          // ID:228
+    Open,                                 // ID:229
+    Show,                                 // ID:230
+    Hide,                                 // ID:231
+    Max,                                  // ID:232
 }
 
 /// <summary>

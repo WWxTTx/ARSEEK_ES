@@ -253,12 +253,15 @@ public class RoomChannelAgent : NetworkChannelAgentBase
 
         // 踢出发送OtherLeave（正常退出），断连发送OtherDisconnect（可能重进）
         if (isEvict)
+        {
             SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherLeave, memberId, memberNickName));
+            networkManager.RemoveUserAudio(memberId);
+            networkManager.RemoveUserVideo(memberId, false);
+            networkManager.ClearUserIMState(memberId);
+        }
         else
             SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherDisconnect, memberId, memberNickName));
-        //networkManager.ClearUserIMState(memberId);
-        networkManager.RemoveUserAudio(memberId);
-        networkManager.RemoveUserVideo(memberId, false);
+
     }
 
     /// <summary>

@@ -64,7 +64,7 @@ public class StartSetup : StartSetupBase
             LogManager.Instance.show = ShowLog;
         else
             LogManager.Instance.show = false;
-        DebuggerSave.UploadEnabled = UploadLog;
+        //DebuggerSave.UploadEnabled = UploadLog;
 
         ApiData.Init((int)apiUrl, (int)state);// 设置服务器接口地址
         GlobalInfo.InitServerTime();

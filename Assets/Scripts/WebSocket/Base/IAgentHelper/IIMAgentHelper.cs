@@ -21,4 +21,9 @@ public interface IIMAgentHelper
     /// 同步百科状态
     /// </summary>
     void SyncBaikeState();
+
+    /// <summary>
+    /// 获取当前IM百科状态
+    /// </summary>
+    IMState GetCurrentIMState();
 }

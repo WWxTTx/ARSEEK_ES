@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using static UISmallSceneOperationHistory;
@@ -383,21 +383,9 @@ namespace UnityFramework.Runtime
     public class MsgOperatingRecord : MsgBase
     {
         /// <summary>
-        /// step.hint_success
-        /// </summary>
-        public string stepHint;
-        /// <summary>
         /// op.hint_success
         /// </summary>
         public string opHint;
-        /// <summary>
-        /// flowIndex
-        /// </summary>
-        public int flowIndex;
-        /// <summary>
-        /// stepIndex
-        /// </summary>
-        public int stepIndex;
         /// <summary>
         /// opIndex
         /// </summary>
@@ -433,18 +421,14 @@ namespace UnityFramework.Runtime
 
         public MsgOperatingRecord() { }
 
-        public MsgOperatingRecord(ushort msgId, string stepHint, string opHint, int flowIndex, int stepIndex, int opIndex,
-            string userNo, string userName, string createTime, OpType opType, bool createHistoryItem = true, float score = 0, int totalStepIndex = -1) : base(msgId)
+        public MsgOperatingRecord(ushort msgId, string opHint, int opIndex,
+            string userNo, string userName, OpType opType, bool createHistoryItem = true, float score = 0, int totalStepIndex = -1) : base(msgId)
         {
-            this.stepHint = stepHint;
             this.opHint = opHint;
-            this.flowIndex = flowIndex;
-            this.stepIndex = stepIndex;
             this.opIndex = opIndex;
             this.createHistoryItem = createHistoryItem;
             this.userNo = userNo;
             this.userName = userName;
-            this.createTime = createTime;
             this.opType = (int)opType;
             this.score = score;
             this.totalStepIndex = totalStepIndex;

@@ -170,20 +170,6 @@ public class ExamScreenRecording : MonoBase, IFFmpegHandler
                 examIdList.Clear();
                 uploading.Clear();
                 break;
-                //case (ushort)ExamPanelEvent.Pause:
-                //    if (encoder != null && _movieCapture != null && GlobalInfo.IsExamMode())
-                //    {
-                //        //暂停
-                //        _movieCapture.PauseCapture();
-                //    }
-                //    break;
-                //case (ushort)ExamPanelEvent.Resume:
-                //    if (encoder != null && _movieCapture != null && GlobalInfo.IsExamMode())
-                //    {
-                //        //继续播放
-                //        _movieCapture.ResumeCapture();
-                //    }
-                //    break;
         }
     }
 

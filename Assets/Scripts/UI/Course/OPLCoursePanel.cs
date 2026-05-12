@@ -126,11 +126,6 @@ public class OPLCoursePanel : HoverHintPanel
     public Transform ShowModulePoint;
     #endregion
 
-    /// <summary>
-    /// 是否初次加载百科
-    /// </summary>
-    protected bool firstBaike = true;
-
     protected bool encyclopediaModelLoaded = false;
     private Func<bool> _encyclopediaModelLoadedPredicate;
 
@@ -707,7 +702,7 @@ public class OPLCoursePanel : HoverHintPanel
     }
 
     /// <summary>
-    /// 拆分、动画、操作 模型百科
+    /// 模型百科
     /// </summary>
     protected virtual void LoadPediaWithModel()
     {
@@ -718,23 +713,13 @@ public class OPLCoursePanel : HoverHintPanel
             NetworkManager.Instance.IsIMSync = true;
             Log.Error($"打开的百科为空! 百科ID:{encyclopediaModel.id}");
             CourseSideBar.ShowBaikeSelectModule(false);
-//#if UNITY_ANDROID || UNITY_IOS
-//            ARTog.interactable = false;
-//#endif
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("确定", new PopupButtonData(null, true));
             UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", string.Format("该{0}未同步，请在备课后台同步课程后重试", GlobalInfo.isExam ? "考核" : "百科"), popupDic));
         }
         else
         {
-            if (GlobalInfo.isAR && firstBaike)
-            {
-                SendMsg(new MsgUnityAction((ushort)CoursePanelEvent.ModelLocate, () => LoadEncyclopediaModel(encyclopediaModel)));
-            }
-            else
-            {
-                LoadEncyclopediaModel(encyclopediaModel);
-            }
+            LoadEncyclopediaModel(encyclopediaModel);
             GetFileStatus(encyclopediaModel.data.projectId);
         }
     }
@@ -761,7 +746,6 @@ public class OPLCoursePanel : HoverHintPanel
                 return;
             }
 
-            firstBaike = false;
             go.name = go.name.Replace("(Clone)", string.Empty);
 
             GlobalInfo.currentWikiNames.Clear();
@@ -825,10 +809,6 @@ public class OPLCoursePanel : HoverHintPanel
 
             encyclopediaModelLoaded = true;
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
-            //请求同步相机
-            NetworkManager.Instance.SendFrameMsg(new MsgBase((ushort)GazeEvent.SyncCamera));
-            //同步百科和状态
-            NetworkManager.Instance.SyncBaikeState();
         });
     }
 

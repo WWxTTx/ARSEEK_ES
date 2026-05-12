@@ -96,7 +96,6 @@ public class OPLSynCoursePanel : OPLCoursePanel
             (ushort)JudgeOnlineEvent.End
         });
 
-        GlobalInfo.waitExam = true;
         GlobalInfo.canEditUserInfo = false;
     }
 
@@ -346,7 +345,6 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 if(GlobalInfo.courseMode == CourseMode.Collaboration)
                     Mask(true, true);
             }
-            GlobalInfo.waitExam = false;
             NetworkManager.Instance.IsIMSync = true;
             UIManager.Instance.CloseUI<LoadingPanel>();
         });

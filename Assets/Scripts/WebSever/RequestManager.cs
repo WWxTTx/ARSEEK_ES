@@ -1453,7 +1453,7 @@ namespace UnityFramework.Runtime
         }
 
         /// <summary>
-        /// 考核结束答题
+        /// 考核结束
         /// </summary>
         /// <param name="examId">考核id</param>
         /// <param name="successCallBack"></param>
@@ -1465,7 +1465,7 @@ namespace UnityFramework.Runtime
                 examineId = examId
             };
             string json = JsonTool.Serializable(endExamRequest);
-            requestBase.TryRequest_List("考核结束答题", RequestType.POST, ApiData.ExamEnd, json, (result, message) =>
+            requestBase.TryRequest_List("考核结束", RequestType.POST, ApiData.ExamEnd, json, (result, message) =>
             {
                 GetRequest(result, message, successCallBack, failureCallBack);
             }, false);
