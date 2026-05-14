@@ -99,10 +99,10 @@ namespace UnityFramework.Runtime
             {
                 NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
             }
-            //直播
+            //直播 也发同步消息，但是接收端只收不处理，用于获得操作权限后按进度恢复场景，但是目前已暂时屏蔽该功能
             else if (GlobalInfo.courseMode == CourseMode.Livebroadcast)
             {
-                FormMsgManager.Instance.SendMsg(msgBrodcastOperate);
+                NetworkManager.Instance.SendIMMsg(msgBrodcastOperate);
             }
             //本地
             else

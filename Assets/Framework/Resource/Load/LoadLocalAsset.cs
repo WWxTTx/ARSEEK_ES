@@ -123,7 +123,7 @@ namespace UnityFramework.Runtime
             if (abs.ContainsKey(path) && abs[path] != null)
             {
                 Log.Warning("ab包已加载:" + path);
-                callback?.Invoke(1, null);
+                callback?.Invoke(1, abs[path]);
                 yield break;
             }
 
@@ -268,6 +268,13 @@ namespace UnityFramework.Runtime
                     bundle = b;
                 }
             }));
+
+            if (bundle == null)
+            {
+                Log.Error("ab包为空，路径:" + path);
+                callback?.Invoke(-1, null);
+                yield break;
+            }
 
             AssetBundleRequest request = null;
             try

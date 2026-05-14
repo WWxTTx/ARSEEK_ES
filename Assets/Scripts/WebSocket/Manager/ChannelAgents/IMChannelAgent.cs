@@ -53,12 +53,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
     private Queue<MsgBrodcastOperate> opsQueue = new Queue<MsgBrodcastOperate>();
 
     /// <summary>
-    /// 缓存操作版本
-    /// 直播房间无权限用户缓存但不执行，用于获取操作权时同步状态
-    /// </summary>
-    private IMPacket cachedPacket;
-
-    /// <summary>
     /// 收到的操作消息队列
     /// </summary>
     private Queue<MsgBrodcastOperate> opsReceive = new Queue<MsgBrodcastOperate>();
@@ -69,14 +63,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     public MsgBrodcastOperate currentOp;
 
     private readonly System.Object stateLock = new System.Object();
-    /// <summary>
-    /// 当前待同步状态
-    /// </summary>
-    public IMState CurrentStateToSync
-    {
-        get { lock(stateLock) return currentState; }
-        set { lock(stateLock) currentState = value; }
-    }
+
 
     /// <summary>
     /// 状态同步工具类
@@ -92,7 +79,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// <summary>
     /// 当前接收的同步消息包中的状态
     /// </summary>
-    private IMState currentState;
+    public IMState currentState;
 
     private object asynLock = new object();
     private float deltaTime;
@@ -140,6 +127,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     {
         lock (asynLock)
         {
+            Log.Debug($"[IMChannel] SendOperationData 入队 msgId={msg.msgId}, 入队后opsQueue.Count={opsQueue.Count + 1}");
             opsQueue.Enqueue(msg);
         }
     }
@@ -162,12 +150,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         {
             IsStartSync = false;
             deltaTime = 0;
-            GlobalInfo.SetFanelstate = false;
-            if (GlobalInfo.playTimeRatio > 0)
-            {
-                UIManager.Instance.OpenUI<LoadingPanel>();
-            }
-
+            NetworkManager.Instance.IsIMSyncState = true;
             currentOp = stateHelper.DequeueStateOp();
             TryExecuteCurrentOp();
         }
@@ -176,6 +159,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (deltaTime > 6)
         {
             IsStartSync = true;
+            NetworkManager.Instance.IsIMSyncState = false;
             UIManager.Instance.CloseUI<LoadingPanel>();
         }
         
@@ -189,6 +173,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             deltaTime = 0;
 
             currentOp = opsReceive.Dequeue();
+            Log.Debug($"[IMChannel] LateUpdate 处理opsReceive，msgId={currentOp?.msgId}, 剩余={opsReceive.Count}");
             TryExecuteCurrentOp();
         }
     }
@@ -246,6 +231,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
                 string datamsg = jObject[NetworkManager.PAYLOAD][NetworkManager.COMMAND].ToString();
                 if (string.IsNullOrEmpty(datamsg))
                 {
+                    Log.Debug($"[IMChannel] ProcessMessage RTI_ACTION 空数据，version={version}，释放等待");
                     IsWaitingResponse = false;
                     return;
                 }
@@ -257,20 +243,24 @@ public class IMChannelAgent : NetworkChannelAgentBase
                     IMPacket packet = JsonTool.DeSerializable<IMPacket>(datamsg);
                     if (packet != null)
                     {
-                        cachedPacket = packet;
+                        bool isOperator = GlobalInfo.IsOperator();
+                        bool versionLag = GlobalInfo.version < version - 1;
+                        Log.Debug($"[IMChannel] ProcessMessage version={version}, localVersion={GlobalInfo.version}, isOperator={isOperator}, versionLag={versionLag}, packetMsgId={packet.data?.msgId}");
 
                         //具有操作权限就需要检测步骤序号重连
-                        if (GlobalInfo.IsOperator())
+                        if (isOperator)
                         {
                             //中途加入或本地为旧版本
-                            if (GlobalInfo.version < version - 1)
+                            if (versionLag)
                             {
+                                Log.Debug($"[IMChannel] 版本落后，触发SyncVersion，local={GlobalInfo.version}, remote={version}");
                                 SyncVersion(packet);
                             }
                             else
                             {
                                 opsReceive.Enqueue(packet.data);
                                 stateHelper.UpdateState(packet.data);
+                                Log.Debug($"[IMChannel] 消息入opsReceive，opsReceive.Count={opsReceive.Count}, IsStartSync={IsStartSync}");
                             }
                             //更新本地版本
                             GlobalInfo.version = version;
@@ -302,19 +292,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
         IsStartSync = false;
         opsReceive.Clear();
 
-        CurrentStateToSync = packet.state;
+        currentState = packet.state;
         stateHelper.UpdateStateVersion(packet);
-    }
-
-    /// <summary>
-    /// 同步缓存版本（直播非房主获取权限时调用）
-    /// </summary>
-    public void SyncCachedVersion()
-    {
-        if (cachedPacket == null)
-            return;
-
-        SyncVersion(cachedPacket);
+        NetworkManager.Instance.SyncBaikeState();
     }
 
     /// <summary>
@@ -331,7 +311,10 @@ public class IMChannelAgent : NetworkChannelAgentBase
             yield return sendCondition;
 
             lock (asynLock)
+            {
+                Log.Debug($"[IMChannel] SendCoroutine 开始发送，opsQueue.Count={opsQueue.Count}, version={GlobalInfo.version}");
                 Send(opsQueue.Dequeue());
+            }
         }
     }
 
@@ -342,7 +325,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
     private void Send(MsgBrodcastOperate msg)
     {
         if (!networkChannel.IsConnect)
+        {
+            Log.Warning($"[IMChannel] Send 跳过：通道未连接，msgId={msg.msgId}");
             return;
+        }
+
+        Log.Debug($"[IMChannel] Send msgId={msg.msgId}, version={GlobalInfo.version + 1}");
 
         int version = GlobalInfo.version + 1;
 
@@ -352,6 +340,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         int flow = 0;
         if(msg.msgId == (int)SmallFlowModuleEvent.SelectStep)
         {
+            // 接收任务进度跳转消息，提取flow和step索引用于网络同步状态
             MsgStringTuple<int, int, string> msgStringTuple = msg.GetData<MsgStringTuple<int, int, string>>();
             flow = (msgStringTuple.arg2.Item1);
             step = (msgStringTuple.arg2.Item2);
@@ -420,8 +409,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         lock (asynLock)
             opsQueue.Clear();
         opsReceive.Clear();
-        CurrentStateToSync = null;
-        cachedPacket = null;
+        currentOp = null;
         stateHelper.Clear();
         if (!waitResponse)
             IsWaitingResponse = false;

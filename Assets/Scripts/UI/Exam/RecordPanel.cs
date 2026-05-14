@@ -97,7 +97,6 @@ public class RecordPanel : UIPanelBase
 
         this.GetComponentByChildName<Button>("Exit").onClick.AddListener(() =>
         {
-            GlobalInfo.SetFanelstate = true;
             UIManager.Instance.OpenUI<ExamTrainingPanel>();
             UIManager.Instance.CloseUI<RecordPanel>();
         });

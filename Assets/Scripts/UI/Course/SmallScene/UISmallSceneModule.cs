@@ -1526,9 +1526,19 @@ public class UISmallSceneModule : UIModuleBase
                 if (!GlobalInfo.SysPopup)
                     UIManager.Instance.CloseUI<PopupPanel>();
 
+                // 接收任务进度跳转消息，执行流程和步骤的切换
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
-                smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1);
-                smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2);
+                if (GlobalInfo.isExam)
+                {
+                    smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1, false);  // arg2.Item1: flow索引 - 选中对应的任务流程
+                    smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2, false);  // arg2.Item2: step索引 - 选中对应的步骤
+                }
+                else
+                {
+                    smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1);
+                    smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2);
+                }
+                  
 
                 Log.Debug("执行跳步骤 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
@@ -1593,7 +1603,7 @@ public class UISmallSceneModule : UIModuleBase
                 toolModule.ShowTool(true);  // 显示工具栏
                 break;
             case (ushort)SmallFlowModuleEvent.OperatingRecord:
-                MsgOperatingRecord opMsg = msg as MsgOperatingRecord;
+                MsgOperatingRecord opMsg = (msg as MsgBrodcastOperate).GetData<MsgOperatingRecord>();
                 ShowHint(opMsg.opHint, -1);
                 break;
             case (ushort)SmallFlowModuleEvent.FocusChanged:

@@ -348,7 +348,6 @@ public class LiveRoomMemberModule : UIModuleBase
     private void OnControllerUpdate(int id, bool isControl)
     {
         Log.Debug("成员权限变更回调:" + id + "--" + isControl);
-        Log.Debug($"[协同调试] OnControllerUpdate | userId:{id} | isControl:{isControl} | 当前用户ID:{GlobalInfo.account?.id}");
 
         if (GlobalInfo.account.id == id)
         {
@@ -356,13 +355,6 @@ public class LiveRoomMemberModule : UIModuleBase
             {
                 Log.Debug($"[协同调试] 当前用户获得操作权限 | RoomType:{GlobalInfo.roomInfo?.RoomType}");
 
-                // YG: 改成手动加载百科
-                //GlobalInfo.BaikeLoading = true;
-                //ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, GlobalInfo.currentWiki.id), true);
-
-                // YG: 改成等待百科加载完成
-                //StartCoroutine(WaitForBaikeComplete(() => {
-                NetworkManager.Instance.TrySyncCachedVersion();
                 SendMsg(new MsgBase((ushort)CoursePanelEvent.CloseMask));
                 SendMsg(new MsgBase((ushort)MediaChannelEvent.RemoveView));
 

@@ -102,11 +102,6 @@ public class GlobalInfo
     /// </summary>
     public static bool WaitUiOq = false;
 
-    /// <summary>
-    /// 标志位，用于每次触发断线重连，只准设置一次最终状态
-    /// </summary>
-    public static bool SetFanelstate = true;
-
     #region 课程模式
     /// <summary>
     /// 当前课程模式
@@ -475,12 +470,10 @@ public class GlobalInfo
     /// </summary>
     public static float playTimeRatio
     {
-        get { return _playTimeRatio; }
+        get { return NetworkManager.Instance.IsIMSyncState ? 0 : _playTimeRatio; }
 
         set 
         {
-            if (value > 0f && NetworkManager.Instance.IsIMSyncState)
-                return;
             _playTimeRatio = value;
         }
     }

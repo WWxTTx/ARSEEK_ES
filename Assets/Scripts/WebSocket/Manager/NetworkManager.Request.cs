@@ -458,7 +458,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         {
             if (string.IsNullOrEmpty(message))
             {
-                successCallBack.Invoke(null);
+                successCallBack?.Invoke(null);
                 return;
             }
             GetRequest(result, message, successCallBack, failureCallBack);

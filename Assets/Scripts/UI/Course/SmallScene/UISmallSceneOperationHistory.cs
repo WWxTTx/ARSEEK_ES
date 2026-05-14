@@ -566,7 +566,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 OnContact(msg);
                 break;
             case (ushort)SmallFlowModuleEvent.OperatingRecord:
-                MsgOperatingRecord opMsg = msg as MsgOperatingRecord;
+                MsgOperatingRecord opMsg = (msg as MsgBrodcastOperate).GetData<MsgOperatingRecord>();
                 if (opMsg.createHistoryItem && canCreateHistoryItem)
                 {
                     Debug.Log("执行分数上传，当前操作得分：" + opMsg.score);

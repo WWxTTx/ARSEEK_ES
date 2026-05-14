@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityFramework.Runtime;
 
 /// <summary>
@@ -435,7 +435,7 @@ public class ModelRotate : MonoBase
             if (GlobalInfo.IsLiveMode())
             {
                 MsgStringVector3 msgStringVector3 = ((MsgBrodcastOperate)msg).GetData<MsgStringVector3>();
-                //状态同步
+                //状态同步时省掉过程直接设置到最终状态
                 if(NetworkManager.Instance.IsIMSyncState)
                 {
                     if (!string.Equals(transform.name, msgStringVector3.arg))

@@ -158,11 +158,12 @@ public partial class IMStateHelper
                     }
 
                     Log.Debug("执行状态添加 flowIndex" + smallSceneBaikeState.flowIndex + " stepIndex" + smallSceneBaikeState.stepIndex);
+                    smallSceneBaikeState.modelStates = smallFlowCtrl.GetModelStates();
                 }
                 UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>();
                 if(historyModule != null)
                     smallSceneBaikeState.operations = historyModule.OpRecordList;
-
+                 
                 baikeState.data = JsonTool.Serializable(smallSceneBaikeState);
                 break;
             default:

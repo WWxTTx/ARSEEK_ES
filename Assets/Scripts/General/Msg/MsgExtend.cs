@@ -24,9 +24,24 @@ namespace UnityFramework.Runtime
     {
         public System.Tuple<T1, T2, T3, T4> arg;
     }
+    /// <summary>
+    /// 任务进度跳转消息
+    /// </summary>
+    /// <typeparam name="T1">flow索引类型(int)</typeparam>
+    /// <typeparam name="T2">step索引类型(int)</typeparam>
+    /// <typeparam name="T3">预留字段类型(string)</typeparam>
     public class MsgStringTuple<T1, T2, T3> : MsgBase
     {
+        /// <summary>
+        /// 步骤的UUID标识，用于在TreeView中定位具体步骤项
+        /// </summary>
         public string arg1;
+        /// <summary>
+        /// 元组包含三个元素：
+        /// Item1: flow索引 - 任务流程的索引（父级TreeItem的GetSiblingIndex）
+        /// Item2: step索引 - 具体步骤的索引（当前TreeItem的GetSiblingIndex）
+        /// Item3: 预留字段，目前为空字符串
+        /// </summary>
         public System.Tuple<T1, T2, T3> arg2;
     }
     public class MsgIntTransform : MsgBase

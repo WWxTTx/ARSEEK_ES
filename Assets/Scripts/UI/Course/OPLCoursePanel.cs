@@ -415,14 +415,17 @@ public class OPLCoursePanel : HoverHintPanel
         }
     }
 
+
+    /// <summary>
+    /// 收到百科选择消息开始加载场景
+    /// </summary>
+    /// <param name="msg"></param>
     protected virtual void OnBaikeSelectEventReceived(MsgBase msg)
     {
-        //现在没有房间内百科选择，可以不用全局消息
-        //int baikeId = ((MsgBrodcastOperate)msg).GetData<MsgInt>().arg;
         int baikeId = ((MsgInt)msg).arg;
         OnBaikeChanged(baikeId);
         encyclopediaModelLoaded = false;
-        this.WaitTime(0.1f, () => LoadEncyclopedia(baikeId));
+        LoadEncyclopedia(baikeId);
     }
 
     /// <summary>
@@ -719,6 +722,8 @@ public class OPLCoursePanel : HoverHintPanel
         }
         else
         {
+            //开始加载场景
+            UIManager.Instance.OpenUI<LoadingPanel>();
             LoadEncyclopediaModel(encyclopediaModel);
             GetFileStatus(encyclopediaModel.data.projectId);
         }
@@ -809,6 +814,9 @@ public class OPLCoursePanel : HoverHintPanel
 
             encyclopediaModelLoaded = true;
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
+            
+            Debug.Log("执行联机状态恢复");
+            NetworkManager.Instance.SyncBaikeState();
         });
     }
 

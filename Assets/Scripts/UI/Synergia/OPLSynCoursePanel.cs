@@ -565,7 +565,6 @@ public class OPLSynCoursePanel : OPLCoursePanel
         else
         {
             UIManager.Instance.OpenUI<TrainingPanel>();
-            GlobalInfo.SetFanelstate = true;
         }
     }
 

@@ -315,24 +315,19 @@ public class UISmallSceneFlowModule : UIModuleBase
                 }
                 else
                 {
-                    MsgStringTuple<int, int, string> temp = new MsgStringTuple<int, int, string>()
-                    {
-                        msgId = (ushort)SmallFlowModuleEvent.SelectStep,
-                        arg1 = msgHierarchy.uuid,
-                        arg2 = new Tuple<int, int, string>(item.ParentTreeItem.transform.GetSiblingIndex(), item.transform.GetSiblingIndex(), string.Empty)
-                    };
-
-                    if (!GlobalInfo.SetFanelstate)
-                    {
-                        GlobalInfo.SetFanelstate = true;
-                        MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(temp.msgId, JsonTool.Serializable(temp));
-                        SendMsg(msgBrodcastOperate);
-                        return;
-                    }
-
                     if (GlobalInfo.EnableFlow)
                     {
-                        ToolManager.SendBroadcastMsg(temp);
+                        // 发送任务进度跳转广播消息
+                        ToolManager.SendBroadcastMsg(new MsgStringTuple<int, int, string>()
+                        {
+                            msgId = (ushort)SmallFlowModuleEvent.SelectStep, // 消息ID：选择步骤事件
+                            arg1 = msgHierarchy.uuid,                        // arg1: 步骤UUID，用于TreeView中定位步骤项
+                            arg2 = new Tuple<int, int, string>(
+                                item.ParentTreeItem.transform.GetSiblingIndex(), // Item1: flow索引（父级任务流程在兄弟节点中的位置）
+                                item.transform.GetSiblingIndex(),                 // Item2: step索引（当前步骤在兄弟节点中的位置）
+                                string.Empty                                      // Item3: 预留字段，当前未使用
+                            )
+                        });
                     }
                     else
                     {
@@ -364,14 +359,17 @@ public class UISmallSceneFlowModule : UIModuleBase
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.SelectStep:
+                // 接收任务进度跳转消息，展开并选中对应步骤
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
                 {
+                    // arg1: 步骤UUID，用于在viewItemIds字典中查找TreeViewItem
                     if (!viewItemIds.ContainsKey(msgStringTuple.arg1))
                         return;
                     TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[msgStringTuple.arg1]);
                     if (stepItem == null)
                         return;
                     mTreeView.ExpandParent(stepItem);
+                    // arg1: 步骤UUID，传递给OnItemCustomEvent用于标识被点击的步骤
                     OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, ((MsgBrodcastOperate)msg).senderId, msgStringTuple.arg1);
                 }
                 break;
@@ -400,53 +398,6 @@ public class UISmallSceneFlowModule : UIModuleBase
                 OnItemCustomEvent(stepitem, CustomEvent.ItemClicked, ((MsgBrodcastOperate)msg).senderId, stepUid);
                 break;
         }
-    }
-
-
-    /// <summary>
-    /// 用于协同状态同步
-    /// </summary>
-    /// <param name="step">任务索引</param>
-    /// <param name="flow">步骤索引</param>
-    /// <returns>是否成功选中</returns>
-    public void TrySelectNode(int flow, int step)
-    {
-        if (smallFlowCtrl == null || smallFlowCtrl.flows == null)
-        {
-            Log.Warning("TrySelectNode: smallFlowCtrl 或 flows 为 null");
-            return;
-        }
-        if (flow < 0 || flow >= smallFlowCtrl.flows.Length)
-        {
-            Log.Warning($"TrySelectNode: flow 索引越界 {flow}/{smallFlowCtrl.flows.Length}");
-            return;
-        }
-
-        var steps = smallFlowCtrl.flows[flow].steps;
-        if (steps == null || step < 0 || step >= steps.Count)
-        {
-            Log.Warning($"TrySelectNode: step 索引越界 {step}/{steps?.Count ?? 0}");
-            return;
-        }
-
-        string stepUID = steps[step].ID;
-        if (!viewItemIds.ContainsKey(stepUID))
-        {
-            Log.Warning($"TrySelectNode: viewItemIds 不包含 stepUID {stepUID}");
-            return;
-        }
-
-        TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[stepUID]);
-        if (stepItem == null)
-        {
-            Log.Warning($"TrySelectNode: stepItem for stepUID {stepUID} 为 null，无法选择步骤节点");
-            return;
-        }
-
-        mTreeView.ExpandParent(stepItem);
-        Log.Debug("正在执行重置最终步骤" + flow + "  " + step);
-        OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, GlobalInfo.account.id, stepUID);
-        ProcessEvent(new MsgHierarchy((ushort)HierarchyEvent.Click, GlobalInfo.account.id, GlobalInfo.roomInfo.Uuid, stepItem));
     }
 
     #region 动效

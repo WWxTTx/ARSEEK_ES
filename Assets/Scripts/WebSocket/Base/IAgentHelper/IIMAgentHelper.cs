@@ -13,17 +13,7 @@ public interface IIMAgentHelper
     void SendIMMsg(MsgBrodcastOperate msg);
 
     /// <summary>
-    /// 尝试同步缓存版本（cachedPacket 可能为 null）
-    /// </summary>
-    void TrySyncCachedVersion();
-
-    /// <summary>
     /// 同步百科状态
     /// </summary>
     void SyncBaikeState();
-
-    /// <summary>
-    /// 获取当前IM百科状态
-    /// </summary>
-    IMState GetCurrentIMState();
 }

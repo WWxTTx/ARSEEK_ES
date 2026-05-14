@@ -2,6 +2,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Newtonsoft.Json.Linq;
 using RenderHeads.Media.AVProMovieCapture;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -296,12 +297,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     }
 
     /// <summary>
-    /// 是否正在状态同步
+    /// 标志位，当前触发断线重连
     /// </summary>
-    public bool IsIMSyncState
-    {
-        get { return GlobalInfo.SetFanelstate; }
-    }
+    public bool IsIMSyncState = false;
 
     /// <summary>
     /// 是否正在同步百科状态
@@ -333,141 +331,102 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         mIMChannelAgent.SendOperationData(msg);
     }
 
-    /// <summary>
-    /// 尝试同步缓存版本（cachedPacket 可能为 null）
-    /// </summary>
-    public void TrySyncCachedVersion()
-    {
-        mIMChannelAgent.SyncCachedVersion();
-    }
-
-    /// <summary>
-    /// 获取当前IM百科状态（房主用于发送给重连考生）
-    /// </summary>
-    public IMState GetCurrentIMState()
-    {
-        if (mIMChannelAgent == null)
-            return null;
-        return mIMChannelAgent.CurrentStateToSync;
-    }
-
-    /// <summary>
-    /// 获取当前IM最新操作消息（考核重连恢复进度用）
-    /// </summary>
-    public MsgBrodcastOperate GetCurrentOp()
-    {
-        if (mIMChannelAgent == null)
-            return null;
-        return mIMChannelAgent.currentOp;
-    }
-
     public void SyncBaikeState()
     {
-        IMState currentState = mIMChannelAgent.CurrentStateToSync;
-        if (currentState == null || currentState.baikeState == null)
+        SyncBaikeStateAndCatchAsync();
+    }
+
+    async void SyncBaikeStateAndCatchAsync()
+    {
+        try
+        {
+            await _syncBaikeState();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogException(ex);
+        }
+    }
+
+    int step = 0;
+    int flow = 0;
+    private async UniTask _syncBaikeState()
+    {
+        IMState currentState = mIMChannelAgent.currentState;
+        GameObject model = ModelManager.Instance.modelGo;
+        // 重连只能发生在有重连信息,已重建场景后
+        if (currentState == null || currentState.baikeState == null || currentState.baikeState.data == null || model == null)
         {
             IsIMSyncBaikeState = false;
             return;
         }
         IsIMSyncBaikeState = true;
+
         UIManager.Instance.OpenUI<LoadingPanel>();
-        StartCoroutine(_syncBaikeStateCo(currentState));
-    }
 
-    int step = 0;
-    int flow = 0;
-    private IEnumerator _syncBaikeStateCo(IMState currentState)
-    {
-        BaikeState currentBaikeState = currentState.baikeState;
-        if (currentBaikeState == null || string.IsNullOrEmpty(currentBaikeState.data))
+        //消息中为空的可能会覆盖正确的
+        SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentState.baikeState.data);
+        flow = smallSceneBaikeState.flowIndex;
+        step = smallSceneBaikeState.stepIndex;
+
+        Debug.Log("当前获得的任务进度为：" + flow + "   " + step);
+        if (smallSceneBaikeState != null  && IsIMSyncState && (step > 0 || flow > 0))
         {
-            yield return new WaitForEndOfFrame();
-            if (!IsIMSyncState)
-                UIManager.Instance.CloseUI<LoadingPanel>();
-            IsIMSync = true;
-            IsIMSyncBaikeState = false;
-            yield break;
-        }
-
-        GameObject model = ModelManager.Instance.modelGo;
-
-        // 如果模型不存在（PreSyncVersion 销毁了模型），等待 stateOps 重建场景
-        if (model == null)
-        {
-            // 先允许 stateOps 执行（让36号消息重建场景）
-            IsIMSyncBaikeState = false;
-
-            // 等待模型加载完成
-            float waitTimeout = 10f;
-            float waitElapsed = 0f;
-            while (waitElapsed < waitTimeout)
-            {
-                yield return new WaitForSeconds(0.1f);
-                waitElapsed += 0.1f;
-                model = ModelManager.Instance.modelGo;
-                if (model != null)
-                    break;
-            }
-
-            if (model == null)
-            {
-                Log.Warning("等待模型加载超时，跳过百科状态同步");
-                if (!IsIMSyncState)
-                    UIManager.Instance.CloseUI<LoadingPanel>();
-                IsIMSync = true;
-                yield break;
-            }
-
-            // 模型加载完成后，重新阻塞 stateOps，恢复 baikeState
-            IsIMSyncBaikeState = true;
-        }
-
-        //多次重放的消息，为空的可能会覆盖正确的
-        SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentBaikeState.data);
-        if (flow != smallSceneBaikeState.flowIndex && smallSceneBaikeState.flowIndex !=0)
-            flow = smallSceneBaikeState.flowIndex;
-        if (step != smallSceneBaikeState.stepIndex && smallSceneBaikeState.stepIndex != 0)
-             step = smallSceneBaikeState.stepIndex;
-
-        if (smallSceneBaikeState != null && model && !GlobalInfo.SetFanelstate && (step > 0 || flow > 0))
-        {
-            UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>(true);
-            if (historyModule != null)
-            {
-                historyModule.UpdateOpRecordList(smallSceneBaikeState.operations);
-            }
-
             // 等待 UISmallSceneFlowModule 初始化完成
-            // （场景重建时 InitTreeView 会发送 SelectFlow(0) 覆盖步骤，
-            //   所以只等待初始化，不提前选中步骤）
-            yield return StartCoroutine(WaitForFlowModule());
+            await WaitForFlowModule();
 
+            // 发送任务进度跳转消息，通过flow和step索引定位步骤
+            UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
+            if (smallSceneModule != null && smallSceneModule.smallFlowCtrl.flows != null)
+            {
+                ToolManager.SendBroadcastMsg(new MsgStringTuple<int, int, string>()
+                {
+                    msgId = (ushort)SmallFlowModuleEvent.SelectStep,
+                    arg1 = smallSceneModule.smallFlowCtrl.flows[flow].steps[step].ID, // 步骤UUID
+                    arg2 = new System.Tuple<int, int, string>(flow, step, string.Empty) // flow索引, step索引, 预留
+                });
+            }
 
-            // 最终修正：确保步骤和流程面板一致
-            UISmallSceneFlowModule finalFlowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>();
-            if (finalFlowModule != null)
-                finalFlowModule.TrySelectNode(flow, step);
+            await UniTask.Delay(500, ignoreTimeScale: true);
+            // 用服务端操作记录覆盖本地，不上传
+            if (smallSceneModule.operationHistoryModule != null)
+                smallSceneModule.operationHistoryModule.UpdateOpRecordList(smallSceneBaikeState.operations);
 
+            //多人考核需要在联机步骤恢复的基础上增加操作记录对应操作还原
+            if (GlobalInfo.courseMode == CourseMode.OnlineExam)
+            {
+                if (smallSceneBaikeState.modelStates != null && smallSceneBaikeState.modelStates.Count > 0)
+                {
+                    smallSceneModule.smallFlowCtrl.SetFinalState(smallSceneBaikeState.modelStates);
+                }
+            }
 
-            yield return new WaitForSecondsRealtime(0.5f);
-            ushort msgId = mIMChannelAgent.currentOp.msgId;
+            // 等待步骤切换操作全部执行完成（最多等1秒）
+            float waitElapsed = 0f;
+            while (smallSceneModule?.smallFlowCtrl?.IsExecuting == true && waitElapsed < 1f)
+            {
+                await UniTask.Delay(100);
+                waitElapsed += 0.1f;
+            }
 
             // 恢复他人操作权限状态：如果最后一条操作是其他人的Operate，需要阻止刚重连的人操作
             RestoreOtherUserOperationState();
         }
 
-        yield return new WaitForFixedUpdate();
+        await UniTask.WaitForFixedUpdate();
         //恢复消息执行
         mIMChannelAgent.IsStartSync = true;
         IsIMSync = true;
         IsIMSyncBaikeState = false;
         //完成百科状态同步后，清空待同步状态，避免切换百科后重复同步
-        mIMChannelAgent.CurrentStateToSync = null;
+        mIMChannelAgent.currentState = null;
         //清空 stateOps 重放队列 — baikeState 已包含完整最终状态，无需重放
         mIMChannelAgent.Clear();
+        GlobalInfo.controllerIds = new HashSet<int>(GlobalInfo.controllerIds);
 
-        yield return new WaitForEndOfFrame();
+        await UniTask.WaitForFixedUpdate();
         UIManager.Instance.CloseUI<LoadingPanel>();
+        IsIMSyncState = false;
     }
 
     /// <summary>
@@ -475,7 +434,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// 用于重连恢复：只等待初始化完成，避免 InitTreeView 的 SelectFlow(0) 覆盖步骤
     /// </summary>
     /// <returns></returns>
-    private IEnumerator WaitForFlowModule()
+    private async UniTask WaitForFlowModule()
     {
         float timeout = 3f;
         float elapsed = 0f;
@@ -487,7 +446,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             flowModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneFlowModule>(true);
             if (flowModule != null && flowModule.viewItemIds != null && flowModule.viewItemIds.Count > 0)
                 break;
-            yield return new WaitForSeconds(0.1f);
+            await UniTask.Delay(100);
             elapsed += 0.1f;
         }
 

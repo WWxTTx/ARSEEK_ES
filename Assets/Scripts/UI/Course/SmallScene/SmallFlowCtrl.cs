@@ -3,6 +3,7 @@ using DG.Tweening;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Interop;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -297,6 +298,11 @@ public class SmallFlowCtrl : MonoBase
     /// 防止多次执行
     /// </summary>
     private Dictionary<string, string> cache = new Dictionary<string, string>();
+
+    /// <summary>
+    /// 是否有操作正在执行中
+    /// </summary>
+    public bool IsExecuting => cache != null && cache.Count > 0;
 
     /// <summary>
     /// 当前步骤已执行并列操作集合
@@ -965,6 +971,7 @@ public class SmallFlowCtrl : MonoBase
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
+                    Log.Debug("联动操作 操作对象的联动执行完成");
                     if (!string.IsNullOrEmpty(op.hint_success))
                     {
                         SendOperatingRecordMsg(data, op, userNo, userName, isOnOperation);
@@ -976,6 +983,7 @@ public class SmallFlowCtrl : MonoBase
                     {
                         ExecuteFlowLinkOperation(opLinkages, () =>
                         {
+                            Log.Debug("联动操作 流程的联动执行完成");
                             if (isOnOperation)
                                 Next();
                             else
@@ -1499,11 +1507,6 @@ public class SmallFlowCtrl : MonoBase
         }
         else
         {
-            //ExecuteOperation(actions[index].operation, actions[index].optionName, null, isOn =>
-            //{
-            //    if (isOn != null)
-            //        RunAction(actions[index].operation.operations.Find(value => value.name.Equals(actions[index].optionName)).actions, null, 0, dummy);
-            //}, null, dummy);
             ExecuteAction(actions[index], dummy).Forget();
             RunAction(actions, callBack, ++index, dummy);
         }
@@ -1829,7 +1832,7 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
-    /// 记录当前步骤所有操作（上位机查看完成时调用）
+    /// 特殊情况使用的操作记录广播
     /// </summary>
     public void RecordCurrentStepOperations()
     {
@@ -1842,8 +1845,27 @@ public class SmallFlowCtrl : MonoBase
                 continue;
 
             OperationBase op = opData.operation.operations.Find(o => o.name.Equals(opData.optionName));
-            SendOperatingRecordMsg(opData, op, GlobalInfo.account.id.ToString(), GlobalInfo.account.nickname);
+            if(op!= null)
+            {
+                string hint = flows[index_NowFlow].steps[index_NowStep].hint_success;
+                if (hint == "" || hint == "完成提示")
+                    hint = op.hint_success;
+
+                float score = GetStepScore(true);
+                ToolManager.SendBroadcastMsg(new MsgOperatingRecord(
+                    (ushort)SmallFlowModuleEvent.OperatingRecord,
+                    hint,
+                    -1,
+                    GlobalInfo.account.userNo,
+                    GlobalInfo.account.nickname,
+                    OpType.Operation,
+                    true,
+                    score,
+                    TotalStepIndex));
+                return;
+            }
         }
+        
     }
 
     /// <summary>
@@ -1856,31 +1878,28 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="isCorrect">是否正确操作</param>
     private void SendOperatingRecordMsg(SmallOp1 data, OperationBase op, string userNo, string userName, bool isCorrect = false)
     {
-        string hint = op.hint_success; 
-
-        if (data.prop != null)
+        //操作成功的文本提示
+        string hint = flows[index_NowFlow].steps[index_NowStep].hint_success;
+        if (hint == "" || hint == "完成提示" || !isCorrect)
         {
-            switch (data.prop.PropType)
-            {
-                case PropType.BackPack:
-                case PropType.BackPack_Original:
-                    hint = $"使用{data.prop.Name},{hint}";
-                    break;
-            }
+            //未在流程中配置步骤完成提示
+            hint = op.hint_success;
         }
 
+        //获取当前步骤在网页上配置的分数
         float score = GetStepScore(isCorrect);
-
-        FormMsgManager.Instance.SendMsg(new MsgOperatingRecord(
+        MsgOperatingRecord msg = new MsgOperatingRecord(
             (ushort)SmallFlowModuleEvent.OperatingRecord,
             hint,
             -1,
             userNo,
             userName,
-            UISmallSceneOperationHistory.OpType.Operation,
+            OpType.Operation,
             true,
             score,
-            TotalStepIndex));
+            TotalStepIndex);
+        MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(msg.msgId, JsonTool.Serializable(msg));
+        FormMsgManager.Instance.SendMsg(msgBrodcastOperate);
     }
 
     /// <summary>
@@ -2061,6 +2080,32 @@ public class SmallFlowCtrl : MonoBase
     protected override void OnDestroy()
     {
         base.OnDestroy();
+    }
+
+    /// <summary>
+    /// 设置为最终状态
+    /// 协同状态同步 已
+    /// </summary>
+    public void SetFinalState(List<OpDicData> modelStates)
+    {
+        if (modelStates == null)
+            return;
+
+        foreach (var item in modelStates)
+        {
+            if (!operationIDs.ContainsKey(item.id))
+                continue;
+
+            SetFinalState(operationIDs[item.id], item.optionName, true);
+
+            if (uiRotateModels.TryGetValue(item.id, out Transform model) && model != null)
+            {
+                if ((operationIDs[item.id].GetComponent<ModelInfo>().InfoData.interactData as OpUIData).content != null)
+                {
+                    model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), item.uiTargetModelEulerZ);
+                }
+            }
+        }
     }
 }
 

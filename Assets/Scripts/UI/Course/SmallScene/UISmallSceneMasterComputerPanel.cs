@@ -131,6 +131,7 @@ public class UISmallSceneMasterComputerPanel : MonoBase
         {
             GlobalInfo.WaitUiOq = false;
             SpeechManager.Instance.PlayImmediate(flowCtrl.CurrentStep().ID, 0, TipType.StepComplete);
+            flowCtrl.RecordCurrentStepOperations();
             flowCtrl.Next();
         }
     }

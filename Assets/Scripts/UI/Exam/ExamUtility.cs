@@ -21,6 +21,11 @@ public class ExamUtility : Singleton<ExamUtility>
     /// </summary>
     private Dictionary<int, int> examineeRecords = new Dictionary<int, int>();
 
+    /// <summary>
+    /// 参与考核成员的考试结果详情
+    /// </summary>
+    private Dictionary<int, ExamResult> examResultMap = new Dictionary<int, ExamResult>();
+
 
     public List<int> Examinees
     {
@@ -40,6 +45,12 @@ public class ExamUtility : Singleton<ExamUtility>
         }
     }
 
+    /// <summary>
+    /// 房主使用创建时获取
+    /// </summary>
+    /// <param name="examId"></param>
+    /// <param name="success"></param>
+    /// <param name="failure"></param>
     public void InitSubmitCache(int examId, UnityAction success, UnityAction<string> failure)
     {
         RequestManager.Instance.GetExamResultList(examId, (list) =>
@@ -47,16 +58,10 @@ public class ExamUtility : Singleton<ExamUtility>
             submitCache.Clear();
             examineeRecords.Clear();
 
-            if (GlobalInfo.IsGroupMode())
-            {
-                submitCache.Add(0, false);
-            }
-            else
-            {
-                //获取指定ID考核的未结束答题的成员列表
-                submitCache = list.records.Select(r => r).Where(r => !r.ended).ToDictionary(kvp => kvp.examineeId, kvp => false);
-                examineeRecords = list.records.ToDictionary(kvp => kvp.examineeId, kvp => kvp.id);
-            }
+            //获取指定ID考核的未结束答题的成员列表
+            submitCache = list.records.Select(r => r).Where(r => !r.ended).ToDictionary(kvp => kvp.examineeId, kvp => false);
+            examineeRecords = list.records.ToDictionary(kvp => kvp.examineeId, kvp => kvp.id);
+            examResultMap = list.records.ToDictionary(kvp => kvp.examineeId, kvp => kvp);
             success?.Invoke();
         }, (error) =>
         {
@@ -65,20 +70,17 @@ public class ExamUtility : Singleton<ExamUtility>
         });
     }
 
+    /// <summary>
+    /// 考生使用 由房主在开始重连时传递
+    /// </summary>
+    /// <param name="records"></param>
     public void InitSubmitCache(Dictionary<int, int> records)
     {
         submitCache.Clear();
         examineeRecords.Clear();
 
-        if (GlobalInfo.IsGroupMode())
-        {
-            submitCache.Add(0, false);
-        }
-        else
-        {
-            submitCache = records.ToDictionary(kvp => kvp.Key, kvp => false);
-            examineeRecords = records;
-        }
+        submitCache = records.ToDictionary(kvp => kvp.Key, kvp => false);
+        examineeRecords = records;
     }
 
     public int GetUserRecordId(int userId)
@@ -119,6 +121,13 @@ public class ExamUtility : Singleton<ExamUtility>
     public void ClearSubmitCache()
     {
         submitCache.Clear();
+    }
+
+    public ExamResult GetExamResult(int examineeId)
+    {
+        if (examResultMap.TryGetValue(examineeId, out var result))
+            return result;
+        return null;
     }
 
     /// <summary>

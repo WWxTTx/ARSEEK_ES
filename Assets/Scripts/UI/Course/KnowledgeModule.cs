@@ -847,10 +847,11 @@ public class KnowledgeModule : UIModuleBase
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.SelectStep:
+                // 接收任务进度跳转消息，根据flow和step索引刷新知识点列表
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
                 if (smallFlowCtrl && smallFlowCtrl.flows != null)
                 {
-                    currentUUID = smallFlowCtrl.flows[msgStringTuple.arg2.Item1].steps[msgStringTuple.arg2.Item2].ID;
+                    currentUUID = smallFlowCtrl.flows[msgStringTuple.arg2.Item1].steps[msgStringTuple.arg2.Item2].ID; // arg2.Item1: flow索引, arg2.Item2: step索引
                     RefreshListByUUID();
                 }
                 break;

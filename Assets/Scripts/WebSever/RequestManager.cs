@@ -1405,28 +1405,28 @@ namespace UnityFramework.Runtime
         }
 
         /// <summary>
-        /// 获取考试结果V2
+        /// 取得考核记录
         /// </summary>
         /// <param name="examId"></param>
         /// <param name="successCallBack"></param>
         /// <param name="failureCallBack"></param>
         public void GetExamineResult(int examId, UnityAction<int, List<Answer>, List<Accessory>> successCallBack, UnityAction<string> failureCallBack)
         {
-            requestBase.TryRequest_List("取得考试结果", RequestType.GET, $"{ApiData.ExamineResult}?examineId={examId}", string.Empty, (result, message) =>
+            requestBase.TryRequest_List("取得考核记录", RequestType.GET, $"{ApiData.ExamineResult}?examineId={examId}", string.Empty, (result, message) =>
             {
                 ExamineResultGetRequest(result, message, successCallBack, failureCallBack);
             }, false);
         }
 
         /// <summary>
-        /// 获取考试结果V2 （个人考核）
+        /// 取得考核记录 （个人考核）
         /// </summary>
         /// <param name="examId"></param>
         /// <param name="successCallBack"></param>
         /// <param name="failureCallBack"></param>
         public void GetExamineResultByRecordId(int recordId, UnityAction<int, List<Answer>, List<Accessory>> successCallBack, UnityAction<string> failureCallBack)
         {
-            requestBase.TryRequest_List("取得考试结果", RequestType.GET, $"{ApiData.ExamineResult}?id={recordId}", string.Empty, (result, message) =>
+            requestBase.TryRequest_List("取得考核记录", RequestType.GET, $"{ApiData.ExamineResult}?id={recordId}", string.Empty, (result, message) =>
             {
                 ExamineResultGetRequest(result, message, successCallBack, failureCallBack);
             }, false);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -123,7 +123,7 @@ public class SynPaintModule : OPLPaintModule
         {
             case (ushort)PaintEvent.SyncPaint:
                 int paintUser = ((MsgBrodcastOperate)msg).senderId;
-                if (paintUser == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
+                if (paintUser == GlobalInfo.account.id && NetworkManager.Instance.IsIMSyncState)
                     return;
                 if (!GlobalInfo.IsUserOperator(paintUser))
                     return;
