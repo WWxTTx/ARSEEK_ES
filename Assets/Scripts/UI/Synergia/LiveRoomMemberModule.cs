@@ -355,6 +355,7 @@ public class LiveRoomMemberModule : UIModuleBase
             {
                 Log.Debug($"[协同调试] 当前用户获得操作权限 | RoomType:{GlobalInfo.roomInfo?.RoomType}");
 
+                NetworkManager.Instance.TrySyncCachedVersion();
                 SendMsg(new MsgBase((ushort)CoursePanelEvent.CloseMask));
                 SendMsg(new MsgBase((ushort)MediaChannelEvent.RemoveView));
 

@@ -1565,7 +1565,7 @@ public class UISmallSceneModule : UIModuleBase
                 break;
             //大部分的状态重置都在这个消息中
             case (ushort)SmallFlowModuleEvent.CompleteStep:
-                if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id && GlobalInfo.isCooperation && ModelState == ModelState.OtherOperating)
+                if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id && GlobalInfo.isCooperation)
                 {
                     MsgIntInt completeStepData = ((MsgBrodcastOperate)msg).GetData<MsgIntInt>();
                     int receivedFlow = completeStepData.arg1;

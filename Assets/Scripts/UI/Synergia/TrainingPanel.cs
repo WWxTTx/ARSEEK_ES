@@ -330,7 +330,7 @@ public class TrainingPanel : UIPanelBase
             return;
         }
 
-        Empty.SetActive(false);
+        Empty?.SetActive(false);
         currentItems.Clear();
 
         rooms = UpdateRoomListOrder(rooms);

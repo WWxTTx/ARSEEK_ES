@@ -180,7 +180,7 @@ public class ExamPanel : HoverHintPanel
                             Destroy(gameObjects[i]);
                             allMemberItem.Remove(i);
                         }
-                        StopExam();
+                        StopExam((ushort)ExamPanelEvent.Stop);
                     }, true));
                     UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核还未结束，确定结束考核？", popupDic));
                 }
@@ -251,7 +251,7 @@ public class ExamPanel : HoverHintPanel
                     }
                     else
                     {
-                        StopExam();
+                        StopExam((ushort)ExamPanelEvent.Stop);
                         return;
                     }
 
@@ -416,7 +416,7 @@ public class ExamPanel : HoverHintPanel
     /// 结束考核,更新房间及UI状态
     /// </summary>
     /// <param name="msgId"></param>
-    private void StopExam(ushort msgId = (ushort)ExamPanelEvent.Stop)
+    private void StopExam(ushort msgId = 0)
     {
         if (FullScreenUserId != -1)
         {
@@ -424,8 +424,9 @@ public class ExamPanel : HoverHintPanel
             FullScreenUserId = -1;
         }
         WaitHint.SetActive(true);
-        
-        ToolManager.SendBroadcastMsg(new MsgInt(msgId, activeExamId), true);
+
+        if (msgId != 0)
+            ToolManager.SendBroadcastMsg(new MsgInt(msgId, activeExamId), true);
         ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
 
         //立即重置本地状态，防止异步期间状态不一致
@@ -771,7 +772,7 @@ public class ExamPanel : HoverHintPanel
         if (allMemberItem.Count == 0 && !GlobalInfo.waitExam)
         {
             Log.Debug("成员列表为空，自动结束考核");
-            StopExam();
+            StopExam((ushort)ExamPanelEvent.Stop);
         }
     }
     private void SetTeacher(Transform tf, Member info)
@@ -1053,7 +1054,7 @@ public class ExamPanel : HoverHintPanel
         if (!GlobalInfo.waitExam && allMemberItem.Count == 0)
         {
             Log.Debug("所有考生已离开，自动结束考核");
-            StopExam();
+            StopExam((ushort)ExamPanelEvent.Stop);
         }
     }
 

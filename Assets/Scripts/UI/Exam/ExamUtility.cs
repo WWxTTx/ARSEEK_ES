@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Forms;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityFramework.Runtime;
@@ -107,7 +108,11 @@ public class ExamUtility : Singleton<ExamUtility>
     {
         if (GlobalInfo.IsGroupMode())
         {
-            submitCache[0] = true;
+            List<int> k = submitCache.Keys.ToList();
+            for (int i = 0; i < k.Count; i++)
+            {
+                submitCache[k[i]] = true;
+            }
         }
         else
         {

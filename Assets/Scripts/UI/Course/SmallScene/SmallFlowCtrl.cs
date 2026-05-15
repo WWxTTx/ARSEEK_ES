@@ -204,7 +204,6 @@ public class SmallFlowCtrl : MonoBase
         set
         {
             _index_NowStep = value;
-
             // 自动播放：使用 DelayStart
             if (nowFlowStep != null && nowFlowStep.initState != null && nowFlowStep.initState.Count > 0)
             {

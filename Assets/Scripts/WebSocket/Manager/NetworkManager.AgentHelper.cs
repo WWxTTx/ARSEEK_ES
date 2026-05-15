@@ -302,18 +302,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     public bool IsIMSyncState = false;
 
     /// <summary>
-    /// 是否正在同步百科状态
-    /// </summary>
-    public bool IsIMSyncBaikeState
-    {
-        get { return mIMChannelAgent.IsSyncBaikeState; }
-        set
-        {
-            mIMChannelAgent.IsSyncBaikeState = value;
-        }
-    }
-
-    /// <summary>
     /// 待发送的操作消息数量
     /// </summary>
     public int SendOpCount
@@ -332,6 +320,14 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     }
 
     Action ExamCoursePanelAction;
+    /// <summary>
+    /// 尝试同步缓存版本（cachedPacket 可能为 null）
+    /// </summary>
+    public void TrySyncCachedVersion()
+    {
+        mIMChannelAgent.SyncCachedVersion();
+    }
+
     public void SyncBaikeState(Action callback = null)
     {
         ExamCoursePanelAction = callback;
@@ -359,10 +355,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         // 重连只能发生在有重连信息,已重建场景后
         if (currentState == null || currentState.baikeState == null || currentState.baikeState.data == null || model == null)
         {
-            IsIMSyncBaikeState = false;
             return;
         }
-        IsIMSyncBaikeState = true;
+        IsIMSyncState = true;
 
         UIManager.Instance.OpenUI<LoadingPanel>();
 
@@ -372,7 +367,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         step = smallSceneBaikeState.stepIndex;
 
         Debug.Log("当前获得的任务进度为：" + flow + "   " + step);
-        if (smallSceneBaikeState != null  && IsIMSyncState && (step > 0 || flow > 0))
+        if ((step > 0 || flow > 0))
         {
             // 等待 UISmallSceneFlowModule 初始化完成
             await WaitForFlowModule();
@@ -381,12 +376,14 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
             if (smallSceneModule != null && smallSceneModule.smallFlowCtrl.flows != null)
             {
-                ToolManager.SendBroadcastMsg(new MsgStringTuple<int, int, string>()
+                MsgStringTuple<int, int, string> msg = new MsgStringTuple<int, int, string>()
                 {
                     msgId = (ushort)SmallFlowModuleEvent.SelectStep,
                     arg1 = smallSceneModule.smallFlowCtrl.flows[flow].steps[step].ID, // 步骤UUID
                     arg2 = new System.Tuple<int, int, string>(flow, step, string.Empty) // flow索引, step索引, 预留
-                });
+                };
+                MsgBrodcastOperate msgBrodcastOperate = new MsgBrodcastOperate(msg.msgId, JsonTool.Serializable(msg));
+                FormMsgManager.Instance.SendMsg(msgBrodcastOperate);
             }
 
             await UniTask.Delay(500, ignoreTimeScale: true);
@@ -414,14 +411,14 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
         await UniTask.WaitForFixedUpdate();
         //恢复消息执行
-        mIMChannelAgent.IsStartSync = true;
         IsIMSync = true;
-        IsIMSyncBaikeState = false;
-        //完成百科状态同步后，清空待同步状态，避免切换百科后重复同步
-        mIMChannelAgent.currentState = null;
-        //清空 stateOps 重放队列 — baikeState 已包含完整最终状态，无需重放
+
+        // 先保存 controllerIds 的副本
+        var savedControllerIds = new HashSet<int>(GlobalInfo.controllerIds);
+        // 再执行清理
         mIMChannelAgent.Clear();
-        GlobalInfo.controllerIds = new HashSet<int>(GlobalInfo.controllerIds);
+        // 恢复 controllerIds
+        GlobalInfo.controllerIds = savedControllerIds;
 
         await UniTask.WaitForFixedUpdate();
         UIManager.Instance.CloseUI<LoadingPanel>();

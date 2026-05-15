@@ -53,6 +53,12 @@ public class IMChannelAgent : NetworkChannelAgentBase
     private Queue<MsgBrodcastOperate> opsQueue = new Queue<MsgBrodcastOperate>();
 
     /// <summary>
+    /// 缓存操作版本
+    /// 直播房间无权限用户缓存但不执行，用于获取操作权时同步状态
+    /// </summary>
+    private IMPacket cachedPacket;
+
+    /// <summary>
     /// 收到的操作消息队列
     /// </summary>
     private Queue<MsgBrodcastOperate> opsReceive = new Queue<MsgBrodcastOperate>();
@@ -179,6 +185,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     }
 
     private static string opLog = "<color=#14A857>执行消息:</color>";
+    private static string opreLog = "<color=#14A857>执行缓存消息:</color>";
 
     /// <summary>
     /// 执行操作
@@ -188,7 +195,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (currentOp == null)
             return;
 
-        Log.Debug($"{opLog} {JsonTool.Serializable(currentOp)}");
+        string str = NetworkManager.Instance.IsIMSyncState ? opLog : opreLog;
+        Log.Debug($"{str} {JsonTool.Serializable(currentOp)}");
         try
         {
             if (string.IsNullOrEmpty(currentOp.data))
@@ -243,6 +251,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
                     IMPacket packet = JsonTool.DeSerializable<IMPacket>(datamsg);
                     if (packet != null)
                     {
+                        cachedPacket = packet;
+
                         bool isOperator = GlobalInfo.IsOperator();
                         bool versionLag = GlobalInfo.version < version - 1;
                         Log.Debug($"[IMChannel] ProcessMessage version={version}, localVersion={GlobalInfo.version}, isOperator={isOperator}, versionLag={versionLag}, packetMsgId={packet.data?.msgId}");
@@ -295,6 +305,17 @@ public class IMChannelAgent : NetworkChannelAgentBase
         currentState = packet.state;
         stateHelper.UpdateStateVersion(packet);
         NetworkManager.Instance.SyncBaikeState();
+    }
+
+    /// <summary>
+    /// 同步缓存版本（直播非房主获取权限时调用）
+    /// </summary>
+    public void SyncCachedVersion()
+    {
+        if (cachedPacket == null)
+            return;
+
+        SyncVersion(cachedPacket);
     }
 
     /// <summary>
@@ -410,6 +431,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             opsQueue.Clear();
         opsReceive.Clear();
         currentOp = null;
+        cachedPacket = null;
         stateHelper.Clear();
         if (!waitResponse)
             IsWaitingResponse = false;

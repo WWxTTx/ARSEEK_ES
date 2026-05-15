@@ -1135,7 +1135,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             //立即显示弹窗，不依赖提交完成
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("确定", new PopupButtonData(() => Quit(), true));
-            UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", "其他考生已提交考核，系统自动提交", popupDic, 10, true, () => Quit()));
+            UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", string.Format("考生【{0}】主动提交考核，考试结束", submitUserId), popupDic, 10, true, () => Quit()));
         }
     }
 
