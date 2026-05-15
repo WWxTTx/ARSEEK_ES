@@ -110,6 +110,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
     private void Quit()
     {
+        //退出房间，立即删除flag，避免触发异常退出提示
+        PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
         if (!GlobalInfo.waitExam && ExamUtility.Instance.AllSubmit() && !NetworkManager.Instance.IsUserOnline(GlobalInfo.roomInfo.creatorId))
         {
             NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Flush, JsonTool.Serializable(new MsgBase((ushort)ExamPanelEvent.Flush))));
@@ -317,7 +319,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             if(GlobalInfo.courseMode != CourseMode.Exam)
             {
                 Debug.Log("执行多人考核状态恢复");
-                NetworkManager.Instance.SyncBaikeState();
+                NetworkManager.Instance.SyncBaikeState(SetStateByHistory);
             }
            
             //提交考核记录事件绑定
@@ -496,7 +498,23 @@ public partial class ExamCoursePanel : OPLCoursePanel
         
         Log.Debug($"考核重连恢复进度 flow:{flow} step:{step}");
 
-        List<OpRecordData> opRecordData = null; 
+        //同步操作对象状态 恢复步骤
+        smallSceneModule.smallFlowCtrl.SelectFlow(flow, false);
+        smallSceneModule.smallFlowCtrl.SelectStep(step, false);
+
+        await UniTask.Delay(TimeSpan.FromSeconds(0.1));
+        SetStateByHistory();
+        smallSceneModule.smallFlowCtrl.Next();
+
+        //完成恢复，打开消息处理
+        await UniTask.Delay(TimeSpan.FromSeconds(0.1));
+        UIManager.Instance.CloseUI<LoadingPanel>();
+        NetworkManager.Instance.IsIMSync = true;
+    }
+
+    public void SetStateByHistory()
+    {
+        List<OpRecordData> opRecordData = null;
         AnswerOp answerOp = null;
         if (GlobalInfo.currentWiki != null && answersDic.ContainsKey(GlobalInfo.currentWiki.id))
         {
@@ -517,20 +535,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 }).ToList();
             }
         }
-
-        //同步操作对象状态 恢复步骤
-        if (answerOp.modelStates != null)
-        {
-            smallSceneModule.smallFlowCtrl.SelectFlow(flow, false);
-            smallSceneModule.smallFlowCtrl.SelectStep(step, false);
-
-            //用服务器的历史记录覆盖当前记录
-            smallSceneModule.operationHistoryModule.UpdateOpRecordList(opRecordData);
-        }
-
-        //完成恢复，打开消息处理
-        await UniTask.Delay(TimeSpan.FromSeconds(0.1));
-
+        //用服务器的历史记录覆盖当前记录
+        smallSceneModule.operationHistoryModule.UpdateOpRecordList(opRecordData);
+        //用操作记录还原场景变动
         smallSceneModule.smallFlowCtrl.SetFinalState(answerOp.modelStates.Select(s => new OpDicData()
         {
             id = s.id,
@@ -538,8 +545,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             uiTargetModelEulerZ = float.Parse(s.uiTargetModelEulerZ)
         }).ToList());
 
-        UIManager.Instance.CloseUI<LoadingPanel>();
-        NetworkManager.Instance.IsIMSync = true;
     }
 
     /// <summary>
@@ -1024,7 +1029,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             time.text = $"考核倒计时：{remainingTime.ToString(@"hh\:mm\:ss")}";
             remainingSeconds = (int)remainingTime.TotalSeconds;
             //停止计时
-            if (!GlobalInfo.waitExam || ct.IsCancellationRequested)
+            if (GlobalInfo.waitExam || ct.IsCancellationRequested)
                 return;
             await UniTask.Delay(TimeSpan.FromSeconds(1), cancellationToken: ct);
         }

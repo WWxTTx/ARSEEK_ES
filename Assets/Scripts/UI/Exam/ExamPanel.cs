@@ -106,8 +106,10 @@ public class ExamPanel : HoverHintPanel
 
         ExamBtn = this.GetComponentByChildName<Button>("ExamBtn");
         {
+            //开始按钮按下后必须等待联机逻辑处理完或等待3s才能再次点击
             ExamBtn.onClick.AddListener(() =>
             {
+                ExamBtn.interactable = false;
                 if (GlobalInfo.waitExam && CanStart())
                 {
                     //创建考核
@@ -146,6 +148,7 @@ public class ExamPanel : HoverHintPanel
                                 //取得考核成绩列表，记录提交情况
                                 ExamUtility.Instance.InitSubmitCache(examId, () =>
                                 {
+                                    ExamBtn.interactable = true;
                                     //修改考核房间状态
                                     NetworkManager.Instance.RoomWorking(GlobalInfo.roomInfo.Uuid, () =>
                                     {
@@ -165,7 +168,10 @@ public class ExamPanel : HoverHintPanel
                 else
                 {
                     var popupDic = new Dictionary<string, PopupButtonData>();
-                    popupDic.Add("取消", new PopupButtonData(null, false));
+                    popupDic.Add("取消", new PopupButtonData(() =>
+                    {
+                        ExamBtn.interactable = true;
+                    }, false));
                     popupDic.Add("结束考核", new PopupButtonData(() => {
                         //主动结束考核，无条件全部移除
                         List<GameObject> gameObjects = allMemberItem.Values.ToList();
@@ -178,6 +184,10 @@ public class ExamPanel : HoverHintPanel
                     }, true));
                     UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核还未结束，确定结束考核？", popupDic));
                 }
+                DOVirtual.DelayedCall(3, () =>
+                {
+                    ExamBtn.interactable = true;
+                });
             });
             ExamBtn.gameObject.SetActive(true);
         }

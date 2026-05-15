@@ -331,8 +331,10 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         mIMChannelAgent.SendOperationData(msg);
     }
 
-    public void SyncBaikeState()
+    Action ExamCoursePanelAction;
+    public void SyncBaikeState(Action callback = null)
     {
+        ExamCoursePanelAction = callback;
         SyncBaikeStateAndCatchAsync();
     }
 
@@ -395,10 +397,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             //多人考核需要在联机步骤恢复的基础上增加操作记录对应操作还原
             if (GlobalInfo.courseMode == CourseMode.OnlineExam)
             {
-                if (smallSceneBaikeState.modelStates != null && smallSceneBaikeState.modelStates.Count > 0)
-                {
-                    smallSceneModule.smallFlowCtrl.SetFinalState(smallSceneBaikeState.modelStates);
-                }
+                ExamCoursePanelAction?.Invoke();
             }
 
             // 等待步骤切换操作全部执行完成（最多等1秒）

@@ -11,9 +11,4 @@ public interface IIMAgentHelper
     /// </summary>
     /// <param name="msg"></param>
     void SendIMMsg(MsgBrodcastOperate msg);
-
-    /// <summary>
-    /// 同步百科状态
-    /// </summary>
-    void SyncBaikeState();
 }
