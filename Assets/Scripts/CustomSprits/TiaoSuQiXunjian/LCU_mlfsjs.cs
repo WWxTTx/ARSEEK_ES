@@ -50,25 +50,22 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
     {
         SetImageRaycast(true);
         GlobalInfo.WaitUiOq = true;
-        // 如果步骤列表为空，先初始化流程
+        //将表现内容和步骤分开 同步时只执行表现内容 不设置步骤 等待操作者使用结束消息触发下一步
         if (steps.Count == 0)
         {
             DealEvent((AvailableStatus)msgUI.status);
         }
-
-        await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
-
-        // 如果已经完成所有步骤
-        if (msgUI.stepIndex >= steps.Count)
+        else if (steps.Count <= msgUI.stepIndex)
         {
             callback?.Invoke();
-            callback = null;
+     
             currentStepIndex = msgUI.stepIndex;
             SetTip();
             return;
         }
 
-        // 执行从当前步骤到目标步骤
+        await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
+
         for (int i = currentStepIndex; i < msgUI.stepIndex && i < steps.Count; i++)
         {
             ExecuteButtonEvent(steps[i]);
@@ -294,14 +291,14 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         {
             // 发送广播消息给其他用户（包含操作对象ID）
             ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationLcu, (int)status, currentStepIndex), true);
+            ExecuteButtonEvent(eventname);
         }
-        ExecuteButtonEvent(eventname);
     }
 
     /// <summary>
     /// 执行按钮事件的实际逻辑
     /// </summary>
-    private void ExecuteButtonEvent(string eventname)
+    public void ExecuteButtonEvent(string eventname)
     {
         switch (eventname)
         {
@@ -389,6 +386,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                 callback?.Invoke();
                 DOVirtual.DelayedCall(2, () => {
                     Othercallback?.Invoke();
+                    Othercallback = null;
                 });
             }
             return true;

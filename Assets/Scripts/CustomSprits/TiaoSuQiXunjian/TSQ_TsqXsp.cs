@@ -553,7 +553,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     });
                     DOVirtual.DelayedCall(24, () =>
                     {
-                        Othercallback.Invoke();
+                        Othercallback?.Invoke();Othercallback = null;
                         
                     });
                 };
@@ -570,7 +570,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                     }, 12, 2);
                     DOVirtual.DelayedCall(4, () =>
                     {
-                        Othercallback.Invoke();
+                        Othercallback?.Invoke();Othercallback = null;
                         
                     });
                 };
@@ -628,7 +628,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
                     DOVirtual.DelayedCall(14, () =>
                     {
-                        Othercallback.Invoke();
+                        Othercallback?.Invoke();Othercallback = null;
                         
                     });
                 };
@@ -800,7 +800,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
                         DOVirtual.DelayedCall(2, () =>
                         {
-                            Othercallback.Invoke();
+                            Othercallback?.Invoke();Othercallback = null;
                             
                         });
                     });
@@ -945,8 +945,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
                     DOVirtual.DelayedCall(14, () =>
                     {
-                        Othercallback.Invoke();
-                        
+                        Othercallback?.Invoke();Othercallback = null;
                     });
                 };
 
@@ -982,7 +981,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 Settip(TextDic["齿盘测频"], false);
                 Settip(TextDic["机组转速"], false);
                 
-                Othercallback.Invoke();
+                Othercallback?.Invoke();Othercallback = null;
             });
         });
     }
@@ -1198,8 +1197,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             // 发送广播消息给其他用户（包含操作对象ID）
             ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, (int)status, currentStepIndex), true);
+            ExecuteButtonEvent(eventname);
         }
-        ExecuteButtonEvent(eventname);
     }
 
     /// <summary>
@@ -1499,7 +1498,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 {
                     DOVirtual.DelayedCall(2, () =>
                     {
-                        Othercallback.Invoke();
+                        Othercallback?.Invoke();Othercallback = null;
                     });
                 }
             }

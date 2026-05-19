@@ -330,6 +330,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
     public void SyncBaikeState(Action callback = null)
     {
+        //开始进行版本同步前，清除一些状态
+        FormMsgManager.Instance.SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
+
         ExamCoursePanelAction = callback;
         SyncBaikeStateAndCatchAsync();
     }
@@ -346,19 +349,35 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         }
     }
 
+    /// <summary>
+    /// 加载本地缓存的 IMPacket
+    /// </summary>
+    IMState LoadCachedPacket()
+    {
+        string json = PlayerPrefs.GetString("RestoreCachedPacket", "");
+        if (!string.IsNullOrEmpty(json))
+        {
+            try { return JsonTool.DeSerializable<IMPacket>(json).state; }
+            catch { }
+        }
+        return null;
+    }
+
     int step = 0;
     int flow = 0;
     private async UniTask _syncBaikeState()
     {
         IMState currentState = mIMChannelAgent.currentState;
+        if (currentState == null && GlobalInfo.UseLoadCachedPacket)
+            currentState = LoadCachedPacket();
         GameObject model = ModelManager.Instance.modelGo;
-        // 重连只能发生在有重连信息,已重建场景后
+        // 重连恢复步骤只能发生在有重连信息,已重建场景后
         if (currentState == null || currentState.baikeState == null || currentState.baikeState.data == null || model == null)
         {
             return;
         }
         IsIMSyncState = true;
-
+        GlobalInfo.UseLoadCachedPacket = false;
         UIManager.Instance.OpenUI<LoadingPanel>();
 
         //消息中为空的可能会覆盖正确的

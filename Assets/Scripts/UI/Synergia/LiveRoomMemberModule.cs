@@ -134,6 +134,10 @@ public class LiveRoomMemberModule : UIModuleBase
                 NetworkManager.Instance.SilentAllMember(!GlobalInfo.isAllTalk);
             });
         }
+        else
+        {
+            AllVoiceOffBtn.transform.parent.gameObject.SetActive(false);
+        }
 
         SearchModule.OnSearch.AddListener((value) => UpdateMemberList(NetworkManager.Instance.GetRoomMemberList()));
     }

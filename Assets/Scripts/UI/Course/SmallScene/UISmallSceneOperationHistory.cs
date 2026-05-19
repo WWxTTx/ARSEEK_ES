@@ -326,7 +326,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                     inputItem.interactable = false;
             }
         }
-        smallFlowCtrl.Next();
+        smallFlowCtrl.Next(false);
     }
 
     /// <summary>

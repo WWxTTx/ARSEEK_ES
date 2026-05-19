@@ -96,7 +96,8 @@ public class GlobalInfo
     public const string courseVoice = "CourseVoice";
     #endregion
 
-
+    //是否使用本地缓存数据
+    public static bool UseLoadCachedPacket = false;
     /// <summary>
     /// 如果是协同模式，队友在操作有步骤的自定义，那就不能进入下一步，等待140[UI按钮操作]消息去执行下一步
     /// </summary>

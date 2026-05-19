@@ -243,8 +243,8 @@ public class TrainingPanel : UIPanelBase
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("是", new PopupButtonData(() =>
                 {
-                    
                     JoinRoom(roomInfo.Uuid, roomInfo.Password);
+                    GlobalInfo.UseLoadCachedPacket = true;
                 }, true));
                 popupDic.Add("否", new PopupButtonData(() =>
                 {

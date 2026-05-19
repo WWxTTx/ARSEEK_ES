@@ -123,7 +123,6 @@ public class UISmallSceneMasterComputerPanel : MonoBase
         // 隐藏图纸面板
         HideView();
         Over.gameObject.SetActive(false);
-        ShowTool();
 
         // 结束当前步骤进入下一步
         SmallFlowCtrl flowCtrl = ModelManager.Instance?.modelGo?.GetComponent<SmallFlowCtrl>();
@@ -132,7 +131,7 @@ public class UISmallSceneMasterComputerPanel : MonoBase
             GlobalInfo.WaitUiOq = false;
             SpeechManager.Instance.PlayImmediate(flowCtrl.CurrentStep().ID, 0, TipType.StepComplete);
             flowCtrl.RecordCurrentStepOperations();
-            flowCtrl.Next();
+            flowCtrl.Next(false);
         }
     }
 
@@ -158,6 +157,7 @@ public class UISmallSceneMasterComputerPanel : MonoBase
     public void HideView()
     {
         gameObject.SetActive(false);
+        Over.gameObject.SetActive(false);
     }
 
     public override void ProcessEvent(MsgBase msg)
@@ -166,25 +166,10 @@ public class UISmallSceneMasterComputerPanel : MonoBase
         switch (msg.msgId)
         {
             case (ushort)SmallFlowModuleEvent.SelectStep:
-            case (ushort)SmallFlowModuleEvent.CompleteStep:
-                // 步骤切换时关闭工具栏子界面，隐藏Over按钮
-                Over.gameObject.SetActive(false);
-                ShowTool();
                 HideView();
                 break;
         }
     }
-    void ShowTool()
-    {
-        // 取消选中图纸按钮并显示工具栏
-        UISmallSceneToolModule toolModule = FindObjectOfType<UISmallSceneToolModule>();
-        if (toolModule != null)
-        {
-            toolModule.CancelDrawingToggle();
-            toolModule.ShowTool(true);  // 显示工具栏
-        }
-    }
-
 }
 
 

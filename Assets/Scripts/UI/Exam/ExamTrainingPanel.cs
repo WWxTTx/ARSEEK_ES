@@ -239,11 +239,13 @@ public class ExamTrainingPanel : UIPanelBase
                 popupDic.Add("是", new PopupButtonData(() =>
                 {
                     creatingRoom = false;
+                    GlobalInfo.UseLoadCachedPacket = true;
                     GlobalInfo.currentCourseID = item.CourseId;
                     JoinRoom(item.Uuid, item.Password);
                 }, true));
                 popupDic.Add("否", new PopupButtonData(() =>
                 {
+                    ExamUtility.Instance.DeleteParticipantExamCache(item.Uuid);
                     PlayerPrefs.DeleteKey(flag);
                 }));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？", popupDic, null, false));

@@ -61,7 +61,7 @@ public class IMPacket
 }
 
 /// <summary>
-/// 直播状态
+/// 状态类
 /// </summary>
 public class IMState
 {

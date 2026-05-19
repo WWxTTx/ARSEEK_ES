@@ -148,6 +148,14 @@ public class ExamUtility : Singleton<ExamUtility>
     /// <param name="operateMsg"></param>
     public void EnqueueOperation(int examId, int baikeId, OpRecordData record, ExamineResultModelState[] modelStates)
     {
+        // 非本人操作不上传分数，避免协同/考核中重复提交
+        if (record != null && !string.IsNullOrEmpty(record.userNo)
+            && !record.userNo.Equals(GlobalInfo.account.userNo))
+        {
+            Log.Debug($"跳过非本人操作记录提交：record.userNo={record.userNo} 本机userNo={GlobalInfo.account.userNo}");
+            return;
+        }
+
         if (record != null)
         {
             var operation = new ExamineResultOperation()
@@ -370,6 +378,40 @@ public class ExamUtility : Singleton<ExamUtility>
                 examHistory.Remove(GlobalInfo.account.id);
         }
         SaveExamHistory(examHistory);
+    }
+    #endregion
+
+    #region 参与者考核房间缓存
+    /// <summary>
+    /// 参与者进入考核时缓存 examId 和 endTime，用于异常退出后自动重连
+    /// </summary>
+    public void SetParticipantExamCache(string roomUuid, int examId, DateTime endTime)
+    {
+        SetHostExamCache(roomUuid, examId, endTime);
+    }
+
+    /// <summary>
+    /// 获取参与者缓存的考核ID
+    /// </summary>
+    public int GetParticipantExamId(string roomUuid)
+    {
+        return GetHostExamCache(roomUuid);
+    }
+
+    /// <summary>
+    /// 获取参与者缓存的考核结束时间
+    /// </summary>
+    public DateTime? GetParticipantExamEndTime(string roomUuid)
+    {
+        return GetHostExamEndTime(roomUuid);
+    }
+
+    /// <summary>
+    /// 删除参与者考核缓存（考核正常结束时调用）
+    /// </summary>
+    public void DeleteParticipantExamCache(string roomUuid)
+    {
+        DeleteHostExamCache(roomUuid);
     }
     #endregion
 }

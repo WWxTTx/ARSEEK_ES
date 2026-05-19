@@ -1703,6 +1703,7 @@
     <None Include="Assets\SDK\TextMesh Pro\Resources\Shaders\TMP_SDF-Surface.shader" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn3.11\cs\ja\System.Text.Json.SourceGeneration.resources.dll" />
     <None Include="Assets\Packages\System.Collections.Immutable.6.0.0\THIRD-PARTY-NOTICES.TXT" />
+    <None Include="Assets\Scripts\UI\Course\SmallScene\SmallFlowCtrl_Summary.txt" />
     <None Include="Assets\Packages\System.Buffers.4.5.1\useSharedDesignerContext.txt" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn3.11\cs\it\System.Text.Json.SourceGeneration.resources.dll" />
     <None Include="Assets\SDK\TextMesh Pro\Sprites\EmojiOne Attribution.txt" />

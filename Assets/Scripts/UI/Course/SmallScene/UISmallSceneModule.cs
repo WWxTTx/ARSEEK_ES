@@ -950,7 +950,7 @@ public class UISmallSceneModule : UIModuleBase
                 }
             }
 
-            ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.ClickObj, modelOperation_Select.GetComponent<ModelInfo>().ID, null, null));
+            FormMsgManager.Instance.SendMsg(new MsgOperation((ushort)SmallFlowModuleEvent.ClickObj, modelOperation_Select.GetComponent<ModelInfo>().ID, null, null));
         }
     }
 
@@ -1384,7 +1384,7 @@ public class UISmallSceneModule : UIModuleBase
         error.DOFade(0, 0.5f).SetLoops(3).SetEase(Ease.InOutQuad).SetId("ErrorShow");
         DOVirtual.DelayedCall(1, () =>
         {
-            ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
+            FormMsgManager.Instance.SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
         });
     }
 
@@ -1565,11 +1565,12 @@ public class UISmallSceneModule : UIModuleBase
                 break;
             //大部分的状态重置都在这个消息中
             case (ushort)SmallFlowModuleEvent.CompleteStep:
+                MsgIntInt completeStepData = ((MsgBrodcastOperate)msg).GetData<MsgIntInt>();
+                int receivedFlow = completeStepData.arg1;
+                int receivedStep = completeStepData.arg2;
+
                 if (((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id && GlobalInfo.isCooperation)
                 {
-                    MsgIntInt completeStepData = ((MsgBrodcastOperate)msg).GetData<MsgIntInt>();
-                    int receivedFlow = completeStepData.arg1;
-                    int receivedStep = completeStepData.arg2;
                     //用于同步过程中，又有新操作导致的错误 恢复
                     if (receivedFlow != smallFlowCtrl.index_NowFlow || receivedStep != smallFlowCtrl.index_NowStep)
                     {
@@ -1577,6 +1578,7 @@ public class UISmallSceneModule : UIModuleBase
                         smallFlowCtrl.SelectFlow(receivedFlow, false);
                         smallFlowCtrl.SelectStep(receivedStep, false);
                         Log.Debug("执行跳步骤 任务选中" + receivedFlow + "步骤选中" + receivedStep);
+                        toolModule.SchematicPanel.HideView();
                     }
                 }
 
@@ -1623,36 +1625,10 @@ public class UISmallSceneModule : UIModuleBase
                     ((PopupPanel)popup).CloseButton.onClick?.Invoke();
                 break;
             case (ushort)SmallFlowModuleEvent.ClickObj:
-                ModelOperation modelOperation = smallFlowCtrl.GetModelOperation((msg as MsgBrodcastOperate).GetData<MsgOperation>().modelOperation);
-                int sender = ((MsgBrodcastOperate)msg).senderId;
-                // 选中对象冲突
-                if (modelOperation != null && modelOperation == modelOperation_Select && sender != GlobalInfo.account.id)
-                {
-                    ModelState = ModelState.Unselect;
-                }
-                if (sender == GlobalInfo.account.id)
-                {
-                    TryExecuteOp(modelOperation, sender);
-                    // 考核模式 操作就获得操作权限 没有正确判断
-                }
-                AcquireOperatePermission(sender, modelOperation);
+                // 仅本地消息：点击后直接执行操作，冲突检测和权限记录在 Operate 中处理
+                ModelOperation clickModelOp = smallFlowCtrl.GetModelOperation((msg as MsgOperation).modelOperation);
+                TryExecuteOp(clickModelOp, GlobalInfo.account.id);
                 break;
-            //case (ushort)SmallFlowModuleEvent.Look2D:
-            //    MsgOperation2D msgOperation2D = (msg as MsgBrodcastOperate).GetData<MsgOperation2D>();
-            //    ModelOperation modelOperation2d = smallFlowCtrl.GetModelOperation(msgOperation2D.modelOperation);
-            //    int userIdLook2d = ((MsgBrodcastOperate)msg).senderId;
-            //    // 选中对象冲突
-            //    if (modelOperation2d != null && modelOperation2d == modelOperation_Select && userIdLook2d != GlobalInfo.account.id)
-            //    {
-            //        ModelState = ModelState.Unselect;
-            //    }
-            //    //获得对modelOperation的操作权，执行本地操作
-            //    AcquireOperatePermission(userIdLook2d, modelOperation2d, msgOperation2D.operationName);
-            //    if (userIdLook2d == GlobalInfo.account.id && !NetworkManager.Instance.IsIMSyncState)
-            //    {
-            //        TryExecute2DOp(modelOperation2d, msgOperation2D.operationName);
-            //    }
-            //    break;
             case (ushort)SmallFlowModuleEvent.Operate:
                 int userIdOp = ((MsgBrodcastOperate)msg).senderId;
                 MsgOperation msgOp = ((MsgBrodcastOperate)msg).GetData<MsgOperation>();
@@ -1663,6 +1639,13 @@ public class UISmallSceneModule : UIModuleBase
                     data.operation = smallFlowCtrl.GetModelOperation(msgOp.modelOperation);
                     data.prop = smallFlowCtrl.GetModelInfo(msgOp.propId);
                     data.optionName = msgOp.operationName;
+
+                    // 记录他人操作对象，避免操作冲突
+                    if (data.operation != null && data.operation == modelOperation_Select && userIdOp != GlobalInfo.account.id)
+                    {
+                        ModelState = ModelState.Unselect;
+                    }
+                    AcquireOperatePermission(userIdOp, data.operation);
 
                     //协同、考核是否为用户本人操作
                     bool self = ((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id;

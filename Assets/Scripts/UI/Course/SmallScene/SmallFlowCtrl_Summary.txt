@@ -1,0 +1,103 @@
+SmallFlowCtrl.cs 总结
+======================
+
+一、概述
+--------
+SmallFlowCtrl 是小场景培训/考核的核心流程执行控制器。
+管理多个任务(SmallFlow1)，每个任务包含多个步骤(SmallStep1)，每个步骤包含并列操作(SmallOp1)。
+
+二、核心数据结构
+----------------
+SmallFlow1 (任务)
+  └── SmallStep1 (步骤)
+        ├── initState: List<SmallStepState>   初始视角（显示操作对象、相机位置等）
+        ├── conditions: List<SmallStepState>  道具状态限制条件
+        └── ops: List<SmallOp1>               并列操作集合
+              ├── operation: ModelOperation    操作对象
+              ├── optionName: string           目标操作名（如"显示""点击"等）
+              ├── prop: ModelInfo              需要使用的道具
+              └── actions: List<SmallStepSequenceState>  联动操作（可嵌套）
+
+ModelOperation (操作对象)
+  ├── initState: string           初始状态名
+  ├── currentState: string        当前状态名
+  └── operations: List<OperationBase>  操作配置列表
+        ├── name: string           操作名
+        ├── conditions             操作前置条件
+        ├── behaveBases            行为实现列表
+        └── actions                联动操作（嵌套）
+
+三、操作常量
+------------
+聚焦/联系/操作记录/观察/输入/点击/打开/关闭/合闸/分闸
+手部操作/拾取/消耗/收回/进入/退出/显示/隐藏
+工具箱/导航/图纸/上位机/选中/取消选中
+特殊：相机位置/角色位置/导航1
+
+四、核心执行流程
+----------------
+1. 初始化 Init()
+   - 获取所有 SmallFlow1 子物体
+   - 记录各步骤对应的相机视角(stepView)
+   - 初始化操作道具(operationIDs)、背包道具(toolIDs)、自动道具(autoProps)
+   - 设置道具初始显示状态
+
+2. 正常执行流程
+   TryExecuteOperation (培训模式)
+     └── 检查是否正确操作 → ExecuteOperation → 执行联动 RunAction
+         → 等待语音 → ExecuteFlowLinkOperation → Next
+
+   TryExecuteFreeOperation (考核/自由模式)
+     └── ExecuteOperation → 执行联动 RunAction
+         → ExecuteFlowLinkOperation → Next或Over
+
+3. 步骤跳跃（SelectFlow / SelectStep）
+   每个步骤的正确执行顺序：
+   a) ExecuteStepInitState - 先执行初始视角
+      - 显示操作对象（通过showFlag解决包围盒隐藏问题）
+      - 设置相机位置
+      - 其他初始化操作
+   b) SetFinalStateWithLinkages - 再执行操作（含递归联动）
+      - 递归处理所有嵌套 actions 联动
+      - ExecuteBehaviorsSafely 处理隐藏对象问题
+
+     联动链路：
+     SmallOp1
+       ├── operation (主操作 ModelOperation)
+       │     └── OperationBase.behaveBases ← SetFinalStateWithLinkages 
+       │           └── OperationBase.actions ← SetFinalStateWithLinkages 
+       └── actions (List<SmallStepSequenceState>) 
+             └── SmallStepSequenceState.operation
+                   └── OperationBase.behaveBases
+                         └── BehaveCustomScript → SampleEvent.SetFinalState() → FinalEvents
+
+五、关键方法说明
+----------------
+- ExecuteInitStateSequentially: 依次执行初始视角操作（支持弹窗等待）
+- SetFinalState: 直接设置操作对象到最终状态（含行为和联动）
+- SetFinalStateWithLinkages: 设置最终状态并递归处理嵌套联动
+- ExecuteBehaviorsSafely: 安全执行行为列表
+  - 先激活对象(BehaveActivate isActive=true)
+  - 再执行其他行为（对象已可见）
+  - 最后处理隐藏行为(BehaveActivate isActive=false)
+- ExecuteStepInitState: 执行步骤的初始视角操作
+- ExecuteOperation: 完整执行操作（含条件检查、行为执行、状态更新）
+- ExecuteFlowLinkOperation: 执行联动操作（支持弹窗和导航等待）
+- BuildLinkageOperations: 构建当前步骤的联动操作列表
+- RunAction: 执行联动操作序列
+
+六、执行模式
+------------
+- useGuide: 是否开启强制引导视角
+- dummy模式: 非本人操作时跳过相机和移动表现
+- GlobalInfo.isExam: 考核模式不自动生成弹窗
+- maskOperation: 道具状态、背包工具模式排除的操作列表
+
+七、状态管理
+------------
+- operationIDs: 所有操作道具集合 (Dictionary<string, ModelOperation>)
+- toolIDs: 背包道具集合 (Dictionary<string, ModelInfo>)
+- autoProps: 自动触发道具集合（不受步骤切换影响）
+- uiRotateModels: UI操作联动模型集合
+- cache: 正在执行的操作缓存（防止重复执行）
+- stepView: 各步骤对应的相机视角映射

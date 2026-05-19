@@ -185,7 +185,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
     }
 
     private static string opLog = "<color=#14A857>执行消息:</color>";
-    private static string opreLog = "<color=#14A857>执行缓存消息:</color>";
+    private static string opreLog = "<color=#F87C0D>执行缓存消息:</color>"; 
 
     /// <summary>
     /// 执行操作
@@ -195,7 +195,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (currentOp == null)
             return;
 
-        string str = NetworkManager.Instance.IsIMSyncState ? opLog : opreLog;
+        string str = NetworkManager.Instance.IsIMSyncState ? opreLog : opLog;
         Log.Debug($"{str} {JsonTool.Serializable(currentOp)}");
         try
         {
@@ -253,25 +253,17 @@ public class IMChannelAgent : NetworkChannelAgentBase
                     {
                         cachedPacket = packet;
 
-                        bool isOperator = GlobalInfo.IsOperator();
-                        bool versionLag = GlobalInfo.version < version - 1;
-                        Log.Debug($"[IMChannel] ProcessMessage version={version}, localVersion={GlobalInfo.version}, isOperator={isOperator}, versionLag={versionLag}, packetMsgId={packet.data?.msgId}");
-
-                        //具有操作权限就需要检测步骤序号重连
-                        if (isOperator)
+                        // 有 IM 同步的模式下持久化 cachedPacket，用于断线重连保底 房间消息中，用于考核相关的消息并不携带恢复数据，跳过
+                        if (GlobalInfo.roomInfo != null && GlobalInfo.courseMode != CourseMode.Training && packet.data?.msgId < (int)SmallFlowModuleEvent.Max)
                         {
-                            //中途加入或本地为旧版本
-                            if (versionLag)
-                            {
-                                Log.Debug($"[IMChannel] 版本落后，触发SyncVersion，local={GlobalInfo.version}, remote={version}");
-                                SyncVersion(packet);
-                            }
-                            else
-                            {
-                                opsReceive.Enqueue(packet.data);
-                                stateHelper.UpdateState(packet.data);
-                                Log.Debug($"[IMChannel] 消息入opsReceive，opsReceive.Count={opsReceive.Count}, IsStartSync={IsStartSync}");
-                            }
+                            PlayerPrefs.SetString($"RestoreCachedPacket", JsonTool.Serializable(packet));
+                        }
+                        //移除了这里 检测步骤序号重连 的逻辑
+                        if (GlobalInfo.IsOperator())
+                        {
+                            opsReceive.Enqueue(packet.data);
+                            stateHelper.UpdateState(packet.data);
+                            Log.Debug($"[IMChannel] 消息入opsReceive，opsReceive.Count={opsReceive.Count}, IsStartSync={IsStartSync}");
                             //更新本地版本
                             GlobalInfo.version = version;
                         }
@@ -291,31 +283,11 @@ public class IMChannelAgent : NetworkChannelAgentBase
     }
 
     /// <summary>
-    /// 同步版本
-    /// </summary>
-    private void SyncVersion(IMPacket packet)
-    {
-        //开始进行版本同步前，清除一些状态
-        SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
-
-        //暂停消息执行
-        IsStartSync = false;
-        opsReceive.Clear();
-
-        currentState = packet.state;
-        stateHelper.UpdateStateVersion(packet);
-        NetworkManager.Instance.SyncBaikeState();
-    }
-
-    /// <summary>
     /// 同步缓存版本（直播非房主获取权限时调用）
     /// </summary>
     public void SyncCachedVersion()
     {
-        if (cachedPacket == null)
-            return;
-
-        SyncVersion(cachedPacket);
+        NetworkManager.Instance.SyncBaikeState();
     }
 
     /// <summary>
@@ -432,6 +404,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
         opsReceive.Clear();
         currentOp = null;
         cachedPacket = null;
+        if (GlobalInfo.roomInfo != null)
+            PlayerPrefs.DeleteKey($"IMPacket_{GlobalInfo.roomInfo.Uuid}");
         stateHelper.Clear();
         if (!waitResponse)
             IsWaitingResponse = false;

@@ -68,12 +68,52 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
             UIManager.Instance.CloseUI<LoadingPanel>();
             NetworkManager.Instance.IsIMSync = true;
+
+            // 自动重连检查：不依赖房主消息
+            CheckAutoReconnect();
         });
     }
 
     protected override void SetTitle(Course course)
     {
         base.SetTitle(course);
+    }
+
+    /// <summary>
+    /// 检查是否需要自动重连（房间状态为考核中且倒计时未结束）
+    /// </summary>
+    private void CheckAutoReconnect()
+    {
+        if (GlobalInfo.roomInfo == null || GlobalInfo.roomInfo.Status != 2)
+            return;
+
+        string roomUuid = GlobalInfo.roomInfo.Uuid;
+        int cachedExamId = ExamUtility.Instance.GetParticipantExamId(roomUuid);
+        if (cachedExamId <= 0)
+            return;
+
+        DateTime? cachedEndTime = ExamUtility.Instance.GetParticipantExamEndTime(roomUuid);
+        if (!cachedEndTime.HasValue || cachedEndTime.Value <= GlobalInfo.ServerTime)
+        {
+            ExamUtility.Instance.DeleteParticipantExamCache(roomUuid);
+            PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+            return;
+        }
+
+        Log.Debug($"[ExamCoursePanel] 检测到考核进行中，自动重连 examId={cachedExamId}");
+
+        // 从本地恢复 cachedPacket
+        PlayerPrefs.SetString(ExamTrainingPanel.flag, roomUuid);
+
+        var msgExamStartData = new MsgExamStart(
+            (ushort)ExamPanelEvent.Start,
+            cachedExamId,
+            GlobalInfo.ServerTime,
+            cachedEndTime.Value,
+            null
+        );
+
+        OnExamStart(msgExamStartData);
     }
 
     public override void ProcessEvent(MsgBase msg)
@@ -108,10 +148,23 @@ public partial class ExamCoursePanel : OPLCoursePanel
         BaikeSelectModule.CurrentBaikeIndex = GlobalInfo.currentWikiList.FindIndex(wiki => wiki.id == baikeId);
     }
 
+    /// <summary>
+    /// 清除考核缓存（flag、参与者缓存、IM缓存）
+    /// </summary>
+    private void ClearExamCache()
+    {
+        GlobalInfo.waitExam = true;
+        PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+        if (GlobalInfo.roomInfo != null)
+        {
+            ExamUtility.Instance.DeleteParticipantExamCache(GlobalInfo.roomInfo.Uuid);
+        }
+    }
+
     private void Quit()
     {
         //退出房间，立即删除flag，避免触发异常退出提示
-        PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+        ClearExamCache();
         if (!GlobalInfo.waitExam && ExamUtility.Instance.AllSubmit() && !NetworkManager.Instance.IsUserOnline(GlobalInfo.roomInfo.creatorId))
         {
             NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Flush, JsonTool.Serializable(new MsgBase((ushort)ExamPanelEvent.Flush))));
@@ -440,12 +493,12 @@ public partial class ExamCoursePanel : OPLCoursePanel
         GlobalInfo.waitExam = true;
         UpdateUIWhenExamStop();
         //正常提交考核，立即删除flag，避免退出房间后触发异常退出提示
-        PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+        ClearExamCache();
         SubmitExamRecord(true, true, (submitSuccess) =>
         {
             if (submitSuccess)
             {
-                NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Submit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Submit, examId))));
+                NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Submit, JsonTool.Serializable(new MsgIntString((ushort)ExamPanelEvent.Submit, examId, GlobalInfo.account.nickname))));
             }
         });
         callBack?.Invoke();
@@ -504,7 +557,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
         await UniTask.Delay(TimeSpan.FromSeconds(0.1));
         SetStateByHistory();
-        smallSceneModule.smallFlowCtrl.Next();
+        smallSceneModule.smallFlowCtrl.Next(true);
 
         //完成恢复，打开消息处理
         await UniTask.Delay(TimeSpan.FromSeconds(0.1));
@@ -534,17 +587,18 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     totalStepIndex = data.totalStepIndex
                 }).ToList();
             }
-        }
-        //用服务器的历史记录覆盖当前记录
-        smallSceneModule.operationHistoryModule.UpdateOpRecordList(opRecordData);
-        //用操作记录还原场景变动
-        smallSceneModule.smallFlowCtrl.SetFinalState(answerOp.modelStates.Select(s => new OpDicData()
-        {
-            id = s.id,
-            optionName = s.optionName,
-            uiTargetModelEulerZ = float.Parse(s.uiTargetModelEulerZ)
-        }).ToList());
 
+            //用服务器的历史记录覆盖当前记录
+            smallSceneModule.operationHistoryModule.UpdateOpRecordList(opRecordData ?? new List<OpRecordData>());
+
+            //用操作记录还原场景变动
+            smallSceneModule.smallFlowCtrl.SetFinalState(answerOp.modelStates?.Select(s => new OpDicData()
+            {
+                id = s.id,
+                optionName = s.optionName,
+                uiTargetModelEulerZ = float.Parse(s.uiTargetModelEulerZ)
+            }).ToList() ?? new List<OpDicData>());
+        }
     }
 
     /// <summary>
@@ -839,14 +893,18 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     OnExamStart((msg as MsgBrodcastOperate).GetData<MsgExamStart>());
                 break;
             case (ushort)ExamPanelEvent.Stop:
-                OnExamStop((msg as MsgBrodcastOperate).GetData<MsgInt>().arg);
+                if(!GlobalInfo.waitExam)
+                    OnExamStop((msg as MsgBrodcastOperate).GetData<MsgInt>().arg);
                 break;
             case (ushort)ExamPanelEvent.Timeout:
                 OnHostTimeout((msg as MsgBrodcastOperate).GetData<MsgInt>().arg);
                 break;
             case (ushort)ExamPanelEvent.Submit:
-                var submitMsg = msg as MsgBrodcastOperate;
-                OnExamSubmit(submitMsg.senderId, submitMsg.GetData<MsgInt>().arg);
+                if (!GlobalInfo.waitExam)
+                {
+                    var submitMsg = msg as MsgBrodcastOperate;
+                    OnExamSubmit(submitMsg.senderId, submitMsg.GetData<MsgIntString>().arg1, submitMsg.GetData<MsgIntString>().arg2);
+                }
                 break;
         }
     }
@@ -886,6 +944,14 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     Log.Debug($"[ExamCoursePanel] OnExamStart 进入考核流程，waitExam=true，将设为false");
                     GlobalInfo.waitExam = false;
                     PlayerPrefs.SetString(ExamTrainingPanel.flag, GlobalInfo.roomInfo.Uuid);
+
+                    // 保存参与者考核缓存，用于异常退出后自动重连
+                    ExamUtility.Instance.SetParticipantExamCache(
+                        GlobalInfo.roomInfo.Uuid,
+                        msgExamStartData.examId,
+                        msgExamStartData.endTime
+                    );
+
                     //先获取已提交的考核记录，根据结果判断是否重连
                     ExamUtility.Instance.GetExamineResult(msgExamStartData.examId, (id, answers, accessories) =>
                     {
@@ -1103,7 +1169,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     /// <param name="submitUserId"></param>
     /// <param name="submitExamId"></param>
-    private void OnExamSubmit(int submitUserId, int submitExamId)
+    private void OnExamSubmit(int submitUserId, int submitExamId, string name)
     {
         if (submitExamId != examId)
             return;
@@ -1125,8 +1191,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 mCountdownCts = null;
             }
             UpdateUIWhenExamStop();
-            //被动退出是正常退出流程，立即删除flag
-            PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
         }
 
         //小组考核，有成员提交时，其他成员同步提交
@@ -1135,8 +1199,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
             //立即显示弹窗，不依赖提交完成
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("确定", new PopupButtonData(() => Quit(), true));
-            UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", string.Format("考生【{0}】主动提交考核，考试结束", submitUserId), popupDic, 10, true, () => Quit()));
+            UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", string.Format("考生【{0}】主动提交考核，考试结束", name), popupDic, 10, true, () => Quit()));
         }
+
+        //被动退出是正常退出流程，立即删除flag
+        ClearExamCache();
     }
 
     private void UpdateUIWhenExamStop()
@@ -1223,7 +1290,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             case (ushort)RoomChannelEvent.LeaveRoom:
                 if (GlobalInfo.roomInfo == null) break;
                 ExamScreenRecording.Instance.StopRecordMovie();
-                PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+                ClearExamCache();
                 if (!GlobalInfo.waitExam)
                     NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
                 DoQuit();

@@ -338,6 +338,10 @@ public class ExamPanel : HoverHintPanel
                     if (GlobalInfo.courseMode == CourseMode.OnlineExam || ExamUtility.Instance.AllSubmit())
                     {
                         StopExam();
+                        foreach (Transform item in Content)
+                        {
+                            SetMemberItemState(item, (int)State.Submit);
+                        }
                     }
                 }
                 break;
@@ -425,8 +429,7 @@ public class ExamPanel : HoverHintPanel
         }
         WaitHint.SetActive(true);
 
-        if (msgId != 0)
-            ToolManager.SendBroadcastMsg(new MsgInt(msgId, activeExamId), true);
+        ToolManager.SendBroadcastMsg(new MsgInt(msgId, activeExamId), true);
         ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
 
         //立即重置本地状态，防止异步期间状态不一致
@@ -997,9 +1000,6 @@ public class ExamPanel : HoverHintPanel
                 examEndTime,
                 ExamUtility.Instance.ExamineeRecords
             ), true);
-
-            Log.Debug($"[ExamPanel] 成员[{newJoinedId}]考核消息已入队，opsQueue.Count={NetworkManager.Instance.SendOpCount}");
-
             Transform memberItem = Content.FindChildByName(newJoinedId.ToString());
             if (memberItem != null)
                 SetMemberItemState(memberItem, (int)State.InExam);
