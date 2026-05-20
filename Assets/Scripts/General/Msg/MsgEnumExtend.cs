@@ -558,7 +558,11 @@ public enum RoomChannelEvent
     /// 成员断连（可能异常退出，后续可能重进）
     /// </summary>
     OtherDisconnect,                      // ID:199
-    Max,                                  // ID:200
+    /// <summary>
+    /// 恢复缓存状态（本地用户获得操作权限时触发）
+    /// </summary>
+    RestoreCachedState,                   // ID:200
+    Max,                                  // ID:201
 }
 
 /// <summary>

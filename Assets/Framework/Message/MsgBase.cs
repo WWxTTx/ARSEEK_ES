@@ -378,6 +378,19 @@ namespace UnityFramework.Runtime
             this.arg3 = arg3;
         }
     }
+    public class MsgIntStringBool : MsgBase
+    {
+        public int arg1; 
+        public string arg2;
+        public bool arg3;
+        public MsgIntStringBool() { }
+        public MsgIntStringBool(ushort msgId, int arg1, string arg2,  bool arg3) : base(msgId)
+        {
+            this.arg1 = arg1;
+            this.arg2 = arg2;
+            this.arg3 = arg3;
+        }
+    }
     #endregion
 
     public class MsgOperatingRecord : MsgBase

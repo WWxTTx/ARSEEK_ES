@@ -47,8 +47,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// <summary>
     /// 是否正在离开房间
     /// </summary>
-    private bool isLeavingRoom = false;
-    public bool IsLeavingRoom { get { return isLeavingRoom; } protected set { isLeavingRoom = value; } }
+    public bool IsLeavingRoom { get; set; }
     /// <summary>
     /// 避免重复重连
     /// </summary>
@@ -250,6 +249,8 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                 }
                 break;
             case EVICT:
+                //立即阻止重连，防止其他通道错误触发 DelayReconnect
+                MarkEvicted();
                 DOVirtual.DelayedCall(0.1f, () =>
                 {
                     Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
@@ -350,6 +351,17 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             waitConnectCts = null;
         }
         UIManager.Instance.CloseUI<LoadingPanel>();
+    }
+
+    /// <summary>
+    /// 标记本地玩家已被踢出，立即阻止自动重连
+    /// </summary>
+    public void MarkEvicted()
+    {
+        if (IsLeavingRoom || lockQuit)
+            return;
+        IsLeavingRoom = true;
+        StopReconnect();
     }
 
     /// <summary>

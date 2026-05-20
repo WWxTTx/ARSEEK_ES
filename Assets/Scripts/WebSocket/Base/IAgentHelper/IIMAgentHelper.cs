@@ -11,9 +11,4 @@ public interface IIMAgentHelper
     /// </summary>
     /// <param name="msg"></param>
     void SendIMMsg(MsgBrodcastOperate msg);
-
-    /// <summary>
-    /// 尝试同步缓存版本（cachedPacket 可能为 null）
-    /// </summary>
-    void TrySyncCachedVersion();
 }

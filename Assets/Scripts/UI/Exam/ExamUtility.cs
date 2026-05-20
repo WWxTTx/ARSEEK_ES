@@ -84,11 +84,23 @@ public class ExamUtility : Singleton<ExamUtility>
         examineeRecords = records;
     }
 
+    /// <summary>
+    /// 单人考核由各自的recordId
+    /// 多人公用一个
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
     public int GetUserRecordId(int userId)
     {
-        if (examineeRecords.TryGetValue(userId, out int recordId))
-            return recordId;
-        return -1;
+        if (GlobalInfo.courseMode == CourseMode.Exam)
+        {
+            if (examineeRecords.TryGetValue(userId, out int recordId))
+                return recordId;
+        }
+        else
+            return examineeRecords.Values.ToArray()[0];
+        
+        return 0;
     }
 
     /// <summary>
@@ -148,13 +160,14 @@ public class ExamUtility : Singleton<ExamUtility>
     /// <param name="operateMsg"></param>
     public void EnqueueOperation(int examId, int baikeId, OpRecordData record, ExamineResultModelState[] modelStates)
     {
-        // 非本人操作不上传分数，避免协同/考核中重复提交
-        if (record != null && !string.IsNullOrEmpty(record.userNo)
-            && !record.userNo.Equals(GlobalInfo.account.userNo))
+        // 跳过空操作者的记录（如 RefreshOpHistory 步骤跳转时的历史记录重建）
+        if (record != null && string.IsNullOrEmpty(record.userNo))
         {
-            Log.Debug($"跳过非本人操作记录提交：record.userNo={record.userNo} 本机userNo={GlobalInfo.account.userNo}");
+            Log.Debug($"跳过空操作者记录提交");
             return;
         }
+
+        bool isCurrentUser = record != null && record.userNo.Equals(GlobalInfo.account.userNo);
 
         if (record != null)
         {
@@ -170,6 +183,7 @@ public class ExamUtility : Singleton<ExamUtility>
                 totalStepIndex = record.totalStepIndex,
             };
 
+            // 所有操作都添加到队列，确保上传数据与UI显示同步
             if (PediaOperationRecords.ContainsKey(baikeId))
             {
                 PediaOperationRecords[baikeId].Enqueue(operation);
@@ -182,13 +196,17 @@ public class ExamUtility : Singleton<ExamUtility>
             }
         }
 
+        // 仅上传当前用户的操作分数，避免其他用户的操作分数被错误上传到本机记录
+        float uploadScore = isCurrentUser ? (record != null ? record.score : 0) : 0;
+        int uploadStepIndex = isCurrentUser ? (record != null ? record.totalStepIndex : -1) : -1;
+
         //自动提交新增的操作
-        SubmitExamineResult_Operation(examId, record != null ? record.score : 0, baikeId, modelStates, () =>
+        SubmitExamineResult_Operation(examId, uploadScore, baikeId, modelStates, () =>
         {
         }, (code, msg) =>
         {
             Log.Error($"考核ID:{examId}, 百科ID：{baikeId} 保存考核记录失败：{msg}");
-        }, record != null ? record.totalStepIndex : -1);
+        }, uploadStepIndex);
     }
 
 

@@ -711,6 +711,13 @@ public class ExamTrainingPanel : UIPanelBase
     /// <param name="password">房间密码</param>
     private void JoinRoom(string uuid, string password)
     {
+        //进入的房间与缓存房间一致时，使用本地缓存数据恢复
+        if (IsCachedRoom(uuid))
+            GlobalInfo.UseLoadCachedPacket = true;
+
+        //重置踢出标记，确保正常加入房间不受影响
+        NetworkManager.Instance.IsLeavingRoom = false;
+
         UIManager.Instance.OpenUI<TransitionPanel>(UILevel.Loading, new TransitionPanel.TransitionData(string.Format("正在进入{0}...", "考核"), true));
 
         GlobalInfo.roomInfo = roomInfos[uuid];

@@ -1191,6 +1191,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 mCountdownCts = null;
             }
             UpdateUIWhenExamStop();
+
+            //被动退出是正常退出流程，立即删除flag
+            ClearExamCache();
         }
 
         //小组考核，有成员提交时，其他成员同步提交
@@ -1202,8 +1205,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             UIManager.Instance.OpenUI<PopupPanel_AutoConfirm>(UILevel.PopUp, new UIAutoPopupData("提示", string.Format("考生【{0}】主动提交考核，考试结束", name), popupDic, 10, true, () => Quit()));
         }
 
-        //被动退出是正常退出流程，立即删除flag
-        ClearExamCache();
     }
 
     private void UpdateUIWhenExamStop()

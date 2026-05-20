@@ -358,8 +358,10 @@ public class LiveRoomMemberModule : UIModuleBase
             if (isControl)
             {
                 Log.Debug($"[协同调试] 当前用户获得操作权限 | RoomType:{GlobalInfo.roomInfo?.RoomType}");
+                //直播模式在获得权限时尝试加载场景和进度
+                if(GlobalInfo.courseMode == CourseMode.Livebroadcast)
+                    NetworkManager.Instance.SyncBaikeState();
 
-                NetworkManager.Instance.TrySyncCachedVersion();
                 SendMsg(new MsgBase((ushort)CoursePanelEvent.CloseMask));
                 SendMsg(new MsgBase((ushort)MediaChannelEvent.RemoveView));
 

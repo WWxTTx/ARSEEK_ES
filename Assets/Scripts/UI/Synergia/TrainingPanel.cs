@@ -682,6 +682,9 @@ public class TrainingPanel : UIPanelBase
             return;
         }
 
+        //重置踢出标记，确保正常加入房间不受影响
+        NetworkManager.Instance.IsLeavingRoom = false;
+
         if (roomInfos.TryGetValue(uuid, out RoomInfoModel roomInfo))
         {
             if ((string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(roomInfo.Password)) || !password.Equals(roomInfo.Password))

@@ -466,13 +466,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 break;
             case (ushort)StateEvent.PreSyncVersion:
                 // 断线重连时取消弹窗和语音
-                UIManager.Instance.CloseUI<PopupPanel>();
                 SpeechManager.Instance.StopSpeech();
-
-                //因为现在一个房间对应一种百科，没有切换了，所以可以不删除
-                //ClearBaikeModules(true);
-                //ModelManager.Instance.DestroyModels(true);
-                //ModelManager.Instance.DestroyScripts(true);
                 videoPacketUrl = string.Empty;
                 GlobalInfo.CursorLockMode = CursorLockMode.None;
                 break;

@@ -290,7 +290,11 @@ public class GlobalInfo
     /// <summary>
     /// 考核房间是在等待开始阶段还是考核中
     /// </summary>
-    public static bool waitExam = true;
+    public static bool waitExam 
+    { 
+        get;
+        set;
+    }
     /// <summary>
     /// 操作完成提示默认显示时长
     /// </summary>

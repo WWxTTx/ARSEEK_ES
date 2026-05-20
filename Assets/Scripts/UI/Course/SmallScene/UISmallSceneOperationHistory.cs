@@ -569,7 +569,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 MsgOperatingRecord opMsg = (msg as MsgBrodcastOperate).GetData<MsgOperatingRecord>();
                 if (opMsg.createHistoryItem && canCreateHistoryItem)
                 {
-                    Debug.Log("执行分数上传，当前操作得分：" + opMsg.score);
+                    Debug.Log("操作记录，当前操作得分：" + opMsg.score);
                     ProcessMsg(opRecords.Count, opMsg.userNo, opMsg.userName, opMsg.opHint, opMsg.createTime, opMsg.opType, opMsg.score, opMsg.totalStepIndex);
                 }
                 break;

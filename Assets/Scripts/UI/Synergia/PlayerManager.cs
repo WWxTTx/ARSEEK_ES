@@ -76,7 +76,7 @@ public class PlayerManager : MonoBase
             case (ushort)RoomChannelEvent.OtherLeave:
             case (ushort)RoomChannelEvent.OtherDisconnect:
                 //移除离线成员
-                RemoveUser(((MsgIntString)msg).arg1);
+                RemoveUser(((MsgIntStringBool)msg).arg1);
                 break;
             case (ushort)RoomChannelEvent.UpdateControl:
                 MsgIntBool msgIntBool = (MsgIntBool)msg;

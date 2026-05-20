@@ -1630,6 +1630,11 @@ public class UISmallSceneModule : UIModuleBase
                 TryExecuteOp(clickModelOp, GlobalInfo.account.id);
                 break;
             case (ushort)SmallFlowModuleEvent.Operate:
+                if(ModelState == ModelState.OtherOperating)
+                {
+                    UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo("其他成员操作中..."));
+                    return;
+                }
                 int userIdOp = ((MsgBrodcastOperate)msg).senderId;
                 MsgOperation msgOp = ((MsgBrodcastOperate)msg).GetData<MsgOperation>();
                 {

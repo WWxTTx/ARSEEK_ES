@@ -649,8 +649,8 @@ public class ExamPanel : HoverHintPanel
                 OnOtherLeave(leavedMember.arg1, leavedMember.arg2, false);
                 break;
             case (ushort)RoomChannelEvent.OtherDisconnect:
-                MsgIntString disconnectMember = (MsgIntString)msg;
-                OnOtherLeave(disconnectMember.arg1, disconnectMember.arg2, true);
+                MsgIntStringBool disconnectMember = (MsgIntStringBool)msg;
+                OnOtherLeave(disconnectMember.arg1, disconnectMember.arg2, disconnectMember.arg3);
                 break;
             case (ushort)RoomChannelEvent.TalkState:
                 UpdateAllVoiceOffBtn(((MsgBoolBool)msg).arg2);

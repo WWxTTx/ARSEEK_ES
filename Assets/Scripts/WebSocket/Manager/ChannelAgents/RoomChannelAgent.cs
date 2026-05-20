@@ -239,6 +239,25 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     /// <param name="isEvict">是否被踢出（正常退出）</param>
     private void OtherLeaveRoom(int memberId, string memberNickName, bool isEvict)
     {
+        //本地玩家被踢出：立即阻止重连，显示弹窗后离开
+        if (isEvict && memberId == GlobalInfo.account.id)
+        {
+            networkManager.MarkEvicted();
+            DOVirtual.DelayedCall(0.1f, () =>
+            {
+                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+                popupDic.Add("知道了", new PopupButtonData(() =>
+                {
+                    networkManager.EnsureLeaveRoom(string.Empty);
+                }, true));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "你已被移出房间", popupDic, () =>
+                {
+                    networkManager.EnsureLeaveRoom(string.Empty);
+                }));
+            });
+            return;
+        }
+
         if (GlobalInfo.IsHomeowner())
         {
             //被设置为主画面的非房主成员离开房间，收回主画面到房主
@@ -254,13 +273,11 @@ public class RoomChannelAgent : NetworkChannelAgentBase
         // 踢出发送OtherLeave（正常退出），断连发送OtherDisconnect（可能重进）
         if (isEvict)
         {
-            SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherLeave, memberId, memberNickName));
             networkManager.RemoveUserAudio(memberId);
             networkManager.RemoveUserVideo(memberId, false);
             networkManager.ClearUserIMState(memberId);
         }
-        else
-            SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherDisconnect, memberId, memberNickName));
+        SendMsg(new MsgIntStringBool((ushort)RoomChannelEvent.OtherDisconnect, memberId, memberNickName, !isEvict));
 
     }
 
@@ -300,8 +317,17 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             if (newMember.IsControl != prevMemberState.IsControl)
             {
                 Log.Debug("发送用户操作权限改变消息");
-                //networkManager.ClearUserIMState(newMember.Id);
                 SendMsg(new MsgIntBool((ushort)RoomChannelEvent.UpdateControl, newMember.Id, newMember.IsControl));
+
+                // 用户获得操作权限时，发送缓存的状态数据供恢复
+                if (newMember.IsControl)
+                {
+                    string cachedJson = PlayerPrefs.GetString("RestoreCachedPacket", "");
+                    if (!string.IsNullOrEmpty(cachedJson))
+                    {
+                        SendMsg(new MsgIntString((ushort)RoomChannelEvent.RestoreCachedState, newMember.Id, cachedJson));
+                    }
+                }
             }
 
             //用户语音状态改变
