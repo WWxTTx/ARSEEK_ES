@@ -236,24 +236,31 @@ public class TrainingPanel : UIPanelBase
     /// </summary>
     private void LastRoomCheck()
     {
-        if (roomInfos.TryGetValue(PlayerPrefs.GetString(GlobalInfo.lastSynergiaRoomId), out RoomInfoModel roomInfo))
+        foreach (var item in roomInfos.Values)
         {
-            if (roomInfo.creatorId == GlobalInfo.account.id)
+            if (GlobalInfo.IsCachedRoom(item.Uuid))
             {
+                string hint = "检测到您上次异常退出，是否要进入房间？";
+                if (item.creatorId == GlobalInfo.account.id)
+                    hint += "\n（若不进入，房间将被删除）";
+
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("是", new PopupButtonData(() =>
                 {
-                    JoinRoom(roomInfo.Uuid, roomInfo.Password);
-                    GlobalInfo.UseLoadCachedPacket = true;
+                    JoinRoom(item.Uuid, item.Password);
                 }, true));
                 popupDic.Add("否", new PopupButtonData(() =>
                 {
-                    NetworkManager.Instance.DeleteRoom(roomInfo.Uuid, () => RefreshRoomList(), (code, msg) =>
+                    GlobalInfo.ClearCachedRoom();
+                    if (item.creatorId == GlobalInfo.account.id)
                     {
-                        Log.Error($"删除房间失败 {msg}");
-                    });
+                        NetworkManager.Instance.DeleteRoom(item.Uuid, () => RefreshRoomList(), (code, msg) =>
+                        {
+                            Log.Error($"删除房间失败 {msg}");
+                        });
+                    }
                 }));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？\n （若不进入，房间将被删除）", popupDic, null, false));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", hint, popupDic, null, false));
                 return;
             }
         }
@@ -675,7 +682,11 @@ public class TrainingPanel : UIPanelBase
     /// <param name="uuid">房间uuid</param>
     /// <param name="password">房间密码</param>
     private void JoinRoom(string uuid, string password)
-    {
+    {      
+        //进入的房间与缓存房间一致时，使用本地缓存数据恢复
+        if (GlobalInfo.IsCachedRoom(uuid))
+            GlobalInfo.UseLoadCachedPacket = true;
+
         if (!roomInfos.ContainsKey(uuid))
         {
             UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("房间已解散，加入失败", 5f));

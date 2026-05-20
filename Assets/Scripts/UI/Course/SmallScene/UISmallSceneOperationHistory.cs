@@ -304,11 +304,12 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 });
             }
             contact.gameObject.SetActive(false);
+            SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.SelectContact, false));
         });
 
         contactCancelBtn.onClick.AddListener(() =>
         {
-            FormMsgManager.Instance.SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.SelectContact, false));
+            SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.SelectContact, false));
         });
     }
 
@@ -680,7 +681,6 @@ public class UISmallSceneOperationHistory : UIModuleBase
         }
 
         contactInputField.text = string.Empty;
-        contactCancelBtn.onClick?.Invoke();
 
         //当前步骤是记录操作
         MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
@@ -726,7 +726,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
 
 
         contactInputField.text = string.Empty;
-        contactCancelBtn.onClick?.Invoke();
+
         //当前步骤是联系操作
         MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
         if (smallFlowCtrl.IsOnOperation(SmallFlowCtrl.contactFlag))

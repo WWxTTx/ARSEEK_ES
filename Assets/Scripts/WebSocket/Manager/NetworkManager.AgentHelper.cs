@@ -3,16 +3,11 @@ using DG.Tweening;
 using Newtonsoft.Json.Linq;
 using RenderHeads.Media.AVProMovieCapture;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Interop;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.EventSystems;
-using UnityEngine.XR;
 using UnityFramework.Runtime;
-using static UnityFramework.Runtime.RequestData;
 using static UnityFramework.Runtime.ServiceRequestData;
 
 /// <summary>
@@ -26,7 +21,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         if (mRoomChannelAgent == null || !mRoomChannelAgent.IsChannelConnected())
             return;
         Log.Debug("发送踢出成员消息" + id);
-        //mRoomChannelAgent.SendCommand(id, outRoomCmd);
         JObject jObject = new JObject
         {
             [TYPE] = EVICT,
@@ -302,6 +296,11 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     public bool IsIMSyncState = false;
 
     /// <summary>
+    /// 标志位，RestoreCachedState 消息已到达并写入 PlayerPrefs
+    /// </summary>
+    public bool RestoreCachedStateArrived = false;
+
+    /// <summary>
     /// 待发送的操作消息数量
     /// </summary>
     public int SendOpCount
@@ -321,13 +320,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
     Action ExamCoursePanelAction;
     /// <summary>
-    /// 尝试同步缓存版本（cachedPacket 可能为 null）
+    /// 全量更新本地进度
     /// </summary>
-    public void TrySyncCachedVersion()
-    {
-        mIMChannelAgent.SyncCachedVersion();
-    }
-
+    /// <param name="callback"></param>
     public void SyncBaikeState(Action callback = null)
     {
         //开始进行版本同步前，清除一些状态
@@ -367,16 +362,20 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     int flow = 0;
     private async UniTask _syncBaikeState()
     {
-        IMState currentState = mIMChannelAgent.currentState;
-        if (currentState == null && GlobalInfo.UseLoadCachedPacket)
+        await UniTask.Delay(100);
+        //如果没有远程消息则使用本地记录
+        IMState currentState = null;
+        if (GlobalInfo.UseLoadCachedPacket)
+        {
             currentState = LoadCachedPacket();
+        }
         GameObject model = ModelManager.Instance.modelGo;
+
         // 重连恢复步骤只能发生在有重连信息,已重建场景后
         if (currentState == null || currentState.baikeState == null || currentState.baikeState.data == null || model == null)
         {
             return;
         }
-        IsIMSyncState = true;
         GlobalInfo.UseLoadCachedPacket = false;
         UIManager.Instance.OpenUI<LoadingPanel>();
 

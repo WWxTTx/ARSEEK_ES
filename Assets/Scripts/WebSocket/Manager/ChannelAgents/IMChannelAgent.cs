@@ -68,9 +68,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
     /// </summary>
     public MsgBrodcastOperate currentOp;
 
-    private readonly System.Object stateLock = new System.Object();
-
-
     /// <summary>
     /// 状态同步工具类
     /// </summary>
@@ -148,25 +145,13 @@ public class IMChannelAgent : NetworkChannelAgentBase
             return;
 
         deltaTime += Time.deltaTime;
-        //两个条件：1.当前还没有开始考核  2.开始考核了，但是房主 不进行历史状态同步
-        dontHistory = GlobalInfo.waitExam || (!GlobalInfo.waitExam && GlobalInfo.roomInfo.creatorId == GlobalInfo.account.id);
-
-        //执行状态同步消息 
-        while (stateHelper.ReceivedStateOpCount > 0 && deltaTime > 0.01f && !dontHistory)
-        {
-            IsStartSync = false;
-            deltaTime = 0;
-            NetworkManager.Instance.IsIMSyncState = true;
-            currentOp = stateHelper.DequeueStateOp();
-            TryExecuteCurrentOp();
-        }
-
         //等待6s还是处于等待中，判断为本地执行错误，标志位没有正确恢复，手动打开消息处理
         if (deltaTime > 6)
         {
             IsStartSync = true;
             NetworkManager.Instance.IsIMSyncState = false;
-            UIManager.Instance.CloseUI<LoadingPanel>();
+            if(LoadingPanel.Loading)
+                UIManager.Instance.CloseUI<LoadingPanel>();
         }
         
         //本地拒绝消息时 暂停消息处理
@@ -262,8 +247,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
                         if (GlobalInfo.IsOperator())
                         {
                             opsReceive.Enqueue(packet.data);
-                            stateHelper.UpdateState(packet.data);
                             Log.Debug($"[IMChannel] 消息入opsReceive，opsReceive.Count={opsReceive.Count}, IsStartSync={IsStartSync}");
+
+
                             //更新本地版本
                             GlobalInfo.version = version;
                         }
@@ -280,14 +266,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
                 }
                 break;
         }
-    }
-
-    /// <summary>
-    /// 同步缓存版本（直播非房主获取权限时调用）
-    /// </summary>
-    public void SyncCachedVersion()
-    {
-        NetworkManager.Instance.SyncBaikeState();
     }
 
     /// <summary>

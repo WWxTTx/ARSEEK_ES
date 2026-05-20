@@ -46,10 +46,7 @@ public class GlobalInfo
     public const string isFirstRunCacheKey = "is_first_run";
     public const string savePasswordKey = "savePassword";
     public const string fileSavePathCacheKey = "fileSavePath";
-    /// <summary>
-    /// 协同房间缓存
-    /// </summary>
-    public const string lastSynergiaRoomId = "synergiaRoomId";
+ 
     /// <summary>
     /// 房主考核记录Id缓存
     /// </summary>
@@ -123,6 +120,25 @@ public class GlobalInfo
     public static bool IsLiveMode()
     {
         return courseMode == CourseMode.Livebroadcast;
+    }
+
+
+    public const string CachedRoom = "CachedRoom";
+    /// <summary>
+    /// 是否是缓存中的房间
+    /// </summary>
+    /// <returns></returns>
+    public static bool IsCachedRoom(string roomUuid)
+    {
+        return PlayerPrefs.GetString(CachedRoom, " ") == roomUuid;
+    }
+
+    /// <summary>
+    /// 清除缓存房间标记
+    /// </summary>
+    public static void ClearCachedRoom()
+    {
+        PlayerPrefs.DeleteKey(CachedRoom);
     }
 
     /// <summary>

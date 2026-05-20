@@ -306,6 +306,8 @@ public class OPLSynCoursePanel : OPLCoursePanel
     {
         GlobalInfo.currentCourseID = GlobalInfo.roomInfo.CourseId;
 
+        PlayerPrefs.SetString(GlobalInfo.CachedRoom, GlobalInfo.roomInfo.Uuid);
+
         NetworkManager.Instance.IsIMSync = false;
         UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
         InitData(() =>
@@ -546,6 +548,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
         SendMsg(new MsgBase((ushort)ARModuleEvent.ExitCourse));
 #endif
 
+        GlobalInfo.ClearCachedRoom();
         GlobalInfo.currentWiki = null;
         GlobalInfo.currentCourseID = 0;
         BaikeSelectModule.selectID = 0;

@@ -93,7 +93,6 @@ public class ExamTrainingPanel : UIPanelBase
     };
     private const string defaultCourseType = "未选择课程";
 
-    public const string flag = "ExamTrainingPanel";
 
     protected ResourcesDownloader downloader;
 
@@ -233,20 +232,19 @@ public class ExamTrainingPanel : UIPanelBase
         //检测到用户之前参与的考核房间存在 尝试加入
         foreach (var item in roomInfos.Values)
         {
-            if(IsCachedRoom(item.Uuid))
+            if(GlobalInfo.IsCachedRoom(item.Uuid))
             {
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("是", new PopupButtonData(() =>
                 {
                     creatingRoom = false;
-                    GlobalInfo.UseLoadCachedPacket = true;
                     GlobalInfo.currentCourseID = item.CourseId;
                     JoinRoom(item.Uuid, item.Password);
                 }, true));
                 popupDic.Add("否", new PopupButtonData(() =>
                 {
                     ExamUtility.Instance.DeleteParticipantExamCache(item.Uuid);
-                    PlayerPrefs.DeleteKey(flag);
+                    GlobalInfo.ClearCachedRoom();
                 }));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？", popupDic, null, false));
             }
@@ -395,7 +393,7 @@ public class ExamTrainingPanel : UIPanelBase
         if (info.AllowIn)
         {
             //非房主不能加入考核中的房间
-            if (info.creatorId != GlobalInfo.account.id && !IsCachedRoom(info.Uuid))
+            if (info.creatorId != GlobalInfo.account.id && !GlobalInfo.IsCachedRoom(info.Uuid))
             {
                 inExam.onClick.RemoveAllListeners();
                 inExam.onClick.AddListener(() => UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo("正在考核中，不能进入")));
@@ -455,7 +453,7 @@ public class ExamTrainingPanel : UIPanelBase
                 return;
             }
 
-            if (room.Status == 2 && room.creatorId != GlobalInfo.account.id && !IsCachedRoom(room.Uuid))
+            if (room.Status == 2 && room.creatorId != GlobalInfo.account.id && !GlobalInfo.IsCachedRoom(room.Uuid))
             {
                 UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo("正在考核中，不能进入"));
                 return;
@@ -591,7 +589,7 @@ public class ExamTrainingPanel : UIPanelBase
 
     private void ConfirmAndJoinRoom(string roomUuid, UnityAction onConfirmed)
     {
-        if (IsCachedRoom(roomUuid))
+        if (GlobalInfo.IsCachedRoom(roomUuid))
         {
             onConfirmed?.Invoke();
         }
@@ -602,15 +600,6 @@ public class ExamTrainingPanel : UIPanelBase
                 onConfirmed = onConfirmed
             });
         }
-    }
-
-    /// <summary>
-    /// 是否是已参加考核的房间
-    /// </summary>
-    /// <returns></returns>
-    private bool IsCachedRoom(string roomUuid)
-    {
-        return PlayerPrefs.GetString(flag, " ") == roomUuid;
     }
 
     /// <summary>
@@ -712,7 +701,7 @@ public class ExamTrainingPanel : UIPanelBase
     private void JoinRoom(string uuid, string password)
     {
         //进入的房间与缓存房间一致时，使用本地缓存数据恢复
-        if (IsCachedRoom(uuid))
+        if (GlobalInfo.IsCachedRoom(uuid))
             GlobalInfo.UseLoadCachedPacket = true;
 
         //重置踢出标记，确保正常加入房间不受影响

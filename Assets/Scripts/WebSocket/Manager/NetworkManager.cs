@@ -265,7 +265,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                 });
                 break;
             case BYE://quitRoomMsg
-                PlayerPrefs.DeleteKey(GlobalInfo.lastSynergiaRoomId);
+                PlayerPrefs.DeleteKey(GlobalInfo.CachedRoom);
                 EnsureLeaveRoom("退出房间成功");
                 break;
             default:

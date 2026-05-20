@@ -96,14 +96,14 @@ public partial class ExamCoursePanel : OPLCoursePanel
         if (!cachedEndTime.HasValue || cachedEndTime.Value <= GlobalInfo.ServerTime)
         {
             ExamUtility.Instance.DeleteParticipantExamCache(roomUuid);
-            PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+            GlobalInfo.ClearCachedRoom();
             return;
         }
 
         Log.Debug($"[ExamCoursePanel] 检测到考核进行中，自动重连 examId={cachedExamId}");
 
         // 从本地恢复 cachedPacket
-        PlayerPrefs.SetString(ExamTrainingPanel.flag, roomUuid);
+        PlayerPrefs.SetString(GlobalInfo.CachedRoom, roomUuid);
 
         var msgExamStartData = new MsgExamStart(
             (ushort)ExamPanelEvent.Start,
@@ -154,7 +154,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     private void ClearExamCache()
     {
         GlobalInfo.waitExam = true;
-        PlayerPrefs.DeleteKey(ExamTrainingPanel.flag);
+        GlobalInfo.ClearCachedRoom();
         if (GlobalInfo.roomInfo != null)
         {
             ExamUtility.Instance.DeleteParticipantExamCache(GlobalInfo.roomInfo.Uuid);
@@ -943,7 +943,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 {
                     Log.Debug($"[ExamCoursePanel] OnExamStart 进入考核流程，waitExam=true，将设为false");
                     GlobalInfo.waitExam = false;
-                    PlayerPrefs.SetString(ExamTrainingPanel.flag, GlobalInfo.roomInfo.Uuid);
+                    PlayerPrefs.SetString(GlobalInfo.CachedRoom, GlobalInfo.roomInfo.Uuid);
 
                     // 保存参与者考核缓存，用于异常退出后自动重连
                     ExamUtility.Instance.SetParticipantExamCache(

@@ -227,8 +227,11 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             UpdateAllPlayerTalkState(roomMembers[0].IsTalk, false);
         }
 
-        //SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherJoin, newJoinedMember.Id, newJoinedMember.Nickname));
         SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherJoin, newJoinedId, newJoinedName));
+
+        // 用户获得操作权限时，发送缓存的状态数据供恢复
+        string cachedJson = PlayerPrefs.GetString($"RestoreCachedPacket", "");
+        ToolManager.SendBroadcastMsg(new MsgIntString((ushort)RoomChannelEvent.RestoreCachedState, newJoinedId, cachedJson));
     }
 
     /// <summary>
@@ -277,8 +280,7 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             networkManager.RemoveUserVideo(memberId, false);
             networkManager.ClearUserIMState(memberId);
         }
-        SendMsg(new MsgIntStringBool((ushort)RoomChannelEvent.OtherDisconnect, memberId, memberNickName, !isEvict));
-
+        SendMsg(new MsgIntStringBool((ushort)RoomChannelEvent.OtherDisconnect, memberId, memberNickName, isEvict));
     }
 
     /// <summary>
@@ -318,16 +320,6 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             {
                 Log.Debug("发送用户操作权限改变消息");
                 SendMsg(new MsgIntBool((ushort)RoomChannelEvent.UpdateControl, newMember.Id, newMember.IsControl));
-
-                // 用户获得操作权限时，发送缓存的状态数据供恢复
-                if (newMember.IsControl)
-                {
-                    string cachedJson = PlayerPrefs.GetString("RestoreCachedPacket", "");
-                    if (!string.IsNullOrEmpty(cachedJson))
-                    {
-                        SendMsg(new MsgIntString((ushort)RoomChannelEvent.RestoreCachedState, newMember.Id, cachedJson));
-                    }
-                }
             }
 
             //用户语音状态改变

@@ -553,7 +553,7 @@ public class CreateRoomModule : ResourcesModule
         //记录当前房间信息
         GlobalInfo.SetCourseMode(CourseMode.Collaboration);
         GlobalInfo.roomInfo = thisRoomInfo;
-        PlayerPrefs.SetString(GlobalInfo.lastSynergiaRoomId, GlobalInfo.roomInfo.Uuid);
+        PlayerPrefs.SetString(GlobalInfo.CachedRoom, GlobalInfo.roomInfo.Uuid);
         if (ParentPanel is TrainingPanel)
         {
             UIManager.Instance.CloseUI<TrainingPanel>();

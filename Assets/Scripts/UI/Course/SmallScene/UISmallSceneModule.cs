@@ -434,6 +434,7 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.ClousePop,
             (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.OtherLeave,
+            (ushort)RoomChannelEvent.RestoreCachedState,
             (ushort)SmallFlowModuleEvent.StartExecute
         });
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", false);
@@ -1731,6 +1732,14 @@ public class UISmallSceneModule : UIModuleBase
                 break;
             case (ushort)RoomChannelEvent.OtherLeave:
                 ReleaseOperatePermission(((MsgIntString)msg).arg1);
+                break;
+            case (ushort)RoomChannelEvent.RestoreCachedState:
+                MsgIntString restoreMsg = ((MsgBrodcastOperate)msg).GetData<MsgIntString>();
+                if (restoreMsg.arg1 == GlobalInfo.account.id)
+                {
+                    PlayerPrefs.SetString("RestoreCachedPacket", restoreMsg.arg2);
+                    NetworkManager.Instance.RestoreCachedStateArrived = true;
+                }
                 break;
         }
     }
