@@ -1516,11 +1516,11 @@ public class UISmallSceneModule : UIModuleBase
             //            CameraView.gameObject.SetActive(false);
             //    }
             //    break;
-            case (ushort)SmallFlowModuleEvent.SelectFlow:
-                smallFlowCtrl.SelectFlow(((MsgBrodcastOperate)msg).GetData<MsgStringInt>().arg2);
-                smallFlowCtrl.SelectStep(0);
-                OnStepChanged();
-                break;
+            //case (ushort)SmallFlowModuleEvent.SelectFlow:
+            //    smallFlowCtrl.SelectFlow(((MsgBrodcastOperate)msg).GetData<MsgStringInt>().arg2);
+            //    smallFlowCtrl.SelectStep(0);
+            //    OnStepChanged();
+            //    break;
             case (ushort)SmallFlowModuleEvent.SelectStep:
                 //这里也设置一次，避免联机跳步骤错过 角色移动的恢复
                 ModelManager.Instance.CameraDotween = false;
@@ -1529,17 +1529,8 @@ public class UISmallSceneModule : UIModuleBase
 
                 // 接收任务进度跳转消息，执行流程和步骤的切换
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
-                if (GlobalInfo.isExam)
-                {
-                    smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1, false);  // arg2.Item1: flow索引 - 选中对应的任务流程
-                    smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2, false);  // arg2.Item2: step索引 - 选中对应的步骤
-                }
-                else
-                {
-                    smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1);
-                    smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2);
-                }
-                  
+                smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1, !GlobalInfo.isExam);
+                smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2, !GlobalInfo.isExam);
 
                 Log.Debug("执行跳步骤 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
@@ -1575,9 +1566,8 @@ public class UISmallSceneModule : UIModuleBase
                     //用于同步过程中，又有新操作导致的错误 恢复
                     if (receivedFlow != smallFlowCtrl.index_NowFlow || receivedStep != smallFlowCtrl.index_NowStep)
                     {
-                        UIManager.Instance.CloseUI<PopupPanel>();
-                        smallFlowCtrl.SelectFlow(receivedFlow, false);
-                        smallFlowCtrl.SelectStep(receivedStep, false);
+                        smallFlowCtrl.SelectFlow(receivedFlow, !GlobalInfo.isExam);
+                        smallFlowCtrl.SelectStep(receivedStep, !GlobalInfo.isExam);
                         Log.Debug("执行跳步骤 任务选中" + receivedFlow + "步骤选中" + receivedStep);
                         toolModule.SchematicPanel.HideView();
                     }
@@ -1738,7 +1728,7 @@ public class UISmallSceneModule : UIModuleBase
                 if (restoreMsg.arg1 == GlobalInfo.account.id)
                 {
                     PlayerPrefs.SetString("RestoreCachedPacket", restoreMsg.arg2);
-                    NetworkManager.Instance.RestoreCachedStateArrived = true;
+                    GlobalInfo.GetOtherCach = true;
                 }
                 break;
         }

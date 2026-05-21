@@ -229,9 +229,12 @@ public class RoomChannelAgent : NetworkChannelAgentBase
 
         SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherJoin, newJoinedId, newJoinedName));
 
-        // 用户获得操作权限时，发送缓存的状态数据供恢复
-        string cachedJson = PlayerPrefs.GetString($"RestoreCachedPacket", "");
-        ToolManager.SendBroadcastMsg(new MsgIntString((ushort)RoomChannelEvent.RestoreCachedState, newJoinedId, cachedJson));
+        // 新成员加入时，发送缓存的状态数据供恢复
+        if (GlobalInfo.account.id != newJoinedId)
+        {
+            string cachedJson = PlayerPrefs.GetString($"RestoreCachedPacket", "");
+            ToolManager.SendBroadcastMsg(new MsgIntString((ushort)RoomChannelEvent.RestoreCachedState, newJoinedId, cachedJson));
+        }
     }
 
     /// <summary>

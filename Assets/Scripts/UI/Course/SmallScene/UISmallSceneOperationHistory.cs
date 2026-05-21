@@ -304,6 +304,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 });
             }
             contact.gameObject.SetActive(false);
+            contactInputField.text = "";
             SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.SelectContact, false));
         });
 
@@ -680,8 +681,6 @@ public class UISmallSceneOperationHistory : UIModuleBase
             return;
         }
 
-        contactInputField.text = string.Empty;
-
         //当前步骤是记录操作
         MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();
         if (smallFlowCtrl.IsOnOperation(SmallFlowCtrl.inputFlag/*value*/))
@@ -723,9 +722,6 @@ public class UISmallSceneOperationHistory : UIModuleBase
             UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("操作执行中，完成后再试"));
             return;
         }
-
-
-        contactInputField.text = string.Empty;
 
         //当前步骤是联系操作
         MsgTuple<string, string, string, string> msgTupleString = ((MsgBrodcastOperate)msg).GetData<MsgTuple<string, string, string, string>>();

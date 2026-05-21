@@ -205,9 +205,28 @@ public class ExamPanel : HoverHintPanel
         {
             ExamUtility.Instance.InitSubmitCache(activeExamId, () =>
             {
+                //考核已被其他流程结束（如UpdateMemberList检测到空成员列表）
+                if (activeExamId == -1) return;
+
+                //所有考生已提交，直接结束考核（处理房主断线期间考生提交的情况）
+                if (ExamUtility.Instance.AllSubmit())
+                {
+                    StopExam((ushort)ExamPanelEvent.Stop);
+                    return;
+                }
+
                 // Status==2表示考核进行中
                 if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.Status == 2)
                 {
+                    //房间内无考生，结束考核（处理所有考生都已退出的情况）
+                    var currentMembers = NetworkManager.Instance.GetRoomMemberList();
+                    var nonHostCount = currentMembers != null ? currentMembers.Count(m => m.Id != GlobalInfo.account.id) : 0;
+                    if (nonHostCount == 0)
+                    {
+                        StopExam((ushort)ExamPanelEvent.Stop);
+                        return;
+                    }
+
                     GlobalInfo.waitExam = false;
                     // 恢复考核倒计时
                     var cachedEndTime = ExamUtility.Instance.GetHostExamEndTime(GlobalInfo.roomInfo.Uuid);
@@ -334,8 +353,8 @@ public class ExamPanel : HoverHintPanel
                 {
                     SetMemberItemState(Content.FindChildByName(submitData.senderId.ToString()), (int)State.Submit);
                     ExamUtility.Instance.UpdateSubmitCache(submitData.senderId);
-                    //全提交或多人考核有人提交了
-                    if (GlobalInfo.courseMode == CourseMode.OnlineExam || ExamUtility.Instance.AllSubmit())
+                    //全提交或小组考核有人提交了（小组模式一人提交全员提交）
+                    if (GlobalInfo.courseMode == CourseMode.OnlineExam || ExamUtility.Instance.AllSubmit() || GlobalInfo.IsGroupMode())
                     {
                         StopExam();
                         foreach (Transform item in Content)
@@ -422,6 +441,8 @@ public class ExamPanel : HoverHintPanel
     /// <param name="msgId"></param>
     private void StopExam(ushort msgId = 0)
     {
+        if (activeExamId == -1) return;
+
         if (FullScreenUserId != -1)
         {
             FullScene.gameObject.SetActive(false);

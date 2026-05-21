@@ -95,6 +95,12 @@ public class GlobalInfo
 
     //是否使用本地缓存数据
     public static bool UseLoadCachedPacket = false;
+
+    /// <summary>
+    /// 是否接收到别人缓存的记录标志位
+    /// </summary>
+    public static bool GetOtherCach = false;
+
     /// <summary>
     /// 如果是协同模式，队友在操作有步骤的自定义，那就不能进入下一步，等待140[UI按钮操作]消息去执行下一步
     /// </summary>
@@ -511,8 +517,8 @@ public class GlobalInfo
     /// 当前被设置为主画面的用户ID
     /// </summary>
     public static int mainScreenId = -1;
-    /// <summary>
-    /// 当前拥有操作权的用户IDs
+    /// <summary> 
+    /// 当前拥有操作权的用户IDs 暂时没用 把直播房间的成员权限切换功能屏蔽了
     /// </summary>
     public static HashSet<int> controllerIds = new HashSet<int>();
 
@@ -561,20 +567,17 @@ public class GlobalInfo
 
     /// <summary>
     /// 用户是否是操作者
+    /// 仅直播房间可能会出现参与者可能不是操作者的情况（仅观看直播画面）
     /// </summary>
     /// <returns></returns>
     public static bool IsOperator()
     {
         if (roomInfo == null || account == null)
             return false;
-        if (TwoPlayerMode())
+        if (courseMode == CourseMode.Livebroadcast)
+            return controllerIds.Contains(account.id);
+        else 
             return true;
-        return controllerIds.Contains(account.id);
-    }
-
-    public static bool TwoPlayerMode()
-    {
-        return courseMode == CourseMode.OnlineExam || courseMode == CourseMode.Collaboration || courseMode == CourseMode.Exam;
     }
 
     /// <summary>

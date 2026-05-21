@@ -569,7 +569,7 @@ namespace UnityFramework.Runtime
         public void AddSyncComponent(GameObject gameObject)
         {
             //个人考核不要同步组件，直播和协同模式需要
-            if(GlobalInfo.TwoPlayerMode())
+            if(GlobalInfo.courseMode != CourseMode.Exam)
                 cameraSync = gameObject.AutoComponent<CameraSync>();
         }
         /// <summary>
