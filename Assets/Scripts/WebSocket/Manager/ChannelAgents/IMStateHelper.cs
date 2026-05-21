@@ -59,7 +59,7 @@ public partial class IMStateHelper
     {
         return new IMState
         {
-            stateOps = GetStateList(),
+            //stateOps = GetStateList(),
             baikeState = GetBaikeState(step, flow)
         };
     }
@@ -67,7 +67,7 @@ public partial class IMStateHelper
     {
         return new IMState
         {
-            stateOps = GetStateList(),
+            //stateOps = GetStateList(),
             baikeState = GetBaikeState()
         };
     }

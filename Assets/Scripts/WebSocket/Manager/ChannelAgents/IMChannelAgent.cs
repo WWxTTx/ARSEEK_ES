@@ -53,12 +53,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
     private Queue<MsgBrodcastOperate> opsQueue = new Queue<MsgBrodcastOperate>();
 
     /// <summary>
-    /// 缓存操作版本
-    /// 直播房间无权限用户缓存但不执行，用于获取操作权时同步状态
-    /// </summary>
-    private IMPacket cachedPacket;
-
-    /// <summary>
     /// 收到的操作消息队列
     /// </summary>
     private Queue<MsgBrodcastOperate> opsReceive = new Queue<MsgBrodcastOperate>();
@@ -164,7 +158,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
             deltaTime = 0;
 
             currentOp = opsReceive.Dequeue();
-            Log.Debug($"[IMChannel] LateUpdate 处理opsReceive，msgId={currentOp?.msgId}, 剩余={opsReceive.Count}");
             TryExecuteCurrentOp();
         }
     }
@@ -182,6 +175,19 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
         string str = NetworkManager.Instance.IsIMSyncState ? opreLog : opLog;
         Log.Debug($"{str} {JsonTool.Serializable(currentOp)}");
+
+        //特殊，恢复消息是加入房间就发送的，会在场景加载前就接收，无法等待到由新建的UI上的脚本接收
+        if(currentOp.msgId == (int)RoomChannelEvent.RestoreCachedState)
+        {
+            MsgIntString restoreMsg = (currentOp).GetData<MsgIntString>();
+            if (restoreMsg.arg1 == GlobalInfo.account.id)
+            {
+                PlayerPrefs.SetString("RestoreCachedPacket", restoreMsg.arg2);
+                GlobalInfo.GetOtherCach = true;
+            }
+        }
+      
+
         try
         {
             if (string.IsNullOrEmpty(currentOp.data))
@@ -231,19 +237,15 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
                 try
                 {
-                    DebugHelper.Info(ChannelType.rti, $"[recv] {version}{datamsg}");
-
                     IMPacket packet = JsonTool.DeSerializable<IMPacket>(datamsg);
                     if (packet != null)
                     {
-                        cachedPacket = packet;
-
                         // 有 IM 同步的模式下持久化 cachedPacket，用于断线重连保底 房间消息中，用于考核相关的消息并不携带恢复数据，跳过
                         if (GlobalInfo.roomInfo != null && GlobalInfo.courseMode != CourseMode.Training && packet.data?.msgId < (int)SmallFlowModuleEvent.Max)
                         {
                             PlayerPrefs.SetString($"RestoreCachedPacket", JsonTool.Serializable(packet));
                         }
-                        //移除了这里 检测步骤序号重连 的逻辑
+                        //移除了这里 检测步骤序号重连 的逻辑 现在是直接在设置步骤阶段按最新进度直接全量更新
                         if (GlobalInfo.IsOperator())
                         {
                             opsReceive.Enqueue(packet.data);
@@ -283,8 +285,9 @@ public class IMChannelAgent : NetworkChannelAgentBase
 
             lock (asynLock)
             {
-                Log.Debug($"[IMChannel] SendCoroutine 开始发送，opsQueue.Count={opsQueue.Count}, version={GlobalInfo.version}");
-                Send(opsQueue.Dequeue());
+                var msg = opsQueue.Dequeue();
+                Log.Debug($"[执行IMChannel] SendCoroutine 开始发送{msg.msgId}，opsQueue.Count={opsQueue.Count}, version={GlobalInfo.version}");
+                Send(msg);
             }
         }
     }
@@ -381,7 +384,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
             opsQueue.Clear();
         opsReceive.Clear();
         currentOp = null;
-        cachedPacket = null;
         if (GlobalInfo.roomInfo != null)
             PlayerPrefs.DeleteKey($"IMPacket_{GlobalInfo.roomInfo.Uuid}");
         stateHelper.Clear();

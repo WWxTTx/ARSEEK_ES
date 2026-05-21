@@ -815,7 +815,7 @@ public class OPLCoursePanel : HoverHintPanel
             encyclopediaModelLoaded = true;
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
             
-            Debug.Log("执行联机状态恢复");
+            Debug.Log("执行协同联机状态恢复");
             NetworkManager.Instance.SyncBaikeState();
         });
     }

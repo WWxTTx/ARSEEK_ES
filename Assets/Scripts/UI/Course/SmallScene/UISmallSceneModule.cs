@@ -434,7 +434,6 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.ClousePop,
             (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.OtherLeave,
-            (ushort)RoomChannelEvent.RestoreCachedState,
             (ushort)SmallFlowModuleEvent.StartExecute
         });
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", false);
@@ -1535,12 +1534,12 @@ public class UISmallSceneModule : UIModuleBase
                 Log.Debug("执行跳步骤 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
                 break;
-            case (ushort)SmallFlowModuleEvent.Guide:
-                ModelState = ModelState.Unselect;
-                MsgTuple<int, int, string> msgTuple = msg as MsgTuple<int, int, string>;
-                smallFlowCtrl.StepGuide(msgTuple.arg.Item1, msgTuple.arg.Item2);
-                StepHighlight(msgTuple.arg.Item1, msgTuple.arg.Item2);
-                break;
+            //case (ushort)SmallFlowModuleEvent.Guide:
+            //    ModelState = ModelState.Unselect;
+            //    MsgTuple<int, int, string> msgTuple = msg as MsgTuple<int, int, string>;
+            //    smallFlowCtrl.StepGuide(msgTuple.arg.Item1, msgTuple.arg.Item2);
+            //    StepHighlight(msgTuple.arg.Item1, msgTuple.arg.Item2);
+            //    break;
             case (ushort)SmallFlowModuleEvent.SelectTool:
                 OnPropChanged((msg as MsgString).arg);
                 break;
@@ -1722,14 +1721,6 @@ public class UISmallSceneModule : UIModuleBase
                 break;
             case (ushort)RoomChannelEvent.OtherLeave:
                 ReleaseOperatePermission(((MsgIntString)msg).arg1);
-                break;
-            case (ushort)RoomChannelEvent.RestoreCachedState:
-                MsgIntString restoreMsg = ((MsgBrodcastOperate)msg).GetData<MsgIntString>();
-                if (restoreMsg.arg1 == GlobalInfo.account.id)
-                {
-                    PlayerPrefs.SetString("RestoreCachedPacket", restoreMsg.arg2);
-                    GlobalInfo.GetOtherCach = true;
-                }
                 break;
         }
     }

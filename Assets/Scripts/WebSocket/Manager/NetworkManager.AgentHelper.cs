@@ -296,11 +296,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     public bool IsIMSyncState = false;
 
     /// <summary>
-    /// 标志位，RestoreCachedState 消息已到达并写入 PlayerPrefs
-    /// </summary>
-    public bool RestoreCachedStateArrived = false;
-
-    /// <summary>
     /// 待发送的操作消息数量
     /// </summary>
     public int SendOpCount
@@ -318,17 +313,14 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         mIMChannelAgent.SendOperationData(msg);
     }
 
-    Action ExamCoursePanelAction;
     /// <summary>
     /// 全量更新本地进度
     /// </summary>
     /// <param name="callback"></param>
-    public void SyncBaikeState(Action callback = null)
+    public void SyncBaikeState()
     {
         //开始进行版本同步前，清除一些状态
         FormMsgManager.Instance.SendMsg(new MsgBase((ushort)StateEvent.PreSyncVersion));
-
-        ExamCoursePanelAction = callback;
         SyncBaikeStateAndCatchAsync();
     }
 
@@ -358,32 +350,50 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         return null;
     }
 
-    int step = 0;
-    int flow = 0;
     private async UniTask _syncBaikeState()
     {
-        await UniTask.Delay(100);
-        //如果没有远程消息则使用本地记录
         IMState currentState = null;
-        if (GlobalInfo.UseLoadCachedPacket)
+        float timeOut = 0;
+        int memberCount = GetRoomMemberCount();
+
+        UIManager.Instance.OpenUI<LoadingPanel>();
+
+        if (memberCount > 1 && GlobalInfo.courseMode != CourseMode.Exam)
         {
-            currentState = LoadCachedPacket();
+            // 多人房间：等待他人缓存数据
+            while (!GlobalInfo.GetOtherCach && timeOut < 3f)
+            {
+                await UniTask.Delay(100);
+                timeOut += 0.1f;
+            }
+            if(GlobalInfo.GetOtherCach)
+                currentState = LoadCachedPacket();
         }
+        else
+        {
+            //如果没有远程消息则使用本地记录
+            if (GlobalInfo.UseLoadCachedPacket)
+                currentState = LoadCachedPacket();
+        }
+
         GameObject model = ModelManager.Instance.modelGo;
 
+        await UniTask.Delay(100);
         // 重连恢复步骤只能发生在有重连信息,已重建场景后
         if (currentState == null || currentState.baikeState == null || currentState.baikeState.data == null || model == null)
         {
+            UIManager.Instance.CloseUI<LoadingPanel>();
             return;
         }
         GlobalInfo.UseLoadCachedPacket = false;
-        UIManager.Instance.OpenUI<LoadingPanel>();
+        GlobalInfo.GetOtherCach = false;
 
         //消息中为空的可能会覆盖正确的
         SmallSceneBaikeState smallSceneBaikeState = JsonTool.DeSerializable<SmallSceneBaikeState>(currentState.baikeState.data);
-        flow = smallSceneBaikeState.flowIndex;
-        step = smallSceneBaikeState.stepIndex;
+        int flow = smallSceneBaikeState.flowIndex;
+        int step = smallSceneBaikeState.stepIndex;
 
+        UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
         Debug.Log("当前获得的任务进度为：" + flow + "   " + step);
         if ((step > 0 || flow > 0))
         {
@@ -391,7 +401,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             await WaitForFlowModule();
 
             // 发送任务进度跳转消息，通过flow和step索引定位步骤
-            UISmallSceneModule smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
             if (smallSceneModule != null && smallSceneModule.smallFlowCtrl.flows != null)
             {
                 MsgStringTuple<int, int, string> msg = new MsgStringTuple<int, int, string>()
@@ -405,15 +414,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             }
 
             await UniTask.Delay(500, ignoreTimeScale: true);
-            // 用服务端操作记录覆盖本地，不上传
-            if (smallSceneModule.operationHistoryModule != null)
-                smallSceneModule.operationHistoryModule.UpdateOpRecordList(smallSceneBaikeState.operations);
-
-            //多人考核需要在联机步骤恢复的基础上增加操作记录对应操作还原
-            if (GlobalInfo.courseMode == CourseMode.OnlineExam)
-            {
-                ExamCoursePanelAction?.Invoke();
-            }
 
             // 等待步骤切换操作全部执行完成（最多等1秒）
             float waitElapsed = 0f;

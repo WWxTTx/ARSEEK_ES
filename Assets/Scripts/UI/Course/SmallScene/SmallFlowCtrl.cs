@@ -322,24 +322,6 @@ public class SmallFlowCtrl : MonoBase
     private Func<bool> audioNotPlayingPredicate;
 
     /// <summary>
-    /// 各步骤初始视角
-    /// key:flowIndex value: (key:stepIndex value:stepIndex)
-    /// </summary>
-    private Dictionary<int, Dictionary<int, int>> stepView = new Dictionary<int, Dictionary<int, int>>();
-
-    //private CanvasGroup masterComputerCanvas;
-    //public bool MasterComputerInteractable
-    //{
-    //    set
-    //    {
-    //        if (masterComputerCanvas == null)
-    //            return;
-    //        //masterComputerCanvas.alpha = value ? 1 : 0.5f;
-    //        //masterComputerCanvas.blocksRaycasts = value;
-    //    }
-    //}
-
-    /// <summary>
     /// 初始化绑定步骤和任务完成事件
     /// </summary>
     public void Init(bool useGuide, List<Flow> flowsTex = null)
@@ -378,25 +360,6 @@ public class SmallFlowCtrl : MonoBase
             }
         }
 
-        //记录各步骤对应的相机视角（步骤）
-        int viewIndex = -1;
-        for (int i = 0; i < flows.Length; i++)
-        {
-            viewIndex = -1;
-
-            stepView.Add(i, new Dictionary<int, int>());
-
-            for (int stepIndex = 0; stepIndex < flows[i].steps.Count; stepIndex++)
-            {
-                if (flows[i].steps[stepIndex].initState.FindIndex(s => s.optionName.Equals(cameraFlag)
-                || s.optionName.Equals(playerFlag)) >= 0)
-                {
-                    viewIndex = stepIndex;
-                }
-                stepView[i].Add(stepIndex, viewIndex);
-            }
-        }
-
         ModelInfo[] modelInfos = GetComponentsInChildren<ModelInfo>(true);
         operationIDs = new Dictionary<string, ModelOperation>();
         naviPoints = new List<NavigationPoint>();
@@ -413,6 +376,9 @@ public class SmallFlowCtrl : MonoBase
         {
             AddmodeInfo(item);
         }
+
+        //初始化完成后默认触发0
+        index_NowStep = 0;
     }
 
     void AddmodeInfo(ModelInfo modelInfo)
@@ -740,7 +706,7 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 选择任务
     /// </summary>
-    public void SelectFlow(int index_Flow, bool refresh = true)
+    public void SelectFlow(int index_Flow, bool ResetByFlow = true)
     {
         foreach (var operation in operationIDs)
         {
@@ -773,9 +739,6 @@ public class SmallFlowCtrl : MonoBase
             {
                 indexStep += 1;
 
-                //先执行初始视角（显示操作对象、设置相机）
-                ExecuteStepInitState(step.initState, ignoreCondition: true, ignoreMove: true);
-
                 //再执行步骤操作（含递归联动）
                 foreach (var operation in step.ops)
                 {
@@ -800,19 +763,13 @@ public class SmallFlowCtrl : MonoBase
                         }
                     }
 
-                    if (refresh)
+                    if (ResetByFlow)
                         RefreshOpHistory(operation.operation, operation.optionName, indexFlow, indexStep);
                 }
             }
         }
+
         isRestoringPreviousStates = false;
-
-        //执行当前步骤的初始视角
-        if (nowFlowStep != null)
-        {
-            ExecuteStepInitState(nowFlowStep.initState, ignoreCondition: true, ignoreMove: false);
-        }
-
         cache.Clear();
     }
 
@@ -840,9 +797,9 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 选择小步骤
     /// </summary>
-    public void SelectStep(int stepIndex, bool allrefresh = true)
+    public void SelectStep(int stepIndex, bool ResetByFlow = true)
     {
-        if (allrefresh)
+        if (ResetByFlow)
         {
             FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
 
@@ -870,9 +827,6 @@ public class SmallFlowCtrl : MonoBase
         {
             indexStep += 1;
 
-            //先执行初始视角（显示操作对象、设置相机）
-            ExecuteStepInitState(step.initState, ignoreCondition: true, ignoreMove: true);
-
             //再执行步骤操作（含递归联动，其中包含导航）
             foreach (var operation in step.ops)
             {
@@ -894,26 +848,28 @@ public class SmallFlowCtrl : MonoBase
                     }
                 }
 
-                if (allrefresh)
+                //非考核模式使用进度来生成考核记录
+                if (ResetByFlow)
                     RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, indexStep);
             }
         }
         isRestoringPreviousStates = false;
+
+
+        //考核模式使用服务器获取到的数据进行操作记录恢复 并根据记录在正常的模型状态上叠加考核错误的操作
+        if (!ResetByFlow)
+        {
+            OnRefreshExamHistory?.Invoke();
+            var examModelStates = GetExamModelStates?.Invoke();
+            if (examModelStates != null)
+                SetFinalState(examModelStates);
+        }
 
         //显式执行角色位置相关的设置：从上一步的联动步骤和当前步骤的初始视角
         ApplyPlayerPositionForStepJump(stepIndex);
 
         //设置当前步骤索引（触发 initState 执行）
         index_NowStep = stepIndex;
-    }
-
-    public string GetStep(int stepIndex)
-    {
-        if (stepIndex >= 0 && stepIndex < nowFlowSteps.Count)
-        {
-            return nowFlowSteps[stepIndex].ID;
-        }
-        return null;
     }
 
     /// <summary>
@@ -992,60 +948,17 @@ public class SmallFlowCtrl : MonoBase
         return false;
     }
 
+    public Action AddOpHistory;
 
     /// <summary>
-    /// 步骤引导
+    /// 考核模式下，ResetByFlow=false时使用联机历史记录刷新操作记录
     /// </summary>
-    /// <param name="flowIndex"></param>
-    /// <param name="stepIndex"></param>
-    public void StepGuide(int flowIndex, int stepIndex)
-    {
-        if (!GlobalInfo.hasRole && useGuide && stepView.ContainsKey(flowIndex) && stepView[flowIndex].ContainsKey(stepIndex))
-        {
-            if (stepView[flowIndex][stepIndex] != stepIndex)
-            {
-                SmallStepState cameraState = GetPreviousCamState(flowIndex, stepIndex);
-                if (cameraState != null)
-                {
-                    SetFinalState(cameraState.operation, cameraState.optionName);
-                }
-            }
+    public Action OnRefreshExamHistory;
 
-            if (flows != null && flowIndex >= 0 && flowIndex < flows.Length)
-            {
-                var steps = flows[flowIndex].steps;
-                if(steps != null && stepIndex >= 0 && stepIndex < steps.Count)
-                {
-                    foreach (var target in steps[stepIndex].initState)
-                    {
-                        SetFinalState(target.operation, target.optionName);
-                    }
-                }
-            }
-        }
-    }
-
-    private SmallStepState GetPreviousCamState(int flowIndex, int stepIndex)
-    {
-        SmallStepState cameraState = null;
-        var flowViews = stepView.Take(flowIndex + 1).Reverse().ToList();
-        foreach (var f in flowViews)
-        {
-            var steps = f.Value.Reverse().ToList();
-            foreach (var step in steps)
-            {
-                if ((f.Key < flowIndex || step.Key < stepIndex) && step.Value != -1)
-                {
-                    cameraState = flows[f.Key].steps[step.Value].initState.FirstOrDefault(s => s.optionName.Equals(cameraFlag)
-                    || s.optionName.Equals(playerFlag));
-                    return cameraState;
-                }
-            }
-        }
-        return cameraState;
-    }
-
-    public Action AddOpHistory;
+    /// <summary>
+    /// 考核模式下，ResetByFlow=false时获取联机历史记录中的模型状态
+    /// </summary>
+    public Func<List<OpDicData>> GetExamModelStates;
     /// <summary>
     /// 执行自由操作
     /// </summary>
@@ -1735,29 +1648,6 @@ public class SmallFlowCtrl : MonoBase
         if (image)
         {
             DOTween.Kill(component.transform.GetInstanceID(), true);
-        }
-    }
-
-    /// <summary>
-    /// 执行步骤的初始视角操作
-    /// 用于步骤跳跃时正确设置相机位置、显示操作对象等
-    /// </summary>
-    /// <param name="initStates">初始状态列表</param>
-    /// <param name="ignoreCondition">是否跳过条件检查</param>
-    /// <param name="ignoreMove">是否跳过角色位移</param>
-    private void ExecuteStepInitState(List<SmallStepState> initStates,
-        bool ignoreCondition = true, bool ignoreMove = false)
-    {
-        if (initStates == null || initStates.Count == 0)
-            return;
-
-        foreach (var state in initStates)
-        {
-            if (state.operation == null || string.IsNullOrEmpty(state.optionName))
-                continue;
-
-            SetFinalState(state.operation, state.optionName,
-                ignoreCondition, processLinkages: false, ignoreMove);
         }
     }
 

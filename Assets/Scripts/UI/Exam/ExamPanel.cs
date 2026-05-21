@@ -275,15 +275,6 @@ public class ExamPanel : HoverHintPanel
                     }
 
                     NetworkManager.Instance.IsIMSync = true;
-
-                    // 房主重连时发送开始考核消息给剩余成员
-                    ToolManager.SendBroadcastMsg(new MsgExamStart(
-                        (ushort)ExamPanelEvent.Start,
-                        activeExamId,
-                        GlobalInfo.ServerTime,
-                        examEndTime,
-                        ExamUtility.Instance.ExamineeRecords
-                    ), true);
                 }
                 else
                 {
@@ -1012,15 +1003,6 @@ public class ExamPanel : HoverHintPanel
         if (newJoinedId != GlobalInfo.roomInfo.creatorId && activeExamId != -1)
         {
             Log.Debug($"[ExamPanel] 成员[{newJoinedId}]重连，准备发送考核消息，activeExamId={activeExamId}, IsIMSync={NetworkManager.Instance.IsIMSync}, waitExam={GlobalInfo.waitExam}");
-
-            // 发送开始考核消息
-            ToolManager.SendBroadcastMsg(new MsgExamStart(
-                (ushort)ExamPanelEvent.Start,
-                activeExamId,
-                GlobalInfo.ServerTime,
-                examEndTime,
-                ExamUtility.Instance.ExamineeRecords
-            ), true);
             Transform memberItem = Content.FindChildByName(newJoinedId.ToString());
             if (memberItem != null)
                 SetMemberItemState(memberItem, (int)State.InExam);
