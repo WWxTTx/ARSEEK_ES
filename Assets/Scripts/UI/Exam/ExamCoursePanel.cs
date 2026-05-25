@@ -30,11 +30,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     private int examId;
 
     /// <summary>
-    /// 试卷百科对应答案列表，key：百科id，value：百科对应答案数据
-    /// </summary>
-    private Dictionary<int, Answer> answersDic = new Dictionary<int, Answer>();
-
-    /// <summary>
     /// 已提交的百科视频列表，key：百科id, 视频路径，value：是否已提交记录
     /// </summary>
     private Dictionary<Tuple<int, string>, bool> videoDic = new Dictionary<Tuple<int, string>, bool>();
@@ -118,14 +113,17 @@ public partial class ExamCoursePanel : OPLCoursePanel
         // 从本地恢复 cachedPacket
         PlayerPrefs.SetString(GlobalInfo.CachedRoom, roomUuid);
 
+        var cachedExamineeRecords = ExamUtility.Instance.GetParticipantExamExamineeRecords(roomUuid);
+
         var msgExamStartData = new MsgExamStart(
             (ushort)ExamPanelEvent.Start,
             cachedExamId,
             GlobalInfo.ServerTime,
             cachedEndTime.Value,
-            null
+            cachedExamineeRecords
         );
 
+        NetworkManager.Instance.IsIMSyncState = true;
         OnExamStart(msgExamStartData);
     }
 
@@ -376,8 +374,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 ModelManager.Instance.AddSyncComponent(Camera.main.gameObject);
             
             smallSceneModule = UIManager.Instance.OpenModuleUI<UISmallSceneModule>(this, BaikeModulePoint, new SmallSceneData(encyclopediaOperation.flows)) as UISmallSceneModule;
-            smallSceneModule.smallFlowCtrl.OnRefreshExamHistory = RefreshExamOpHistory;
-            smallSceneModule.smallFlowCtrl.GetExamModelStates = GetExamModelStateData;
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
             UIManager.Instance.CloseUI<LoadingPanel>();
 
@@ -520,111 +516,148 @@ public partial class ExamCoursePanel : OPLCoursePanel
     }
 
     /// <summary>
-    /// 恢复操作记录 和对应 模型状态
+    /// 异步获取考核操作历史
     /// </summary>
-    private async UniTaskVoid RecoveryExam(CancellationToken ct)
+    public void RefreshExamOpHistoryAsync(Action<AnswerOp> answerOpCallBack)
     {
-        UIManager.Instance.OpenUI<LoadingPanel>();
-        Canvas canvas = UIManager.Instance.canvas;
-
-        await UniTask.WaitUntil(() => canvas.GetComponentInChildren<UISmallSceneModule>(true) != null, cancellationToken: ct);
-        smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
-        NetworkManager.Instance.IsIMSync = false;
-
-        int flow = 0, step = 0;
-        {
-            //按顺序匹配：从 flows 第一个步骤开始，在 operations 中按顺序查找，找到则进度+1继续找下一个
-            if (GlobalInfo.currentWiki != null && answersDic.ContainsKey(GlobalInfo.currentWiki.id))
-            {
-                AnswerOp savedAnswer = answersDic[GlobalInfo.currentWiki.id] as AnswerOp;
-                if (savedAnswer != null && savedAnswer.operations != null && savedAnswer.operations.Count > 0)
-                {
-                    var flows = smallSceneModule.smallFlowCtrl.flows;
-                    int opIndex = 0;
-                    for (int f = 0; f < flows.Length; f++)
-                    {
-                        bool flowMatched = false;
-                        for (int s = 0; s < flows[f].steps.Count; s++)
-                        {
-                            if (TryMatchStepInOps(flows[f].steps[s], savedAnswer.operations.ToList(), ref opIndex))
-                            {
-                                flow = f;
-                                step = s;
-                                flowMatched = true;
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                        if (!flowMatched)
-                            break;
-                    }
-                }
-            }
-        }
-        
-        Log.Debug($"考核重连恢复进度 flow:{flow} step:{step}");
-
-        //同步操作对象状态 恢复步骤
-        smallSceneModule.smallFlowCtrl.SelectFlow(flow, false);
-        smallSceneModule.smallFlowCtrl.SelectStep(step, false);
-
-        //历史是已完成的，需要操作的是下一步
-        smallSceneModule.smallFlowCtrl.Next(true);
-
-        //完成恢复，打开消息处理
-        await UniTask.Delay(TimeSpan.FromSeconds(0.1));
-        UIManager.Instance.CloseUI<LoadingPanel>();
-        NetworkManager.Instance.IsIMSync = true;
+        _RefreshExamOpHistoryAsync(answerOpCallBack).Forget();
     }
 
     /// <summary>
     /// 使用联机考核记录刷新操作历史
     /// </summary>
-    private void RefreshExamOpHistory()
+    private async UniTaskVoid _RefreshExamOpHistoryAsync(Action<AnswerOp> answerOpCallBack)
     {
-        if (GlobalInfo.currentWiki == null || !answersDic.ContainsKey(GlobalInfo.currentWiki.id))
-            return;
-
-        AnswerOp answerOp = answersDic[GlobalInfo.currentWiki.id] as AnswerOp;
-        if (answerOp == null)
-            return;
-
-        List<OpRecordData> opRecordData = answerOp.operations?.Select(data => new OpRecordData()
+        UIManager.Instance.OpenUI<LoadingPanel>();
+        // 试卷百科对应答案列表，key：百科id，value：百科对应答案数据
+        Dictionary<int, Answer> answersDic = new Dictionary<int, Answer>();
+        UnityAction<int, List<Answer>, List<Accessory>> success = (id, answers, accessories) =>
         {
-            index = data.index,
-            msg = data.msg,
-            userNo = data.userNo,
-            userName = data.userName,
-            createTime = data.createTime,
-            type = data.type,
-            score = data.score,
-            totalStepIndex = data.totalStepIndex
-        }).ToList();
+            if (answers != null)
+            {
+                foreach (var answer in answers)
+                {
+                    if (answersDic.ContainsKey(answer.baikeId))
+                        answersDic[answer.baikeId] = answer;
+                    else
+                        answersDic.Add(answer.baikeId, answer);
+                }
+            }
 
-        smallSceneModule.operationHistoryModule.UpdateOpRecordList(opRecordData ?? new List<OpRecordData>());
+            AnswerOp answerOp = answersDic[GlobalInfo.currentWiki.id] as AnswerOp;
+            if (answerOp != null)
+            {
+                List<OpRecordData> opRecordData = answerOp.operations?.Select(data => new OpRecordData()
+                {
+                    index = data.index,
+                    msg = data.msg,
+                    userNo = data.userNo,
+                    userName = data.userName,
+                    createTime = data.createTime,
+                    type = data.type,
+                    score = data.score,
+                    totalStepIndex = data.totalStepIndex
+                }).ToList();
+
+                WaitForFlowsReady(answerOp, answerOpCallBack).Forget();
+            }
+        };
+
+        UnityAction<string> error = errorMsg =>
+        {
+            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录获取失败"));
+            UIManager.Instance.CloseUI<LoadingPanel>();
+        };
+
+        try
+        {
+            if (GlobalInfo.courseMode == CourseMode.Exam)
+            {
+                int recordId = ExamUtility.Instance.GetUserRecordId(GlobalInfo.account.id);
+                ExamUtility.Instance.GetExamineResultByRecordId(recordId, success, error);
+            }
+            else
+            {
+                ExamUtility.Instance.GetExamineResult(examId, success, error);
+            }
+        }
+        catch
+        {
+            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("网络超时，同步记录获取失败"));
+        }
     }
 
     /// <summary>
-    /// 获取联机考核记录中的模型状态
+    /// 等待 smallSceneModule.smallFlowCtrl.flows 不为空后再执行回调
     /// </summary>
-    private List<OpDicData> GetExamModelStateData()
+    private async UniTaskVoid WaitForFlowsReady(AnswerOp answerOp, Action<AnswerOp> answerOpCallBack)
     {
-        if (GlobalInfo.currentWiki == null || !answersDic.ContainsKey(GlobalInfo.currentWiki.id))
-            return null;
-
-        AnswerOp answerOp = answersDic[GlobalInfo.currentWiki.id] as AnswerOp;
-        if (answerOp == null)
-            return null;
-
-        return answerOp.modelStates?.Select(s => new OpDicData()
-        {
-            id = s.id,
-            optionName = s.optionName,
-            uiTargetModelEulerZ = float.Parse(s.uiTargetModelEulerZ)
-        }).ToList();
+        await UniTask.WaitUntil(() => smallSceneModule != null && smallSceneModule.smallFlowCtrl != null
+            && smallSceneModule.smallFlowCtrl.flows != null && smallSceneModule.smallFlowCtrl.flows.Length > 0);
+        answerOpCallBack.Invoke(answerOp);
+        UIManager.Instance.CloseUI<LoadingPanel>();
     }
+
+    /// <summary>
+    /// 恢复操作记录 和对应 模型状态
+    /// </summary>
+    private void RecoveryExam(AnswerOp savedAnswer)
+    {
+        UIManager.Instance.OpenUI<LoadingPanel>();
+        Canvas canvas = UIManager.Instance.canvas;
+
+        smallSceneModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
+        NetworkManager.Instance.IsIMSync = false;
+
+        int flow = 0, step = -1;
+        //按顺序匹配：从 flows 第一个步骤开始，在 operations 中按顺序查找，找到则进度+1继续找下一个
+        if (savedAnswer != null && savedAnswer.operations != null && savedAnswer.operations.Count > 0)
+        {
+            var flows = smallSceneModule.smallFlowCtrl.flows;
+            int opIndex = 0;
+            for (int f = 0; f < flows.Length; f++)
+            {
+                bool flowMatched = false;
+                for (int s = 0; s < flows[f].steps.Count; s++)
+                {
+                    if (TryMatchStepInOps(flows[f].steps[s], savedAnswer.operations.ToList(), ref opIndex))
+                    {
+                        flow = f;
+                        step = s;
+                        flowMatched = true;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                if (!flowMatched)
+                    break;
+            }
+        }
+
+        Log.Debug($"考核重连恢复进度 flow:{flow} step:{step}");
+
+        //同步操作对象状态 恢复步骤
+        smallSceneModule.smallFlowCtrl.SelectFlow(flow, false);
+        if (step == -1)
+        {
+            smallSceneModule.smallFlowCtrl.SelectStep(0, false, savedAnswer);
+        }
+        else
+        {
+            smallSceneModule.smallFlowCtrl.SelectStep(step, false, savedAnswer);
+            //历史是已完成的，需要操作的是下一步
+            smallSceneModule.smallFlowCtrl.Next(true);
+        }
+        smallSceneModule.RefreshHighlight();
+
+
+        //完成恢复，打开消息处理
+        UIManager.Instance.CloseUI<LoadingPanel>();
+        NetworkManager.Instance.IsIMSync = true;
+    }
+
 
     /// <summary>
     /// 在操作记录中按顺序查找匹配当前步骤的 hint_success
@@ -682,7 +715,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             callBack?.Invoke(false);
             return;
         }
-        SaveWikiRecord();
 
         await UniTask.WaitForEndOfFrame(this, ct);
 
@@ -716,61 +748,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 }            
                 break;
         }  
-    }
-
-    /// <summary>
-    /// 记录百科状态
-    /// </summary>
-    private void SaveWikiRecord()
-    {
-        if (GlobalInfo.currentWiki != null)
-        {
-            switch (GlobalInfo.currentWiki.typeId)
-            {
-                case (int)PediaType.Operation:
-                    if(answersDic.ContainsKey(GlobalInfo.currentWiki.id))
-                    {
-                        AnswerOp answerOp = answersDic[GlobalInfo.currentWiki.id] as AnswerOp;
-                        UISmallSceneOperationHistory his = GetComponentInChildren<UISmallSceneOperationHistory>();
-                        if (his != null)
-                        {
-                            answerOp.operations = his.OpRecordList.Select(data => data.ToExamineResult()).ToList();
-                        }
-                        if (smallSceneModule != null)
-                        {
-                            if (smallSceneModule.smallFlowCtrl != null)
-                            {
-                                answerOp.modelStates = GetExamineModelStates().ToList();
-                            }
-                        }
-                    }
-                    break;
-                case (int)PediaType.Exercise:
-                    AnswerExercise answerExercise = answersDic[GlobalInfo.currentWiki.id] as AnswerExercise;
-                    OPLExerciseModule exercise = GetComponentInChildren<OPLExerciseModule>();
-                    EncyclopediaExercise encyclopediaExercise = GlobalInfo.currentWiki as EncyclopediaExercise;
-                    switch (encyclopediaExercise.data.exercise.type)
-                    {
-                        case 1://选择题(单选;多选)
-                            answerExercise.operation = exercise._selectedAnswers.Aggregate(string.Empty, (current, i) => current + ((char)('A' + i)).ToString());
-                            break;
-                        case 2://判断题
-                            if (exercise._selectedAnswers.Count == 1)
-                                answerExercise.operation = exercise._selectedAnswers[0] == 0 ? "正确" : "错误";
-                            else
-                                answerExercise.operation = string.Empty;
-                            break;
-                        case 3://操作题
-                        default:
-                            Log.Error("未处理题型");
-                            break;
-                    }
-                    break;
-                default:
-                    Log.Error("考核百科类型错误！");
-                    break;
-            }
-        }
     }
 
     /// <summary>
@@ -962,71 +939,25 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
                 if (GlobalInfo.waitExam)
                 {
-                    Log.Debug($"[ExamCoursePanel] OnExamStart 进入考核流程，waitExam=true，将设为false");
                     GlobalInfo.waitExam = false;
-                    PlayerPrefs.SetString(GlobalInfo.CachedRoom, GlobalInfo.roomInfo.Uuid);
-
-                    // 保存参与者考核缓存，用于异常退出后自动重连
-                    ExamUtility.Instance.SetParticipantExamCache(
-                        GlobalInfo.roomInfo.Uuid,
-                        msgExamStartData.examId,
-                        msgExamStartData.endTime
-                    );
-
-                    UnityAction<int, List<Answer>, List<Accessory>> success = (id, answers, accessories) =>
-                    {
-                        if (answers != null)
-                        {
-                            foreach (var answer in answers)
-                            {
-                                if (answersDic.ContainsKey(answer.baikeId))
-                                    answersDic[answer.baikeId] = answer;
-                                else
-                                    answersDic.Add(answer.baikeId, answer);
-                            }
-                        }
-
-                        bool isRecovery = answers != null && answers.Any(a =>
-                            a is AnswerOp op && op.operations != null && op.operations.Count > 0);
-
-                        if (isRecovery)
-                        {
-                            //重连：跳过倒计时，直接开始考核并恢复状态
-                            this.FindChildByName("StartTiming").gameObject.SetActive(false);
-                            StartExam(msgExamStartData);
-                            if (GlobalInfo.courseMode == CourseMode.Exam)
-                            {
-                                //如果是联机考核，直接获取最终步骤来获取进度 这里是单独处理单人考核这种特殊类型 同一个房间，但是有各自的进度
-                                Debug.Log("执行单人考核状态恢复");
-                                RecoveryExam(this.GetCancellationTokenOnDestroy()).Forget();
-                            }
-                        }
-                        else
-                        {
-                            //正常开始：保存房间信息，走倒计时流程
-                            StartTiming(() =>
-                            {
-                                StartExam(msgExamStartData);
-                            });
-                        }
-                    };
-                    UnityAction<string> error = error =>
-                    {
-                        Log.Error($"获取考核[{examId}]结果失败 {error}");
+                   
+                    if (NetworkManager.Instance.IsIMSyncState)
+                        StartExam(msgExamStartData);
+                    else
+                        //正常开始：保存房间信息，走倒计时流程
                         StartTiming(() =>
                         {
+                            PlayerPrefs.SetString(GlobalInfo.CachedRoom, GlobalInfo.roomInfo.Uuid);
+
+                            // 保存参与者考核缓存，用于异常退出后自动重连
+                            ExamUtility.Instance.SetParticipantExamCache(
+                                GlobalInfo.roomInfo.Uuid,
+                                msgExamStartData.examId,
+                                msgExamStartData.endTime,
+                                msgExamStartData.examineeRecords
+                            );
                             StartExam(msgExamStartData);
                         });
-                    };
-
-                    //先获取已提交的考核记录，根据结果判断是否重连
-                    if(GlobalInfo.courseMode == CourseMode.Exam)
-                    {
-                        int recordId = ExamUtility.Instance.GetUserRecordId(GlobalInfo.account.id);
-                        ExamUtility.Instance.GetExamineResultByRecordId(recordId, success, error);
-                    }
-                    else
-                        ExamUtility.Instance.GetExamineResult(msgExamStartData.examId, success, error);
                 }
                
             }
@@ -1075,12 +1006,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         GlobalInfo.waitExam = false;
 
         //主动加载百科模型（现在不在房间内切百科了，房主重连时不发送百科选择消息了）
-        int baikeId = 0;
-        var activeAnswer = answersDic.Values.FirstOrDefault(a => a is AnswerOp op && op.operations?.Count > 0);
-        if (activeAnswer != null)
-            baikeId = activeAnswer.baikeId;
-        else if (GlobalInfo.currentWikiList?.Count > 0)
-            baikeId = GlobalInfo.currentWikiList[0].id;
+        int baikeId = GlobalInfo.currentWikiList[0].id;
 
         if (baikeId != 0)
         {
@@ -1106,6 +1032,12 @@ public partial class ExamCoursePanel : OPLCoursePanel
         side.alpha = 1;
         side.interactable = true;
 #endif
+
+        if (NetworkManager.Instance.IsIMSyncState)
+            RefreshExamOpHistoryAsync(answerOp =>{
+                // 网络请求成功，从 answersDic 提取模型状态并恢复进度 主要目的是为了恢复正确流程的初始视角和联动步骤
+                RecoveryExam(answerOp);
+            });
     }
 
     /// <summary>
@@ -1216,7 +1148,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             SubmitExamRecord(true, true, null);
 
             ModelManager.Instance.DestroyModels(true);
-            PlayerManager.Instance.ClearUserIndicators();
             UIManager.Instance.CloseAllModuleUI(this);
             UpdateUIWhenExamStop();
             ClearExamCache();
@@ -1232,7 +1163,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
         if (submitUserId == GlobalInfo.account.id)
         {
             ModelManager.Instance.DestroyModels(true);
-            PlayerManager.Instance.ClearUserIndicators();
             UIManager.Instance.CloseAllModuleUI(this);
             GlobalInfo.currentWiki = null;
             if (mCountdownCts != null)
@@ -1333,8 +1263,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 if (GlobalInfo.roomInfo == null) break;
                 ExamScreenRecording.Instance.StopRecordMovie();
                 ClearExamCache();
-                if (!GlobalInfo.waitExam)
-                    NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
+                NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
                 DoQuit();
                 break;
             case (ushort)RoomChannelEvent.RoomInfo:

@@ -5,21 +5,21 @@ using UnityEngine.UI;
 using UnityFramework.Runtime;
 
 /// <summary>
-/// ·¿¼ä³ÉÔ±Í¬²½
-/// ¶¯»­¡¢²ğ½â°Ù¿Æ£ºÎ»ÖÃ¡¢ÊÓÏß±ê¼Ç
-/// Ä£Äâ²Ù×÷°Ù¿Æ£º½ÇÉ«
+/// æˆ¿é—´æˆå‘˜åŒæ­¥
+/// åŠ¨ç”»ã€æ‹†è§£ç™¾ç§‘ï¼šä½ç½®ã€è§†çº¿æ ‡è®°
+/// æ¨¡æ‹Ÿæ“ä½œç™¾ç§‘ï¼šè§’è‰²
 /// </summary>
 public class GazeIndicator : MonoBase
 {
     /// <summary>
-    /// ·¿¼ä³ÉÔ±ĞÅÏ¢
+    /// æˆ¿é—´æˆå‘˜ä¿¡æ¯
     /// </summary>
     private int userId;
     private string userDevice;
     private Color color;
 
     /// <summary>
-    /// ÉäÏßÏà¹Ø×Ö¶Î
+    /// å°„çº¿ç›¸å…³å­—æ®µ
     /// </summary>
     private Transform start;
     private SpriteRenderer Arrow;
@@ -29,16 +29,16 @@ public class GazeIndicator : MonoBase
     private SpriteRenderer MapIcon;
     private LookAtTagert lookAtTagert;
     /// <summary>
-    /// ÊÓÏßÔÚÎïÌå±íÃæÉä»÷µã
+    /// è§†çº¿åœ¨ç‰©ä½“è¡¨é¢å°„å‡»ç‚¹
     /// </summary>
-    private Transform end;
+    //private Transform end;
     /// <summary>
-    /// Éè¼ÆµãÍ¼±ê
+    /// è®¾è®¡ç‚¹å›¾æ ‡
     /// </summary>
     private SpriteRenderer endSprite;
 
     /// <summary>
-    /// ÉäÏß
+    /// å°„çº¿
     /// </summary>
     private LineRenderer Line;
     private float lineWidth = 0.015f;
@@ -47,20 +47,20 @@ public class GazeIndicator : MonoBase
     private Material material;
     private float tileMaterialScale = 6;
     /// <summary>
-    /// ÉäÏß³¤¶ÈÏŞÖÆ
+    /// å°„çº¿é•¿åº¦é™åˆ¶
     /// </summary>
     private float minValue;
     private float maxValue;
 
     /// <summary>
-    /// ½ÇÉ«Ä£ĞÍÏà¹Ø×Ö¶Î
+    /// è§’è‰²æ¨¡å‹ç›¸å…³å­—æ®µ
     /// </summary>
     public GameObject PlayerPrefab;
     private GameObject model;
     private Animator modelAnimator;
     private float baseHeight;
     /// <summary>
-    /// ½ÇÉ«Ä£ĞÍ¸úËæ¶¯»­
+    /// è§’è‰²æ¨¡å‹è·ŸéšåŠ¨ç”»
     /// </summary>
     private Tweener modelRotateFollow;
     private Tweener modelPositionFollow;
@@ -69,21 +69,21 @@ public class GazeIndicator : MonoBase
     private Vector3 targetEuler;
 
     /// <summary>
-    /// Ä£ĞÍ¸ù½Úµã
+    /// æ¨¡å‹æ ¹èŠ‚ç‚¹
     /// </summary>
     private Transform target;
     /// <summary>
-    /// ÊÇ·ñÏÔÊ¾ÉäÏß
+    /// æ˜¯å¦æ˜¾ç¤ºå°„çº¿
     /// </summary>
     private bool showLine = true;
 
     /// <summary>
-    /// ÊÇ·ñÏÔÊ¾Îª½ÇÉ«Ä£ĞÍ
+    /// æ˜¯å¦æ˜¾ç¤ºä¸ºè§’è‰²æ¨¡å‹
     /// </summary>
     private bool ShowPlayer = false;
 
     /// <summary>
-    /// ³õÊ¼»¯
+    /// åˆå§‹åŒ–
     /// </summary>
     /// <param name="id"></param>
     public void Init(int id)
@@ -94,7 +94,7 @@ public class GazeIndicator : MonoBase
 
         InitVariables();
 
-        //¸ù¾İÅäÖÃÉèÖÃÓĞÎŞÂşÓÎÄ£Ê½
+        //æ ¹æ®é…ç½®è®¾ç½®æœ‰æ— æ¼«æ¸¸æ¨¡å¼
         ShowPlayer = GlobalInfo.hasRole;
 
         Name.text = NetworkManager.Instance.GetUserName(id);
@@ -113,14 +113,14 @@ public class GazeIndicator : MonoBase
             }
         }
 
-        //¸ù¾İ°Ù¿ÆÀàĞÍ³õÊ¼»¯½ÇÉ«Ä£ĞÍ»òÉäÏß
+        //æ ¹æ®ç™¾ç§‘ç±»å‹åˆå§‹åŒ–è§’è‰²æ¨¡å‹æˆ–å°„çº¿
         if (ShowPlayer)
             SetPlayer();
         else
         {
             SetLine();
 
-            //²ğ½â°Ù¿Æ³ÉÔ±Ñ¡ÖĞÄ£ĞÍÊ±Òş²ØÉäÏß
+            //æ‹†è§£ç™¾ç§‘æˆå‘˜é€‰ä¸­æ¨¡å‹æ—¶éšè—å°„çº¿
             SelectionModel selectionModel = ModelManager.Instance.modelGo?.GetComponent<SelectionModel>();
             if (selectionModel)
             {
@@ -139,7 +139,7 @@ public class GazeIndicator : MonoBase
         Line.startWidth = lineWidth;
         Line.endWidth = lineWidth;
         InfoPanel = transform.GetComponentByChildName<RectTransform>("InfoPanel");
-        end = transform.FindChildByName("end");
+        //end = transform.FindChildByName("end");
         Device = transform.FindChildByName("Device");
         Name = transform.GetComponentByChildName<Text>("Name");
         MapIcon = transform.GetComponentByChildName<SpriteRenderer>("MapIcon");
@@ -152,7 +152,7 @@ public class GazeIndicator : MonoBase
     }
 
     /// <summary>
-    /// ÉèÖÃÉäÏßÏÔÊ¾ÊôĞÔ ÑÕÉ«µÈ
+    /// è®¾ç½®å°„çº¿æ˜¾ç¤ºå±æ€§ é¢œè‰²ç­‰
     /// </summary>
     private void SetLine()
     {
@@ -163,15 +163,15 @@ public class GazeIndicator : MonoBase
             material = Line.material;
         material.SetColor("_BaseColor", color);
 
-        if (endSprite == null)
-        {
-            endSprite = end.GetComponent<SpriteRenderer>();
-        }
-        endSprite.color = color;
+        //if (endSprite == null)
+        //{
+        //    endSprite = end.GetComponent<SpriteRenderer>();
+        //}
+        //endSprite.color = color;
     }
 
     /// <summary>
-    /// ÉèÖÃ½ÇÉ« ÊµÀı»¯µÈ
+    /// è®¾ç½®è§’è‰² å®ä¾‹åŒ–ç­‰
     /// </summary>
     private void SetPlayer()
     {
@@ -204,7 +204,7 @@ public class GazeIndicator : MonoBase
             modelPositionFollow.ChangeEndValue(targetPosition, 0.25f, true);
         });
 
-        // TODO »¥ÏàÍÆ¼·
+        // TODO äº’ç›¸æ¨æŒ¤
         //var navObstacle = model.AutoComponent<NavMeshObstacle>();
         //navObstacle.radius = 0.2f;
         //navObstacle.height = 1.8f;
@@ -215,7 +215,7 @@ public class GazeIndicator : MonoBase
     }
 
     /// <summary>
-    /// ¸üĞÂ³ÉÔ±Î»ÖÃ
+    /// æ›´æ–°æˆå‘˜ä½ç½®
     /// </summary>
     /// <param name="position"></param>
     /// <param name="rot"></param>
@@ -225,18 +225,18 @@ public class GazeIndicator : MonoBase
             return;
 
         Quaternion rotation = new Quaternion(rot.x, rot.y, rot.z, rot.w);
-        if (ShowPlayer)
-        {
-            SetPlayerPose(target.transform.TransformPoint(position), target.transform.rotation * rotation);
-        }
-        else
-        {
-            SetLinePose(target.transform.TransformPoint(position), target.transform.rotation * rotation);
-        }
+        //if (ShowPlayer)
+        //{
+        SetPlayerPose(target.transform.TransformPoint(position), target.transform.rotation * rotation);
+        //}
+        //else
+        //{
+        //    SetLinePose(target.transform.TransformPoint(position), target.transform.rotation * rotation);
+        //}
     }
 
     /// <summary>
-    /// ÉèÖÃÎ»ÖÃºÍ·½Ïò
+    /// è®¾ç½®ä½ç½®å’Œæ–¹å‘
     /// </summary>
     /// <param name="startPoint"></param>
     /// <param name="rotation"></param>
@@ -246,13 +246,13 @@ public class GazeIndicator : MonoBase
         //targetEuler = rotation.eulerAngles;
         targetPosition = startPoint;
         //todo 0519
-        //targetPosition.y = baseHeight + offset.y;//ÁÙÊ±´¦ÀíVR
+        //targetPosition.y = baseHeight + offset.y;//ä¸´æ—¶å¤„ç†VR
         targetPosition.y += offset.y;
         targetEuler = rotation.eulerAngles.y * Vector3.up;
     }
 
     /// <summary>
-    /// ÉèÖÃÎ»ÖÃºÍÊÓÏß·½Ïò
+    /// è®¾ç½®ä½ç½®å’Œè§†çº¿æ–¹å‘
     /// </summary>
     /// <param name="startPoint"></param>
     /// <param name="rotation"></param>
@@ -265,23 +265,23 @@ public class GazeIndicator : MonoBase
         Line.positionCount = 2;
         Line.SetPosition(0, startPoint);
 
-        if (Physics.Raycast(startPoint, start.forward, out RaycastHit hit, 10))
-        {
-            end.position = hit.point;
-            end.rotation = Quaternion.LookRotation(hit.normal);
-            end.gameObject.SetActive(showLine);
-            Line.SetPosition(1, hit.point);
-            UpdateLine();
-        }
-        else
-        {
-            end.gameObject.SetActive(false);
-            Line.SetPosition(1, startPoint + start.forward * 10);
-            UpdateLine();
-        }
+        //if (Physics.Raycast(startPoint, start.forward, out RaycastHit hit, 10))
+        //{
+        //    end.position = hit.point;
+        //    end.rotation = Quaternion.LookRotation(hit.normal);
+        //    //end.gameObject.SetActive(showLine);
+        //    Line.SetPosition(1, hit.point);
+        //    UpdateLine();
+        //}
+        //else
+        //{
+        //    end.gameObject.SetActive(false);
+        //    Line.SetPosition(1, startPoint + start.forward * 10);
+        //    UpdateLine();
+        //}
     }
     /// <summary>
-    /// ÏŞÖÆÉäÏß³¤¶È
+    /// é™åˆ¶å°„çº¿é•¿åº¦
     /// </summary>
     /// <param name="startPoint"></param>
     /// <returns></returns>
@@ -303,25 +303,25 @@ public class GazeIndicator : MonoBase
     }
 
     /// <summary>
-    /// ¸üĞÂÉäÏßÏÔÊ¾
+    /// æ›´æ–°å°„çº¿æ˜¾ç¤º
     /// </summary>
     private void UpdateLine()
     {
         //https://forum.unity.com/threads/urp-lit-possible-to-modify-texture-tiling-offset-without-new-instances.1194931/
-        if (material == null)
-            material = Line.material;
-        material.SetTextureScale("_BaseMap", new Vector2(Vector3.Distance(start.transform.position, end.transform.position) * tileMaterialScale, 1));
+        //if (material == null)
+        //    material = Line.material;
+        //material.SetTextureScale("_BaseMap", new Vector2(Vector3.Distance(start.transform.position, end.transform.position) * tileMaterialScale, 1));
     }
 
     /// <summary>
-    /// ¿ØÖÆÉäÏßÏÔÒş
+    /// æ§åˆ¶å°„çº¿æ˜¾éš
     /// </summary>
     /// <param name="show"></param>
     public void ShowLine(bool show)
     {
         showLine = show && GlobalInfo.currentBaikeType != BaikeType.SmallScene;
         Line.gameObject.SetActive(show);
-        end.gameObject.SetActive(show);
+        //end.gameObject.SetActive(show);
     }
 
     public override void ProcessEvent(MsgBase msg)

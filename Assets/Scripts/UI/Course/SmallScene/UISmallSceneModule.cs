@@ -440,6 +440,10 @@ public class UISmallSceneModule : UIModuleBase
 
         InitModel(uiData);
         Init();
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            RefreshHighlight();
+        });
     }
 
     void InitModel(UIData uiData = null)
@@ -464,18 +468,19 @@ public class UISmallSceneModule : UIModuleBase
         {
             SmallSceneData data = uiData as SmallSceneData;
             if (data.flows != null)
-                smallFlowCtrl.Init(!GlobalInfo.IsExamMode());//todo强制引导视角
+                smallFlowCtrl.Init();//todo强制引导视角
             else
             {
-                smallFlowCtrl.Init(!GlobalInfo.IsExamMode());
+                smallFlowCtrl.Init();
                 SaveFlowStepName();
             }
         }
         else
         {
-            smallFlowCtrl.Init(!GlobalInfo.IsExamMode());
+            smallFlowCtrl.Init();
             SaveFlowStepName();
         }
+        RefreshHighlight();
 
         // 仿真系统初始化
         //if (simuSystem != null)
@@ -1610,9 +1615,15 @@ public class UISmallSceneModule : UIModuleBase
                 //AcquireOperatePermission(userIdFocus, modelOperationFocused, string.Empty);
                 break;
             case (ushort)SmallFlowModuleEvent.ClousePop:
-                UIPanelBase popup = UIManager.Instance.GetUI<PopupPanel>();
-                if (popup &&((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id)
-                    ((PopupPanel)popup).CloseButton.onClick?.Invoke();
+                if(((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id)
+                {
+                    UIPanelBase popup = UIManager.Instance.GetUI<PopupPanel>();
+                    if (popup)
+                    {
+                        ((PopupPanel)popup).CloseButton.onClick?.Invoke();
+                    }
+                    SmallFlowCtrl.ignoreMove = ((MsgBrodcastOperate)msg).GetData<MsgBool>().arg1;
+                }
                 break;
             case (ushort)SmallFlowModuleEvent.ClickObj:
                 // 仅本地消息：点击后直接执行操作，冲突检测和权限记录在 Operate 中处理
@@ -1739,19 +1750,6 @@ public class UISmallSceneModule : UIModuleBase
         ClearHighlight();
         RefreshHighlight();
         userOpModel.Clear();
-    }
-
-    /// <summary>
-    /// 重连后重置UI交互状态
-    /// </summary>
-    public void ResetUIState()
-    {
-        // 重置操作权限记录
-        userOpModel.Clear();
-        // 重置模型状态（会自动重置focusHint的blocksRaycasts）
-        ModelState = ModelState.Unselect;
-        // 刷新高亮显示
-        RefreshHighlight();
     }
 
     private void OnPropChanged(string propID)

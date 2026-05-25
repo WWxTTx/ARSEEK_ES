@@ -229,6 +229,10 @@ public class RoomChannelAgent : NetworkChannelAgentBase
 
         SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherJoin, newJoinedId, newJoinedName));
 
+        //更新成员列表时，房主会提示谁退出了房间
+        if (newJoinedId != GlobalInfo.account.id && GlobalInfo.account.id == GlobalInfo.roomInfo.creatorId)
+            UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo($"（{newJoinedName}）加入房间"));
+
         // 新成员加入时，发送缓存的状态数据供恢复
         if (GlobalInfo.account.id != newJoinedId)
         {
@@ -283,6 +287,11 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             networkManager.RemoveUserVideo(memberId, false);
             networkManager.ClearUserIMState(memberId);
         }
+
+        //更新成员列表时，房主会提示谁退出了房间
+        if (memberId != GlobalInfo.account.id && GlobalInfo.account.id == GlobalInfo.roomInfo.creatorId)
+            UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo($"（{memberNickName}）离开房间"));
+
         SendMsg(new MsgIntStringBool((ushort)RoomChannelEvent.OtherDisconnect, memberId, memberNickName, isEvict));
     }
 

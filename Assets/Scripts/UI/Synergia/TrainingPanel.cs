@@ -238,7 +238,7 @@ public class TrainingPanel : UIPanelBase
     {
         foreach (var item in roomInfos.Values)
         {
-            if (GlobalInfo.IsCachedRoom(item.Uuid))
+            if (item.RoomType > 0 && GlobalInfo.IsCachedRoom(item.Uuid))
             {
                 string hint = "检测到您上次异常退出，是否要进入房间？";
                 if (item.creatorId == GlobalInfo.account.id)

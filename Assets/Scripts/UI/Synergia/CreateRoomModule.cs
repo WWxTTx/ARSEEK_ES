@@ -566,6 +566,9 @@ public class CreateRoomModule : ResourcesModule
         }
         NetworkManager.Instance.SetUserColor(GlobalInfo.account.id);
         this.WaitTime(0.5f, () => UIManager.Instance.CloseUI<TransitionPanel>());
+
+        //重置联机角色标志位
+        PlayerManager.Instance.ClearUserIndicators();
     }
 
     /// <summary>

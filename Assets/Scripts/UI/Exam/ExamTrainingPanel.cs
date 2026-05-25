@@ -232,7 +232,7 @@ public class ExamTrainingPanel : UIPanelBase
         //检测到用户之前参与的考核房间存在 尝试加入
         foreach (var item in roomInfos.Values)
         {
-            if(GlobalInfo.IsCachedRoom(item.Uuid))
+            if(item.ExamType != 0 && GlobalInfo.IsCachedRoom(item.Uuid))
             {
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("是", new PopupButtonData(() =>
@@ -599,6 +599,7 @@ public class ExamTrainingPanel : UIPanelBase
             {
                 onConfirmed = onConfirmed
             });
+            transform.SetAsFirstSibling();
         }
     }
 

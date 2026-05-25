@@ -162,8 +162,8 @@ public class IMChannelAgent : NetworkChannelAgentBase
         }
     }
 
-    private static string opLog = "<color=#14A857>执行消息:</color>";
-    private static string opreLog = "<color=#F87C0D>执行缓存消息:</color>"; 
+    private readonly string opLog = "<color=#14A857>执行消息:</color>";
+    private readonly string opreLog = "<color=#F87C0D>执行缓存消息:</color>"; 
 
     /// <summary>
     /// 执行操作
@@ -173,8 +173,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
         if (currentOp == null)
             return;
 
-        string str = NetworkManager.Instance.IsIMSyncState ? opreLog : opLog;
-        Log.Debug($"{str} {JsonTool.Serializable(currentOp)}");
+        Log.Debug($"{opLog} {JsonTool.Serializable(currentOp)}");
 
         //特殊，恢复消息是加入房间就发送的，会在场景加载前就接收，无法等待到由新建的UI上的脚本接收
         if(currentOp.msgId == (int)RoomChannelEvent.RestoreCachedState)
@@ -184,6 +183,7 @@ public class IMChannelAgent : NetworkChannelAgentBase
             {
                 PlayerPrefs.SetString("RestoreCachedPacket", restoreMsg.arg2);
                 GlobalInfo.GetOtherCach = true;
+                Log.Debug($"{opreLog} {JsonTool.Serializable(currentOp)}");
             }
         }
       
@@ -245,13 +245,18 @@ public class IMChannelAgent : NetworkChannelAgentBase
                         {
                             PlayerPrefs.SetString($"RestoreCachedPacket", JsonTool.Serializable(packet));
                         }
-                        //移除了这里 检测步骤序号重连 的逻辑 现在是直接在设置步骤阶段按最新进度直接全量更新
+                        //检测步骤序号重连 的逻辑 仅在考核状态生效 因为非考核模式下仅需检查步骤进度是否一致即可
                         if (GlobalInfo.IsOperator())
                         {
                             opsReceive.Enqueue(packet.data);
-                            Log.Debug($"[IMChannel] 消息入opsReceive，opsReceive.Count={opsReceive.Count}, IsStartSync={IsStartSync}");
-
-
+                            bool versionLag = GlobalInfo.version < version - 1;
+                            //多人考核模式 本地为旧版本
+                            if (versionLag && GlobalInfo.courseMode == CourseMode.OnlineExam)
+                            {
+                                IsStartSync = false;
+                                Log.Debug($"[IMChannel] 版本落后，触发SyncVersion，local={GlobalInfo.version}, remote={version}");
+                                NetworkManager.Instance.SyncBaikeState();
+                            }
                             //更新本地版本
                             GlobalInfo.version = version;
                         }

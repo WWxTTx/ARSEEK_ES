@@ -41,11 +41,6 @@ public class SmallFlowCtrl : MonoBase
     public static string masterFlag = "上位机";
     public static string selectFlag = "选中";
     public static string unselectFlag = "取消选中";
-    #region 初始视角特殊处理
-    public static string cameraFlag = "相机位置";
-    public static string playerFlag = "角色位置";
-    public static string naviFlag = "导航1";
-    #endregion
     #endregion
 
     /// <summary>
@@ -246,7 +241,7 @@ public class SmallFlowCtrl : MonoBase
         bool hasPopup = false;
         BehavePopup popupBehave = null;
 
-        if (!GlobalInfo.isExam)
+        if (useGuide)
         {
             foreach (var op in state.operation.operations)
             {
@@ -276,8 +271,9 @@ public class SmallFlowCtrl : MonoBase
             UnityAction onclick = () =>
             {
                 // 弹窗确认后，设置最终状态，然后执行下一个操作
-                SetFinalState(state.operation, state.optionName);
-                ExecuteInitStateSequentially(initStates, currentStep, index + 1, currentPopupIndex, onComplete);
+                SetFinalState(state.operation, state.optionName, false, true);
+                ExecuteInitStateSequentially(initStates, currentStep, index + 1, currentPopupIndex, onComplete); 
+                ToolManager.SendBroadcastMsg(new MsgBool((ushort)SmallFlowModuleEvent.ClousePop, true));
             };
             popupBehave.Execute(onclick);
             SpeechManager.Instance.PlayImmediate(currentStep.ID, currentPopupIndex, TipType.Tips);
@@ -285,7 +281,7 @@ public class SmallFlowCtrl : MonoBase
         else
         {
             // 没有弹窗或非引导模式，直接设置最终状态，然后继续下一个
-            SetFinalState(state.operation, state.optionName);
+            SetFinalState(state.operation, state.optionName, false, true);
             ExecuteInitStateSequentially(initStates, currentStep, index + 1, popupIndex, onComplete);
         }
     }
@@ -311,26 +307,31 @@ public class SmallFlowCtrl : MonoBase
     public Color hintHighlight = Color.red;
 
 
-    //是否开启强制引导视角（todo 后台配置）
+    //非考核模式 会使用弹窗任务列表和导航等功能
     private bool useGuide;
 
     /// <summary>
-    /// 是否正在恢复前置步骤状态（跳步骤时抑制图纸等副作用）
+    /// 是否正在恢复前置步骤状态（跳步骤时抑制图纸在非当前初始视角展开）
     /// </summary>
     private bool isRestoringPreviousStates;
+
+    /// <summary>
+    /// 标记弹窗关闭是否 跳过导航本地表现
+    /// </summary>
+    public static bool ignoreMove = false;
 
     private Func<bool> audioNotPlayingPredicate;
 
     /// <summary>
     /// 初始化绑定步骤和任务完成事件
     /// </summary>
-    public void Init(bool useGuide, List<Flow> flowsTex = null)
+    public void Init(List<Flow> flowsTex = null)
     {
+        useGuide = !GlobalInfo.isExam;
         AddMsg(
             (ushort)ModelOperateEvent.Rotate
         );
 
-        this.useGuide = useGuide;
 
         flows = GetComponentsInChildren<SmallFlow1>();
         if (flowsTex != null && flowsTex.Count > 0)
@@ -378,7 +379,8 @@ public class SmallFlowCtrl : MonoBase
         }
 
         //初始化完成后默认触发0
-        index_NowStep = 0;
+        index_NowFlow = 0;
+        SelectStep(0, true);
     }
 
     void AddmodeInfo(ModelInfo modelInfo)
@@ -706,7 +708,7 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 选择任务
     /// </summary>
-    public void SelectFlow(int index_Flow, bool ResetByFlow = true)
+    public void SelectFlow(int index_Flow, bool ResetByFlow)
     {
         foreach (var operation in operationIDs)
         {
@@ -797,7 +799,7 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 选择小步骤
     /// </summary>
-    public void SelectStep(int stepIndex, bool ResetByFlow = true)
+    public void SelectStep(int stepIndex, bool ResetByFlow, AnswerOp answerOp = null)
     {
         if (ResetByFlow)
         {
@@ -855,14 +857,13 @@ public class SmallFlowCtrl : MonoBase
         }
         isRestoringPreviousStates = false;
 
-
-        //考核模式使用服务器获取到的数据进行操作记录恢复 并根据记录在正常的模型状态上叠加考核错误的操作
-        if (!ResetByFlow)
+        //考核模式，在正确步骤外，额外使用联机考核记录恢复其余操作
+        if(!ResetByFlow)
         {
-            OnRefreshExamHistory?.Invoke();
-            var examModelStates = GetExamModelStates?.Invoke();
-            if (examModelStates != null)
-                SetFinalState(examModelStates);
+            if (answerOp != null)
+                SetExamModelStateData(answerOp);
+            else
+                FindObjectOfType<ExamCoursePanel>().GetComponent<ExamCoursePanel>().RefreshExamOpHistoryAsync(SetExamModelStateData);
         }
 
         //显式执行角色位置相关的设置：从上一步的联动步骤和当前步骤的初始视角
@@ -872,6 +873,41 @@ public class SmallFlowCtrl : MonoBase
         index_NowStep = stepIndex;
     }
 
+
+    /// <summary>
+    /// 使用联机考核记录设置的模型状态
+    /// </summary>
+    public void SetExamModelStateData(AnswerOp answerOp)
+    {
+        if (answerOp == null)
+            return;
+
+        List<OpDicData> examModelStates =  answerOp.modelStates?.Select(s => new OpDicData()
+        {
+            id = s.id,
+            optionName = s.optionName,
+            uiTargetModelEulerZ = float.Parse(s.uiTargetModelEulerZ)
+        }).ToList();
+
+        if (examModelStates != null)
+            SetFinalState(examModelStates);
+
+        // 使用联机考核记录刷新操作历史
+        List<OpRecordData> opRecordData = answerOp.operations?.Select(data => new OpRecordData()
+        {
+            index = data.index,
+            msg = data.msg,
+            userNo = data.userNo,
+            userName = data.userName,
+            createTime = data.createTime,
+            type = data.type,
+            score = data.score,
+            totalStepIndex = data.totalStepIndex
+        }).ToList();
+
+        UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true).operationHistoryModule.UpdateOpRecordList(opRecordData ?? new List<OpRecordData>());
+    }
+
     /// <summary>
     /// 选择步骤跳转时，显式执行角色位置相关设置，其他SetFinalState将跳过位置的设置，仅由此方法设置
     /// 从当前步骤的初始视角(initState)和上一步的联动步骤(actions)中向前搜索
@@ -879,86 +915,91 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     private void ApplyPlayerPositionForStepJump(int stepIndex)
     {
-        // 从当前步骤向前搜索角色位置
-        for (int s = stepIndex; s >= 0; s--)
+        bool found = false;
+        // 跨 flow 向前搜索角色位置
+        for (int f = index_NowFlow; f >= 0 && !found; f--)
         {
-            SmallStep1 step = nowFlowSteps[s];
+            List<SmallStep1> steps = flows[f].steps;
+            int startS = (f == index_NowFlow) ? stepIndex : steps.Count - 1;
 
-            // 1. 检查步骤 s 的初始视角中是否有 playerFlag/cameraFlag
-            bool found = false;
-            foreach (var state in step.initState)
+            for (int s = startS; s >= 0 && !found; s--)
             {
-                if (state.operation != null &&
-                    (state.optionName.Equals(playerFlag) || state.optionName.Equals(cameraFlag)))
-                {
-                    SetFinalState(state.operation, state.optionName, true, false, false);
-                    found = true;
-                }
-            }
-            if (found) return;
+                SmallStep1 step = steps[s];
 
-            // 2. 检查步骤 s-1 的联动操作中是否有位置相关的行为
-            if (s > 0)
-            {
-                SmallStepSequenceState lastPositionAction = null;
-                SmallStep1 prevStep = nowFlowSteps[s - 1];
-                foreach (var opData in prevStep.ops)
+                // 1. 检查步骤 s 的初始视角中是否有位移
+                foreach (var state in step.initState)
                 {
-                    foreach (var action in opData.actions)
+                    if (state.operation != null && (state.operation.name == "Navigation"))
                     {
-                        if (action.operation != null && HasPositionBehavior(action.operation, action.optionName))
-                            lastPositionAction = action;
+                        ExecutePositionBehaviors(state.operation, state.optionName);
+                        found = true;
+                        return;
                     }
                 }
 
-                if (lastPositionAction != null)
+                // 2. 检查前一个步骤的联动操作中是否有位置相关的行为
+                SmallStep1 prevStep = null;
+                if (s > 0)
                 {
-                    SetFinalState(lastPositionAction.operation, lastPositionAction.optionName, true, false, false);
-                    return;
+                    prevStep = steps[s - 1];
+                }
+                else if (f > 0)
+                {
+                    prevStep = flows[f - 1].steps[flows[f - 1].steps.Count - 1];
+                }
+
+                if (prevStep != null)
+                {
+                    foreach (var opData in prevStep.ops)
+                    {
+                        foreach (var action in opData.actions)
+                        {
+                            if (action.operation != null && (action.operation.name == "Navigation"))
+                            {
+                                ExecutePositionBehaviors(action.operation, action.optionName);
+                                found = true;
+                                return;
+                            }
+                        }
+                    }
                 }
             }
         }
 
         // 未找到任何位置设置，使用全局视角作为默认位置
-        if (globalPerspective != null && !string.IsNullOrEmpty(globalPerspective.initState))
+        if (!found)
         {
-            SetFinalState(globalPerspective, globalPerspective.initState, true, false, false);
-        }
-    }
-
-    /// <summary>
-    /// 检查操作是否包含位置相关的行为（Pose或PlayerNavigation）
-    /// </summary>
-    private bool HasPositionBehavior(ModelOperation operation, string optionName)
-    {
-        if (operation == null || operation.operations == null)
-            return false;
-
-        foreach (var op in operation.operations)
-        {
-            if (op.name.Equals(optionName) && op.behaveBases != null)
+            Log.Debug($"[PositionJump] 未找到位置，使用全局视角 globalPerspective={globalPerspective != null} initState={globalPerspective?.initState}");
+            if (globalPerspective != null && !string.IsNullOrEmpty(globalPerspective.initState))
             {
-                foreach (var behave in op.behaveBases)
-                {
-                    if (behave.behaveType == BehaveType.Pose || behave.behaveType == BehaveType.PlayerNavigation)
-                        return true;
-                }
+                ExecutePositionBehaviors(globalPerspective, globalPerspective.initState);
             }
         }
-        return false;
     }
 
-    public Action AddOpHistory;
 
     /// <summary>
-    /// 考核模式下，ResetByFlow=false时使用联机历史记录刷新操作记录
+    /// 直接执行位置相关的行为（Pose或PlayerNavigation），绕过 ignoreMove 检查
     /// </summary>
-    public Action OnRefreshExamHistory;
+    private void ExecutePositionBehaviors(ModelOperation operation, string optionName)
+    {
+        OperationBase op = operation.operations?.Find(o => o.name.Equals(optionName));
+        if (op?.behaveBases == null)
+        {
+            Log.Debug($"[PositionJump] ExecutePositionBehaviors: 未找到OperationBase op={operation.name} option={optionName}");
+            return;
+        }
+        foreach (var behave in op.behaveBases)
+        {
+            if (behave.behaveType == BehaveType.Pose || behave.behaveType == BehaveType.PlayerNavigation)
+            {
+                Log.Debug($"[PositionJump] 执行行为: type={behave.behaveType} behave={behave.state}");
+                try { behave.SetFinalState(); }
+                catch (System.Exception e) { Log.Debug($"[PositionJump] 行为执行异常: {e.Message}"); }
+            }
+        }
+    }
 
-    /// <summary>
-    /// 考核模式下，ResetByFlow=false时获取联机历史记录中的模型状态
-    /// </summary>
-    public Func<List<OpDicData>> GetExamModelStates;
     /// <summary>
     /// 执行自由操作
     /// </summary>
@@ -972,6 +1013,7 @@ public class SmallFlowCtrl : MonoBase
     {
         GlobalInfo.WaitUiOq = false;
         NetworkManager.Instance.IsIMSync = false;
+        ignoreMove = dummy;
         if (!dummy)
             ModelManager.Instance.CameraDotween = true;
 
@@ -1051,6 +1093,7 @@ public class SmallFlowCtrl : MonoBase
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
     {
         GlobalInfo.WaitUiOq = false;
+        ignoreMove = dummy;
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
         if (!dummy)
             ModelManager.Instance.CameraDotween = true;
@@ -1169,7 +1212,7 @@ public class SmallFlowCtrl : MonoBase
 
         var op = opLinkages[index];
 
-        // 检查是否有弹窗（培训模式 + 引导模式 + 非考核）
+        // 检查是否有弹窗（非考核）
         bool hasPopup = false;
         BehavePopup popupBehave = null;
 
@@ -1184,6 +1227,7 @@ public class SmallFlowCtrl : MonoBase
             // 有弹窗：显示弹窗，等确认后再 SetFinalState 并继续
             popupBehave.Execute(() =>
             {
+                ToolManager.SendBroadcastMsg(new MsgBool((ushort)SmallFlowModuleEvent.ClousePop, true));
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
             });
         }
@@ -1777,8 +1821,10 @@ public class SmallFlowCtrl : MonoBase
     /// 是否跳过操作前置条件检查。
     /// 是否递归处理联动操作
     /// 是否跳过角色位移
-    public void SetFinalState(ModelOperation operation, string optionName, bool ignoreCondition = false, bool processLinkages = true, bool ignoreMove = false)
+    public void SetFinalState(ModelOperation operation, string optionName, bool ignoreCondition = false, bool processLinkages = true)
     {
+        if (GlobalInfo.isExam && _index_NowStep != 0)
+            ignoreMove = true;
         if (operation && !string.IsNullOrEmpty(optionName))
         {
             for (int i = 0; i < operation.operations.Count; i++)
@@ -1817,8 +1863,7 @@ public class SmallFlowCtrl : MonoBase
                     {
                         try
                         {
-                            if (ignoreMove && (op.behaveBases[k].behaveType == BehaveType.Pose
-                                || op.behaveBases[k].behaveType == BehaveType.PlayerNavigation))
+                            if (ignoreMove && (op.behaveBases[k].behaveType == BehaveType.Pose || op.behaveBases[k].behaveType == BehaveType.PlayerNavigation))
                                 continue;
                             op.behaveBases[k].SetFinalState();
                         }
@@ -1836,7 +1881,7 @@ public class SmallFlowCtrl : MonoBase
                             try
                             {
                                 if (op.actions[m].operation.GetComponent<ModelInfo>().PropType != PropType.Auto)
-                                    SetFinalState(op.actions[m].operation, op.actions[m].optionName, false, true, ignoreMove);
+                                    SetFinalState(op.actions[m].operation, op.actions[m].optionName, false, true);
                             }
                             catch
                             {
@@ -1918,6 +1963,8 @@ public class SmallFlowCtrl : MonoBase
     {
         if (GlobalInfo.WaitUiOq)
             return;
+
+        ignoreMove = dummy;
 
         if (index_NowFlow <= flows.Length - 1)
         {

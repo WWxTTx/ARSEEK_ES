@@ -80,6 +80,9 @@ public class ExamUtility : Singleton<ExamUtility>
         submitCache.Clear();
         examineeRecords.Clear();
 
+        if (records == null || records.Count == 0)
+            return;
+
         submitCache = records.ToDictionary(kvp => kvp.Key, kvp => false);
         examineeRecords = records;
     }
@@ -324,6 +327,7 @@ public class ExamUtility : Singleton<ExamUtility>
     {
         public int examId;
         public string endTime;
+        public Dictionary<int, int> examineeRecords;
     }
 
     private Dictionary<int, Dictionary<string, ExamCacheData>> GetExamHistory()
@@ -362,10 +366,10 @@ public class ExamUtility : Singleton<ExamUtility>
         return null;
     }
 
-    public void SetHostExamCache(string roomUuid, int examId, DateTime? endTime = null)
+    public void SetHostExamCache(string roomUuid, int examId, DateTime? endTime = null, Dictionary<int, int> examineeRecords = null)
     {
         var examHistory = GetExamHistory() ?? new Dictionary<int, Dictionary<string, ExamCacheData>>();
-        var entry = new ExamCacheData { examId = examId, endTime = endTime?.ToString("o") };
+        var entry = new ExamCacheData { examId = examId, endTime = endTime?.ToString("o"), examineeRecords = examineeRecords };
 
         if (!examHistory.ContainsKey(GlobalInfo.account.id))
         {
@@ -401,11 +405,11 @@ public class ExamUtility : Singleton<ExamUtility>
 
     #region 参与者考核房间缓存
     /// <summary>
-    /// 参与者进入考核时缓存 examId 和 endTime，用于异常退出后自动重连
+    /// 参与者进入考核时缓存 examId、endTime 和 examineeRecords，用于异常退出后自动重连
     /// </summary>
-    public void SetParticipantExamCache(string roomUuid, int examId, DateTime endTime)
+    public void SetParticipantExamCache(string roomUuid, int examId, DateTime endTime, Dictionary<int, int> examineeRecords = null)
     {
-        SetHostExamCache(roomUuid, examId, endTime);
+        SetHostExamCache(roomUuid, examId, endTime, examineeRecords);
     }
 
     /// <summary>
@@ -422,6 +426,17 @@ public class ExamUtility : Singleton<ExamUtility>
     public DateTime? GetParticipantExamEndTime(string roomUuid)
     {
         return GetHostExamEndTime(roomUuid);
+    }
+
+    /// <summary>
+    /// 获取参与者缓存的考生记录映射
+    /// </summary>
+    public Dictionary<int, int> GetParticipantExamExamineeRecords(string roomUuid)
+    {
+        var examHistory = GetExamHistory();
+        if (examHistory != null && examHistory.TryGetValue(GlobalInfo.account.id, out var roomExams) && roomExams.TryGetValue(roomUuid, out var data))
+            return data.examineeRecords;
+        return null;
     }
 
     /// <summary>

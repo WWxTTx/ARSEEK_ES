@@ -371,7 +371,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         }
         else
         {
-            //如果没有远程消息则使用本地记录
+            //如果没有远程消息则使用本地记录 单人考核按本地记录即可
             if (GlobalInfo.UseLoadCachedPacket)
                 currentState = LoadCachedPacket();
         }

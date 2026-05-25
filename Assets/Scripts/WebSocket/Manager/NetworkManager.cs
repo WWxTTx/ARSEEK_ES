@@ -146,6 +146,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
         // 发送退出消息给服务器，确保其他成员能收到离开通知
         SendLeaveMessage();
+        //离开房间时，删除缓存的加入房间信息和缓存的重连信息
+        GlobalInfo.ClearCachedRoom();
+        PlayerPrefs.DeleteKey("RestoreCachedPacket");
 
         //退出房间 主动断开连接
         CloseAllConnection();

@@ -193,7 +193,6 @@ public class ExamPanel : HoverHintPanel
         }
 
         CheckLastExam();
-        UpdateMemberList(NetworkManager.Instance.GetRoomMemberList());
     }
 
     /// <summary>
@@ -240,28 +239,31 @@ public class ExamPanel : HoverHintPanel
                         var roomMembers = NetworkManager.Instance.GetRoomMemberList();
                         var members = roomMembers != null ? new List<Member>(roomMembers) : new List<Member>();
 
-                        // 根据InitSubmitCache结果，将未在房间但未提交的成员加入列表
-                        var unsubmittedExaminees = ExamUtility.Instance.Examinees;
-                        if (unsubmittedExaminees != null)
-                        {
-                            var memberIds = new HashSet<int>(members.Select(m => m.Id));
-                            foreach (var examineeId in unsubmittedExaminees)
-                            {
-                                if (!memberIds.Contains(examineeId))
-                                {
-                                    var examResult = ExamUtility.Instance.GetExamResult(examineeId);
-                                    if (examResult != null)
-                                    {
-                                        members.Add(new Member
-                                        {
-                                            Id = examResult.examineeId,
-                                            Nickname = examResult.examineeName,
-                                            UserNo = examResult.examineeNo,
-                                        });
-                                    }
-                                }
-                            }
-                        }
+                        // 根据InitSubmitCache结果，将未在房间但未提交的成员加入列表 由于 考核成员成绩列表返回结果:服务器返回的全是"ended":false暂时弃用
+                        //目前是确保房主进房间，重连进房间，一直在房间，没人的时候结束考核
+                        //房间没人但是还有异常退出的人员时不结束考核，仅在房主一直在房间时处理
+                        //如果能补充"ended":false，再支持房主和异常退出的人不在房间，房主先重进房间没人但是不结束。
+                        //var unsubmittedExaminees = ExamUtility.Instance.Examinees;
+                        //if (unsubmittedExaminees != null)
+                        //{
+                        //    var memberIds = new HashSet<int>(members.Select(m => m.Id));
+                        //    foreach (var examineeId in unsubmittedExaminees)
+                        //    {
+                        //        if (!memberIds.Contains(examineeId))
+                        //        {
+                        //            var examResult = ExamUtility.Instance.GetExamResult(examineeId);
+                        //            if (examResult != null)
+                        //            {
+                        //                members.Add(new Member
+                        //                {
+                        //                    Id = examResult.examineeId,
+                        //                    Nickname = examResult.examineeName,
+                        //                    UserNo = examResult.examineeNo,
+                        //                });
+                        //            }
+                        //        }
+                        //    }
+                        //}
 
                         if (members.Count > 0)
                             UpdateMemberList(members);
@@ -365,19 +367,7 @@ public class ExamPanel : HoverHintPanel
                 }
                 break;
             case (ushort)ExamPanelEvent.Resume:
-                // 房主异常退出重进时，先恢复UI和标志位
-                if (GlobalInfo.waitExam && activeExamId != -1)
-                {
-                    OnExamStart();
-                }
-                // 恢复考核倒计时
-                if (countdownCts != null)
-                {
-                    countdownCts.Cancel();
-                    countdownCts = null;
-                }
-                countdownCts = new System.Threading.CancellationTokenSource();
-                Timing(GlobalInfo.ServerTime.AddSeconds(((MsgBrodcastOperate)msg).GetData<MsgInt>().arg), countdownCts.Token).Forget();
+                CheckLastExam();
                 break;
             case (ushort)RoomChannelEvent.LiveRoomSettingModuleClose:
                 RoomInfoTog.isOn = false;
@@ -439,7 +429,7 @@ public class ExamPanel : HoverHintPanel
             FullScene.gameObject.SetActive(false);
             FullScreenUserId = -1;
         }
-        WaitHint.SetActive(true);
+        WaitHint.SetActive(allMemberItem.Count == 0);
 
         ToolManager.SendBroadcastMsg(new MsgInt(msgId, activeExamId), true);
         ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
@@ -513,7 +503,6 @@ public class ExamPanel : HoverHintPanel
         {
             SetMemberItemState(item, (int)State.Wait);
         }
-        PlayerManager.Instance.ClearUserIndicators();
     }
 
     /// <summary>
@@ -811,6 +800,11 @@ public class ExamPanel : HoverHintPanel
         SetAccountInfo(tf, info);
         RegistMemberUIEvent(tf, info);
         UpdateUIState(tf, info);
+        if(info.Nickname == "*****")
+        {
+            //目标丢失，先删除，等待其重连再新建
+            Destroy(tf.gameObject);
+        }
     }
 
     private void SetMemberItemState(Transform item, int state)
@@ -995,7 +989,6 @@ public class ExamPanel : HoverHintPanel
         if (GlobalInfo.account.id == newJoinedId)
             return;
 
-        UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{newJoinedName}加入考核"));
         if (GlobalInfo.IsGroupMode())
             NetworkManager.Instance.SetUserColor(newJoinedId);
 
@@ -1016,11 +1009,6 @@ public class ExamPanel : HoverHintPanel
     /// <param name="isDisconnect">是否为异常断连</param>
     private void OnOtherLeave(int leavedUserId, string leavedUserName, bool isDisconnect)
     {
-        if (isDisconnect)
-            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{leavedUserName}连接中断"));
-        else
-            UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo($"{leavedUserName}退出考核"));
-
         // 断连且考核中：保留成员（可能重连）
         // 其他情况（正常退出 或 考核结束后断连）：移除成员
         if (isDisconnect && !GlobalInfo.waitExam)

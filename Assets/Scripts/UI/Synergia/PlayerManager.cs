@@ -58,6 +58,8 @@ public class PlayerManager : MonoBase
         {
             case (ushort)CoursePanelEvent.SwitchResource:
             case (ushort)BaikeSelectModuleEvent.BaikeSelect:
+            case (ushort)RoomChannelEvent.LeaveRoom:
+            case (ushort)StateEvent.PreSyncVersion:
                 //切换课程、百科清空所有成员
                 ClearUserIndicators();
                 break;
@@ -85,12 +87,6 @@ public class PlayerManager : MonoBase
                 {
                     RemoveUser(msgIntBool.arg1);
                 }
-                break;
-            case (ushort)RoomChannelEvent.LeaveRoom:
-                ClearUserIndicators();
-                break;
-            case (ushort)StateEvent.PreSyncVersion:
-                ClearUserIndicators();
                 break;
         }
     }

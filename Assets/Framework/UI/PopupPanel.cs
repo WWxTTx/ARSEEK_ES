@@ -198,7 +198,6 @@ public class PopupPanel : UIPanelBase
                             Cursor.lockState = GlobalInfo.CursorLockMode;
 
                         item.Value.action?.Invoke();
-                        ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.ClousePop));
                         UIManager.Instance.CloseUI<PopupPanel>(uiPopupData);
                     });
                     btnClone.interactable = item.Value.interactable;
