@@ -45,6 +45,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
     public override void Open(UIData uiData = null)
     {
+        GlobalInfo.waitExam = true;
         GlobalInfo.canEditUserInfo = false;
         base.Open(uiData);
         InitExam();
@@ -344,7 +345,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     protected override void LoadEncyclopediaModel(EncyclopediaModel encyclopedia)
     {
         var abList = encyclopedia.data.abPackageList.OrderByDescending(ab => ab.id).ToList();
-        UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
         bool loadNavMesh = encyclopedia.typeId == (int)PediaType.Operation && (encyclopedia as EncyclopediaOperation).hasRole;
         //ResManager.Instance.LoadModel(encyclopedia.id.ToString(), ResManager.Instance.OSSDownLoadPath + abList[0].filePath, loadNavMesh, false, (arg2) =>
         ResManager.Instance.LoadSnapshotModelAsync(encyclopedia.id.ToString(), ResManager.Instance.OSSDownLoadPath + abList[0].filePath, loadNavMesh, true, (arg2) =>
@@ -1230,7 +1230,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 var self = NetworkManager.Instance.GetRoomMemberList().Find(value => value.Id == GlobalInfo.account.id);
                 if (self != null)
                 {
-                    ButtonImageChange(!self.IsTalk, self.IsChat);
+                    bool isShut = !self.IsTalk || !GlobalInfo.isAllTalk;
+                    ButtonImageChange(isShut, self.IsChat);
                 }
                 break;
             case (ushort)MediaChannelEvent.MicOnAir:

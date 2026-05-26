@@ -102,7 +102,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         DateTime start = DateTime.Now;
         await UniTask.WaitUntil(() => IsAllChannelConnect() || IsTimeout(start), cancellationToken: ct);
 
-        UIManager.Instance.CloseUI<LoadingPanel>();
+        UIManager.Instance.HideUI<LoadingPanel>();
         lockReconnect = false;
 
         //连接超时
@@ -353,7 +353,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
             waitConnectCts.Dispose();
             waitConnectCts = null;
         }
-        UIManager.Instance.CloseUI<LoadingPanel>();
+        UIManager.Instance.HideUI<LoadingPanel>();
     }
 
     /// <summary>

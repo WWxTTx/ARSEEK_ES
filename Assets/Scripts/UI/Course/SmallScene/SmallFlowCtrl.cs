@@ -986,14 +986,12 @@ public class SmallFlowCtrl : MonoBase
         OperationBase op = operation.operations?.Find(o => o.name.Equals(optionName));
         if (op?.behaveBases == null)
         {
-            Log.Debug($"[PositionJump] ExecutePositionBehaviors: 未找到OperationBase op={operation.name} option={optionName}");
             return;
         }
         foreach (var behave in op.behaveBases)
         {
             if (behave.behaveType == BehaveType.Pose || behave.behaveType == BehaveType.PlayerNavigation)
             {
-                Log.Debug($"[PositionJump] 执行行为: type={behave.behaveType} behave={behave.state}");
                 try { behave.SetFinalState(); }
                 catch (System.Exception e) { Log.Debug($"[PositionJump] 行为执行异常: {e.Message}"); }
             }

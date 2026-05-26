@@ -736,7 +736,6 @@ public class OPLCoursePanel : HoverHintPanel
     protected virtual void LoadEncyclopediaModel(EncyclopediaModel encyclopedia)
     {
         var abList = encyclopedia.data.abPackageList.OrderByDescending(ab => ab.id).ToList();
-        UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
         bool loadNavMesh = encyclopedia.typeId == (int)PediaType.Operation && (encyclopedia as EncyclopediaOperation).hasRole;
         //ResManager.Instance.LoadModel(encyclopedia.id.ToString(), ResManager.Instance.OSSDownLoadPath + abList[0].filePath, loadNavMesh, false, (arg2) =>
         ResManager.Instance.LoadModelAsync(encyclopedia.id.ToString(), ResManager.Instance.OSSDownLoadPath + abList[0].filePath, loadNavMesh, true, (arg2) =>
@@ -812,6 +811,7 @@ public class OPLCoursePanel : HoverHintPanel
                     break;
             }
 
+            UIManager.Instance.CloseUI<LoadingPanel>();
             encyclopediaModelLoaded = true;
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
             

@@ -382,7 +382,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         // 重连恢复步骤只能发生在有重连信息,已重建场景后
         if (currentState == null || currentState.baikeState == null || currentState.baikeState.data == null || model == null)
         {
-            UIManager.Instance.CloseUI<LoadingPanel>();
+            UIManager.Instance.HideUI<LoadingPanel>();
             return;
         }
         GlobalInfo.UseLoadCachedPacket = false;
@@ -439,7 +439,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         GlobalInfo.controllerIds = savedControllerIds;
 
         await UniTask.WaitForFixedUpdate();
-        UIManager.Instance.CloseUI<LoadingPanel>();
+        UIManager.Instance.HideUI<LoadingPanel>();
         IsIMSyncState = false;
     }
 

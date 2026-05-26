@@ -103,8 +103,6 @@ public class DismantlingModule : UIModuleBase
     /// <param name="go"></param>
     public void ChangeBaike(GameObject go)
     {
-        UIManager.Instance.OpenUI<LoadingPanel>(UILevel.Loading);
-
         iController = go.AutoComponent<DismantlingController>();
         if (iController)
         {

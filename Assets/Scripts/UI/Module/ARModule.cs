@@ -231,7 +231,7 @@ public class ARModule : UIModuleBase
             case (ushort)CoursePanelEvent.ModelLocate:
                 MsgUnityAction msgAction = (MsgUnityAction)msg;
                 onModelLocate = msgAction.arg;
-                UIManager.Instance.CloseUI<LoadingPanel>();
+                UIManager.Instance.HideUI<LoadingPanel>();
                 if (!initialized)
                 {
                     modelRoot.position = new Vector3(0, 5000, 0);//不显示模型                                                                
