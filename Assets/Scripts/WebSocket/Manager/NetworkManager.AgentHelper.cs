@@ -425,6 +425,25 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
             // 恢复他人操作权限状态：如果最后一条操作是其他人的Operate，需要阻止刚重连的人操作
             RestoreOtherUserOperationState();
+
+            // 恢复当前步骤已完成的操作状态（必须在SelectStep执行完成后，因为SelectStep会清空completedOpIds）
+            if (smallSceneBaikeState.successOpDatas != null && smallSceneBaikeState.successOpDatas.Count > 0)
+            {
+                SmallFlowCtrl ctrl = model.GetComponent<SmallFlowCtrl>();
+                if (ctrl != null)
+                {
+                    var ids = new HashSet<string>(
+                        smallSceneBaikeState.successOpDatas
+                            .Where(s => !string.IsNullOrEmpty(s.id))
+                            .Select(s => s.id)
+                    );
+                    ctrl.SetCompletedOpIds(ids);
+                }
+
+                UISmallSceneModule uiModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
+                if (uiModule != null)
+                    uiModule.RefreshHighlight();
+            }
         }
 
         await UniTask.WaitForFixedUpdate();

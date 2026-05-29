@@ -47,7 +47,6 @@ public class UISmallSceneFlowModule : UIModuleBase
             (ushort)HierarchyEvent.UpdateAttachment,
             (ushort)SmallFlowModuleEvent.StartExecute,
             (ushort)SmallFlowModuleEvent.CompleteExecute,
-            (ushort)SmallFlowModuleEvent.SelectFlow,
             (ushort)SmallFlowModuleEvent.SelectStep,
             (ushort)SmallFlowModuleEvent.Guide,
             (ushort)SmallFlowModuleEvent.CompleteStep,
@@ -77,19 +76,24 @@ public class UISmallSceneFlowModule : UIModuleBase
         InitFlowTreeList(smallFlowCtrl.flows, mTreeView);
         mTreeView.CollapseAllItem();
 
-        if (GlobalInfo.EnableFlow)
+        if (!GlobalInfo.isExam)
         {
             mTreeView.NeedRepositionAll = true;
             if (smallFlowCtrl.flows.Length > 0 && mTreeView != null)
             {
                 //默认选择第一步
-                TreeViewItem treeViewItem = mTreeView.GetTreeItemById(viewItemIds[smallFlowCtrl.flows[0].ID]);
-                MsgStringInt msgStringInt = new MsgStringInt((ushort)SmallFlowModuleEvent.SelectFlow, smallFlowCtrl.flows[0].ID, treeViewItem.transform.GetSiblingIndex());
+                string firstStepUID = smallFlowCtrl.flows[0].steps[0].ID;
+                MsgStringTuple<int, int, string> msgStringTuple = new MsgStringTuple<int, int, string>()
+                {
+                    msgId = (ushort)SmallFlowModuleEvent.SelectStep,
+                    arg1 = firstStepUID,
+                    arg2 = new Tuple<int, int, string>(0, 0, string.Empty)
+                };
                 FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate()
                 {
                     senderId = GlobalInfo.account.id,
-                    msgId = msgStringInt.msgId,
-                    data = JsonTool.Serializable(msgStringInt)
+                    msgId = msgStringTuple.msgId,
+                    data = JsonTool.Serializable(msgStringTuple)
                 });
             }
             //this.WaitTime(0.1f, () =>
@@ -311,11 +315,18 @@ public class UISmallSceneFlowModule : UIModuleBase
                     return;
                 if (item.ParentTreeItem == null)
                 {
-                    ToolManager.SendBroadcastMsg(new MsgStringInt((ushort)SmallFlowModuleEvent.SelectFlow, msgHierarchy.uuid, item.transform.GetSiblingIndex()));
+                    int flowIndex = item.transform.GetSiblingIndex();
+                    string stepUID = smallFlowCtrl.flows[flowIndex].steps[0].ID;
+                    ToolManager.SendBroadcastMsg(new MsgStringTuple<int, int, string>()
+                    {
+                        msgId = (ushort)SmallFlowModuleEvent.SelectStep,
+                        arg1 = stepUID,
+                        arg2 = new Tuple<int, int, string>(flowIndex, 0, string.Empty)
+                    });
                 }
                 else
                 {
-                    if (GlobalInfo.EnableFlow)
+                    if (!GlobalInfo.isExam)
                     {
                         // 发送任务进度跳转广播消息
                         ToolManager.SendBroadcastMsg(new MsgStringTuple<int, int, string>()
@@ -337,25 +348,6 @@ public class UISmallSceneFlowModule : UIModuleBase
                             arg = new Tuple<int, int, string>(item.ParentTreeItem.transform.GetSiblingIndex(), item.transform.GetSiblingIndex(), msgHierarchy.uuid)
                         });
                     }
-                }
-                break;
-            case (ushort)SmallFlowModuleEvent.SelectFlow:
-                MsgStringInt msgFlowIDIndex = ((MsgBrodcastOperate)msg).GetData<MsgStringInt>();
-                {
-                    int flowIndex = msgFlowIDIndex.arg2;
-                    if (!viewItemIds.ContainsKey(msgFlowIDIndex.arg1))
-                        return;
-                    TreeViewItem flowItem = mTreeView.GetTreeItemById(viewItemIds[msgFlowIDIndex.arg1]);
-                    if (flowItem == null)
-                        return;
-                    string stepUID = smallFlowCtrl.flows[flowIndex].steps[0].ID;
-                    if (!viewItemIds.ContainsKey(stepUID))
-                        return;
-                    TreeViewItem stepItem = mTreeView.GetTreeItemById(viewItemIds[stepUID]);
-                    if (stepItem == null)
-                        return;
-                    mTreeView.ExpandParent(stepItem);
-                    OnItemCustomEvent(stepItem, CustomEvent.ItemClicked, ((MsgBrodcastOperate)msg).senderId, stepUID);
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.SelectStep:

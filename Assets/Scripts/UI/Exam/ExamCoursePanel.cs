@@ -346,7 +346,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
     {
         var abList = encyclopedia.data.abPackageList.OrderByDescending(ab => ab.id).ToList();
         bool loadNavMesh = encyclopedia.typeId == (int)PediaType.Operation && (encyclopedia as EncyclopediaOperation).hasRole;
-        //ResManager.Instance.LoadModel(encyclopedia.id.ToString(), ResManager.Instance.OSSDownLoadPath + abList[0].filePath, loadNavMesh, false, (arg2) =>
         ResManager.Instance.LoadSnapshotModelAsync(encyclopedia.id.ToString(), ResManager.Instance.OSSDownLoadPath + abList[0].filePath, loadNavMesh, true, (arg2) =>
         {
             GameObject go = ModelManager.Instance.CreateModel(arg2);
@@ -610,6 +609,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
         NetworkManager.Instance.IsIMSync = false;
 
         int flow = 0, step = -1;
+        // 记录当前步骤中已完成的操作ID（用于部分完成恢复）
+        HashSet<string> partialCompletedOps = new HashSet<string>();
+
         //按顺序匹配：从 flows 第一个步骤开始，在 operations 中按顺序查找，找到则进度+1继续找下一个
         if (savedAnswer != null && savedAnswer.operations != null && savedAnswer.operations.Count > 0)
         {
@@ -620,14 +622,37 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 bool flowMatched = false;
                 for (int s = 0; s < flows[f].steps.Count; s++)
                 {
+                    int preOpIndex = opIndex;
                     if (TryMatchStepInOps(flows[f].steps[s], savedAnswer.operations.ToList(), ref opIndex))
                     {
                         flow = f;
                         step = s;
                         flowMatched = true;
+                        partialCompletedOps.Clear();
                     }
                     else
                     {
+                        // 步骤未完全匹配，检查是否有部分操作已完成
+                        if (opIndex > preOpIndex && flows[f].steps[s].ops != null)
+                        {
+                            // 使用模型状态判断哪些op已完成（比hint消息更可靠）
+                            if (savedAnswer.modelStates != null)
+                            {
+                                var modelStatesDict = savedAnswer.modelStates
+                                    .Where(ms => ms.id != null)
+                                    .GroupBy(ms => ms.id)
+                                    .ToDictionary(g => g.Key, g => g.Last().optionName);
+
+                                foreach (var op in flows[f].steps[s].ops)
+                                {
+                                    if (op.operation != null && modelStatesDict.TryGetValue(op.operation.ID, out string state))
+                                    {
+                                        if (state == op.optionName)
+                                            partialCompletedOps.Add(op.operation.ID);
+                                    }
+                                }
+                            }
+                        }
                         break;
                     }
                 }
@@ -636,19 +661,24 @@ public partial class ExamCoursePanel : OPLCoursePanel
             }
         }
 
-        Log.Debug($"考核重连恢复进度 flow:{flow} step:{step}");
+        Log.Debug($"考核重连恢复进度 flow:{flow} step:{step} partialOps:{partialCompletedOps.Count}");
 
         //同步操作对象状态 恢复步骤
-        smallSceneModule.smallFlowCtrl.SelectFlow(flow, false);
         if (step == -1)
         {
-            smallSceneModule.smallFlowCtrl.SelectStep(0, false, savedAnswer);
+            smallSceneModule.smallFlowCtrl.SelectStep(flow, 0, false, savedAnswer);
         }
         else
         {
-            smallSceneModule.smallFlowCtrl.SelectStep(step, false, savedAnswer);
+            smallSceneModule.smallFlowCtrl.SelectStep(flow, step, false, savedAnswer);
             //历史是已完成的，需要操作的是下一步
             smallSceneModule.smallFlowCtrl.Next(true);
+
+            // 恢复新步骤中部分完成的操作（Next会触发ClearCompletedOps，所以在此之后恢复）
+            if (partialCompletedOps.Count > 0)
+            {
+                smallSceneModule.smallFlowCtrl.SetCompletedOpIds(partialCompletedOps);
+            }
         }
         smallSceneModule.RefreshHighlight();
 
@@ -660,7 +690,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
 
     /// <summary>
-    /// 在操作记录中按顺序查找匹配当前步骤的 hint_success
+    /// 在操作记录中按顺序查找匹配当前步骤的所有 ops 的 hint_success
+    /// 一个步骤有多个 ops 时，需要匹配到 ops.Count 条记录才算完成
     /// 匹配成功 opIndex 前进，失败则不移动
     /// </summary>
     private bool TryMatchStepInOps(SmallStep1 stepData, List<ExamineResultOperation> operations, ref int opIndex)
@@ -668,34 +699,47 @@ public partial class ExamCoursePanel : OPLCoursePanel
         if (stepData == null || opIndex >= operations.Count)
             return false;
 
-        for (int i = opIndex; i < operations.Count; i++)
+        if (stepData.ops == null || stepData.ops.Count == 0)
+            return false;
+
+        // 收集该步骤所有合法的 hint_success 值
+        HashSet<string> validHints = new HashSet<string>();
+        if (!string.IsNullOrEmpty(stepData.hint_success))
+            validHints.Add(stepData.hint_success);
+        foreach (var op in stepData.ops)
+        {
+            var opList = op.operation?.operations;
+            if (opList != null)
+            {
+                foreach (var opBase in opList)
+                {
+                    if (!string.IsNullOrEmpty(opBase.hint_success))
+                        validHints.Add(opBase.hint_success);
+                }
+            }
+        }
+
+        if (validHints.Count == 0)
+            return false;
+
+        // 每个op生成一条操作记录，需要匹配 ops.Count 条
+        int expectedCount = stepData.ops.Count;
+        int matchCount = 0;
+        int searchStart = opIndex;
+
+        for (int i = searchStart; i < operations.Count; i++)
         {
             string msg = operations[i].msg;
             if (string.IsNullOrEmpty(msg))
                 continue;
 
-            //匹配 SmallStep1.hint_success
-            if (!string.IsNullOrEmpty(stepData.hint_success) && stepData.hint_success == msg)
+            if (validHints.Contains(msg))
             {
+                matchCount++;
                 opIndex = i + 1;
-                return true;
-            }
 
-            //hint_success 为空时，匹配 ops[0].operation.operations 中的 hint_success
-            if (string.IsNullOrEmpty(stepData.hint_success) && stepData.ops != null && stepData.ops.Count > 0)
-            {
-                var opList = stepData.ops[0].operation?.operations;
-                if (opList != null)
-                {
-                    for (int j = 0; j < opList.Count; j++)
-                    {
-                        if (opList[j].hint_success == msg)
-                        {
-                            opIndex = i + 1;
-                            return true;
-                        }
-                    }
-                }
+                if (matchCount >= expectedCount)
+                    return true;
             }
         }
 

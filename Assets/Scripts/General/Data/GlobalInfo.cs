@@ -477,10 +477,6 @@ public class GlobalInfo
     /// 是否同步场景
     /// </summary>
     public static bool isCooperation = false;
-    /// <summary>
-    /// 是否启用步骤列表功能
-    /// </summary>
-    public static bool EnableFlow = false;
 
     /// <summary>
     /// 是否开启考核录制

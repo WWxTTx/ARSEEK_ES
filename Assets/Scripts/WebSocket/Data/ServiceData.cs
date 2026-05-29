@@ -127,7 +127,7 @@ public class SmallSceneBaikeState : BaseBaikeState
     /// <summary>
     /// 步骤已执行正确操作
     /// </summary>
-    //public List<SuccessOpData> successOpDatas;
+    public List<SuccessOpData> successOpDatas;
     /// <summary>
     /// 操作记录
     /// </summary>

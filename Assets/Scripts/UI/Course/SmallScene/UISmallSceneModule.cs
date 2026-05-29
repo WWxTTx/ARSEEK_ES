@@ -461,25 +461,10 @@ public class UISmallSceneModule : UIModuleBase
         simuSystem = ModelManager.Instance.modelGo.GetComponentInChildren<BaseSimuSystem>();
         masterComputer = ModelManager.Instance.modelGo.GetComponentInChildren<BaseMasterComputer>(true);
 
-        GlobalInfo.EnableFlow = simuSystem == null;
-
-
-        if (uiData != null)
-        {
-            SmallSceneData data = uiData as SmallSceneData;
-            if (data.flows != null)
-                smallFlowCtrl.Init();//todo强制引导视角
-            else
-            {
-                smallFlowCtrl.Init();
-                SaveFlowStepName();
-            }
-        }
-        else
-        {
-            smallFlowCtrl.Init();
-            SaveFlowStepName();
-        }
+        SmallSceneData data = uiData as SmallSceneData;
+        smallFlowCtrl.Init(data.flows);
+        //目前是手动网页上传，不需要在代码中自动上传
+        //SaveFlowStepName();
         RefreshHighlight();
 
         // 仿真系统初始化
@@ -1533,8 +1518,7 @@ public class UISmallSceneModule : UIModuleBase
 
                 // 接收任务进度跳转消息，执行流程和步骤的切换
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
-                smallFlowCtrl.SelectFlow(msgStringTuple.arg2.Item1, !GlobalInfo.isExam);
-                smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item2, !GlobalInfo.isExam);
+                smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item1, msgStringTuple.arg2.Item2, !GlobalInfo.isExam);
 
                 Log.Debug("执行跳步骤 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
@@ -1570,8 +1554,7 @@ public class UISmallSceneModule : UIModuleBase
                     //用于同步过程中，又有新操作导致的错误 恢复
                     if (receivedFlow != smallFlowCtrl.index_NowFlow || receivedStep != smallFlowCtrl.index_NowStep)
                     {
-                        smallFlowCtrl.SelectFlow(receivedFlow, !GlobalInfo.isExam);
-                        smallFlowCtrl.SelectStep(receivedStep, !GlobalInfo.isExam);
+                        smallFlowCtrl.SelectStep(receivedFlow, receivedStep, !GlobalInfo.isExam);
                         Log.Debug("执行跳步骤 任务选中" + receivedFlow + "步骤选中" + receivedStep);
                         toolModule.SchematicPanel.HideView();
                     }
@@ -2024,6 +2007,10 @@ public class UISmallSceneModule : UIModuleBase
         {
             foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops)
             {
+                // 跳过已完成的op，不再显示高亮
+                if (smallFlowCtrl.IsOpCompleted(smallOp))
+                    continue;
+
                 // 待操作对象已聚焦时，不添加提示高亮
                 if (smallOp.operation == modelOperation_Focused)
                 {
@@ -2082,6 +2069,10 @@ public class UISmallSceneModule : UIModuleBase
                 foreach (var smallOp in step.ops)
                 {
                     if (smallOp.operation == null)
+                        continue;
+
+                    // 跳过已完成的op
+                    if (smallFlowCtrl.IsOpCompleted(smallOp))
                         continue;
 
                     if (!highlights.Contains(smallOp.operation) || !smallOp.operation.TryGetComponent<HighlightPlus.HighlightEffect>(out _))

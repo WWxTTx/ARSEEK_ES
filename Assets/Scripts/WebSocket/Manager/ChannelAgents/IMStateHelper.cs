@@ -159,6 +159,15 @@ public partial class IMStateHelper
 
                     Log.Debug("执行状态添加 flowIndex" + smallSceneBaikeState.flowIndex + " stepIndex" + smallSceneBaikeState.stepIndex);
                     smallSceneBaikeState.modelStates = smallFlowCtrl.GetModelStates();
+
+                    // 保存当前步骤已完成的操作ID
+                    var completedIds = smallFlowCtrl.GetCompletedOpIds();
+                    if (completedIds != null && completedIds.Count > 0)
+                    {
+                        smallSceneBaikeState.successOpDatas = completedIds
+                            .Select(id => new SuccessOpData(id, string.Empty, string.Empty))
+                            .ToList();
+                    }
                 }
                 UISmallSceneOperationHistory historyModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneOperationHistory>();
                 if(historyModule != null)

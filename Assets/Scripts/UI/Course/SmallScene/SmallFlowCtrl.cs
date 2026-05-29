@@ -3,7 +3,6 @@ using DG.Tweening;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Interop;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -198,6 +197,7 @@ public class SmallFlowCtrl : MonoBase
         set
         {
             _index_NowStep = value;
+            ClearCompletedOps();
             // 自动播放：使用 DelayStart
             if (nowFlowStep != null && nowFlowStep.initState != null && nowFlowStep.initState.Count > 0)
             {
@@ -241,7 +241,7 @@ public class SmallFlowCtrl : MonoBase
         bool hasPopup = false;
         BehavePopup popupBehave = null;
 
-        if (useGuide)
+        if (!GlobalInfo.isExam)
         {
             foreach (var op in state.operation.operations)
             {
@@ -264,7 +264,7 @@ public class SmallFlowCtrl : MonoBase
             }
         }
 
-        if (hasPopup && popupBehave != null && useGuide)
+        if (hasPopup && popupBehave != null && !GlobalInfo.isExam)
         {
             // 引导模式下有弹窗，显示弹窗，等弹窗确认后再设置最终状态并执行下一个操作
             int currentPopupIndex = popupIndex + 1; // 当前是第几个弹窗（从1开始）
@@ -299,19 +299,87 @@ public class SmallFlowCtrl : MonoBase
     public bool IsExecuting => cache != null && cache.Count > 0;
 
     /// <summary>
-    /// 当前步骤已执行并列操作集合
+    /// 当前步骤已完成的操作对象ID集合
     /// </summary>
-    //public List<SmallOp1> successOPs = new List<SmallOp1>();
+    private HashSet<string> completedOpIds = new HashSet<string>();
+
+    /// <summary>
+    /// 标记操作完成，返回true表示当前步骤所有操作均已完成
+    /// </summary>
+    public bool MarkOpCompleted(SmallOp1 op)
+    {
+        if (op?.operation == null) return false;
+        completedOpIds.Add(op.operation.ID);
+        return IsStepComplete();
+    }
+
+    /// <summary>
+    /// 当前步骤所有操作是否全部完成
+    /// </summary>
+    public bool IsStepComplete()
+    {
+        if (nowFlowStep == null) return true;
+        foreach (var op in nowFlowStep.ops)
+        {
+            if (op.operation != null && !completedOpIds.Contains(op.operation.ID))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 指定操作是否已完成
+    /// </summary>
+    public bool IsOpCompleted(SmallOp1 op)
+    {
+        return op?.operation != null && completedOpIds.Contains(op.operation.ID);
+    }
+
+    /// <summary>
+    /// 清空当前步骤完成记录
+    /// </summary>
+    public void ClearCompletedOps()
+    {
+        completedOpIds.Clear();
+    }
+
+    /// <summary>
+    /// 获取已完成操作ID集合（用于序列化/网络传输）
+    /// </summary>
+    public HashSet<string> GetCompletedOpIds()
+    {
+        return new HashSet<string>(completedOpIds);
+    }
+
+    /// <summary>
+    /// 恢复已完成操作ID集合，并还原对应操作的模型状态
+    /// </summary>
+    public void SetCompletedOpIds(HashSet<string> ids)
+    {
+        completedOpIds.Clear();
+        if (ids != null)
+        {
+            foreach (var id in ids)
+                completedOpIds.Add(id);
+
+            // 用已完成的op ID找到当前步骤中对应的SmallOp1，用其optionName恢复模型状态
+            if (nowFlowStep?.ops != null)
+            {
+                foreach (var opId in ids)
+                {
+                    var op = nowFlowStep.ops.Find(o => o.operation?.ID == opId);
+                    if (op != null && op.operation != null)
+                        SetFinalState(op.operation, op.optionName, true);
+                }
+            }
+        }
+    }
 
     public Color selectHighlight = new Color(0.55f, 0.92f, 1f);
     public Color hintHighlight = Color.red;
 
-
-    //非考核模式 会使用弹窗任务列表和导航等功能
-    private bool useGuide;
-
     /// <summary>
-    /// 是否正在恢复前置步骤状态（跳步骤时抑制图纸在非当前初始视角展开）
+    /// 跳步骤时抑制图纸在非当前初始视角展开
     /// </summary>
     private bool isRestoringPreviousStates;
 
@@ -327,12 +395,6 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public void Init(List<Flow> flowsTex = null)
     {
-        useGuide = !GlobalInfo.isExam;
-        AddMsg(
-            (ushort)ModelOperateEvent.Rotate
-        );
-
-
         flows = GetComponentsInChildren<SmallFlow1>();
         if (flowsTex != null && flowsTex.Count > 0)
         {
@@ -377,10 +439,6 @@ public class SmallFlowCtrl : MonoBase
         {
             AddmodeInfo(item);
         }
-
-        //初始化完成后默认触发0
-        index_NowFlow = 0;
-        SelectStep(0, true);
     }
 
     void AddmodeInfo(ModelInfo modelInfo)
@@ -646,8 +704,8 @@ public class SmallFlowCtrl : MonoBase
                 Log.Debug("当前步骤数越界，无正确操作");
                 return false;
             }
-            //判断是否是正确操作物体
-            data = nowFlowStep.ops.Find(value => value.operation == operation);
+            //判断是否是正确操作物体（跳过已完成的op）
+            data = nowFlowStep.ops.Find(value => value.operation == operation && !completedOpIds.Contains(operation.ID));
             if (data == null)
             {
                 Log.Debug($"操作对象错误 当前对象为{operation.name}", operation);
@@ -705,11 +763,41 @@ public class SmallFlowCtrl : MonoBase
             op.optionName == optionName);
     }
 
-    /// <summary>
-    /// 选择任务
-    /// </summary>
-    public void SelectFlow(int index_Flow, bool ResetByFlow)
+    public SmallStep1 CurrentStep()
     {
+        return nowFlowSteps[_index_NowStep];
+    }
+
+    /// <summary>
+    /// 通过当前任务的索引获取应当执行的ModelOperation对象和正确行为的名称
+    /// 优先返回未完成的op
+    /// </summary>
+    public SmallOp1 GetStepOperationBehaviors()
+    {
+        var steps = flows[index_NowFlow].steps;
+        var step = steps[index_NowStep];
+        return step.ops.FirstOrDefault(op => !completedOpIds.Contains(op.operation.ID)) ?? step.ops[0];
+    }
+
+    public ModelOperation GetStepOperation()
+    {
+        var steps = flows[index_NowFlow].steps;
+        SmallStep1 step = steps[index_NowStep];
+        var op = step.ops.FirstOrDefault(o => !completedOpIds.Contains(o.operation.ID)) ?? step.ops[0];
+        return op.operation;
+    }
+
+    /// <summary>
+    /// 选择步骤（合并原 SelectFlow + SelectStep，增加 flowIndex 参数）
+    /// 重置流程：基准初始视角 → 前置任务步骤 → 前置步骤 → 目标步骤初始视角
+    /// </summary>
+    /// <param name="flowIndex">目标任务索引</param>
+    /// <param name="stepIndex">目标步骤索引</param>
+    /// <param name="ResetByFlow">是否刷新操作记录</param>
+    /// <param name="answerOp">考核模式联机恢复数据</param>
+    public void SelectStep(int flowIndex, int stepIndex, bool ResetByFlow, AnswerOp answerOp = null)
+    {
+        // 1. 清除高亮、重置工具数量
         foreach (var operation in operationIDs)
         {
             RemoveHint(operation.Value, 0);
@@ -722,26 +810,39 @@ public class SmallFlowCtrl : MonoBase
                 onResetToolNum.Invoke(tool.Value);
         }
 
-        index_NowFlow = index_Flow;
+        index_NowFlow = flowIndex;
         _index_NowStep = 0;
+        ClearCompletedOps();
 
-        //重置所有操作到初始状态
+        isRestoringPreviousStates = true;
+
+        //2.重置所有操作到预制体默认初始状态 恢复之前的flows的变化
         ResetAllToInitState();
 
-        //处理之前的任务：每个步骤先执行 initState 再执行操作
-        isRestoringPreviousStates = true;
+        // 跨 Flow 跳转：Flow0 Step0 初始视角作为全局基准
+        if (flows.Length > 0 && flows[0].steps.Count > 0)
+        {
+            var firstStepInitStates = flows[0].steps[0].initState;
+            if (firstStepInitStates != null && firstStepInitStates.Count > 0)
+            {
+                foreach (var state in firstStepInitStates)
+                {
+                    if (state.operation != null)
+                        SetFinalState(state.operation, state.optionName, true, true);
+                }
+            }
+        }
+
+        // 应用所有前置 Flow 中每个 Step 的操作（含递归联动）
         int indexFlow = -1;
         int indexStep = -1;
-
-        foreach (var flow in flows.Take(index_NowFlow))
+        foreach (var flow in flows.Take(flowIndex))
         {
             indexFlow += 1;
             indexStep = -1;
             foreach (var step in flow.steps)
             {
                 indexStep += 1;
-
-                //再执行步骤操作（含递归联动）
                 foreach (var operation in step.ops)
                 {
                     if (operation.operation == null)
@@ -749,11 +850,8 @@ public class SmallFlowCtrl : MonoBase
                         Log.Error($"{step.hint} 没有配置操作对象 - {operation.optionName}");
                         continue;
                     }
-
                     SetFinalStateWithLinkages(operation.operation, operation.optionName,
                         ignoreCondition: true, ignoreMove: true);
-
-                    //处理 SmallOp1 级别的联动
                     if (operation.actions != null)
                     {
                         foreach (var linkage in operation.actions)
@@ -764,81 +862,43 @@ public class SmallFlowCtrl : MonoBase
                                 ignoreCondition: true, ignoreMove: true);
                         }
                     }
-
-                    if (ResetByFlow)
-                        RefreshOpHistory(operation.operation, operation.optionName, indexFlow, indexStep);
                 }
             }
         }
 
-        isRestoringPreviousStates = false;
-        cache.Clear();
-    }
-
-    public SmallStep1 CurrentStep()
-    {
-        return nowFlowSteps[_index_NowStep];
-    }
-
-    /// <summary>
-    /// 通过当前任务的索引获取应当执行的ModelOperation对象和正确行为的名称
-    /// </summary>
-    public SmallOp1 GetStepOperationBehaviors()
-    {
-        var steps = flows[index_NowFlow].steps;
-        return steps[index_NowStep].ops[0];
-    }
-
-    public ModelOperation GetStepOperation()
-    {
-        var steps = flows[index_NowFlow].steps;
-        SmallStep1 step = steps[index_NowStep];
-        return step.ops[0].operation;
-    }
-
-    /// <summary>
-    /// 选择小步骤
-    /// </summary>
-    public void SelectStep(int stepIndex, bool ResetByFlow, AnswerOp answerOp = null)
-    {
+        // 刷新操作记录：先清空，再重建所有前置 Flow 的记录
         if (ResetByFlow)
         {
             FormMsgManager.Instance.SendMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.OperatingRecordClear, -1, -1));
 
-            int indexFlow = -1;
-            int prevFlowStep = -1;
-            foreach (var flow in flows.Take(index_NowFlow))
+            int rfFlow = -1;
+            int rfStep = -1;
+            foreach (var flow in flows.Take(flowIndex))
             {
-                indexFlow += 1;
-                prevFlowStep = -1;
+                rfFlow += 1;
+                rfStep = -1;
                 foreach (var step in flow.steps)
                 {
-                    prevFlowStep += 1;
+                    rfStep += 1;
                     foreach (var operation in step.ops)
                     {
-                        RefreshOpHistory(operation.operation, operation.optionName, indexFlow, prevFlowStep);
+                        RefreshOpHistory(operation.operation, operation.optionName, rfFlow, rfStep);
                     }
                 }
             }
         }
 
-        //处理当前任务中目标步骤之前的步骤
-        isRestoringPreviousStates = true;
-        int indexStep = -1;
+        // 3. 应用当前 Flow 中目标 Step 之前的步骤操作（含递归联动）
+        int indexStep2 = -1;
         foreach (var step in nowFlowSteps.Take(stepIndex))
         {
-            indexStep += 1;
-
-            //再执行步骤操作（含递归联动，其中包含导航）
+            indexStep2 += 1;
             foreach (var operation in step.ops)
             {
                 if (operation.operation == null)
                     continue;
-
                 SetFinalStateWithLinkages(operation.operation, operation.optionName,
                     ignoreCondition: true, ignoreMove: true);
-
-                //处理 SmallOp1 级别的联动
                 if (operation.actions != null)
                 {
                     foreach (var linkage in operation.actions)
@@ -849,16 +909,14 @@ public class SmallFlowCtrl : MonoBase
                             ignoreCondition: true, ignoreMove: true);
                     }
                 }
-
-                //非考核模式使用进度来生成考核记录
                 if (ResetByFlow)
-                    RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, indexStep);
+                    RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, indexStep2);
             }
         }
         isRestoringPreviousStates = false;
 
-        //考核模式，在正确步骤外，额外使用联机考核记录恢复其余操作
-        if(!ResetByFlow)
+        // 4. 考核模式：使用联机考核记录恢复其余操作状态
+        if (!ResetByFlow)
         {
             if (answerOp != null)
                 SetExamModelStateData(answerOp);
@@ -866,10 +924,10 @@ public class SmallFlowCtrl : MonoBase
                 FindObjectOfType<ExamCoursePanel>().GetComponent<ExamCoursePanel>().RefreshExamOpHistoryAsync(SetExamModelStateData);
         }
 
-        //显式执行角色位置相关的设置：从上一步的联动步骤和当前步骤的初始视角
+        // 5. 显式设置角色位置（从上一步联动或当前步骤初始视角中搜索导航点）
         ApplyPlayerPositionForStepJump(stepIndex);
 
-        //设置当前步骤索引（触发 initState 执行）
+        // 6. 设置当前步骤索引（触发 ExecuteInitStateSequentially 执行目标步骤的初始视角）
         index_NowStep = stepIndex;
     }
 
@@ -1045,7 +1103,12 @@ public class SmallFlowCtrl : MonoBase
                         {
                             Log.Debug("联动操作 流程的联动执行完成");
                             if (isOnOperation)
-                                Next(dummy);
+                            {
+                                if (MarkOpCompleted(data))
+                                    Next(dummy);
+                                else
+                                    Over(dummy);
+                            }
                             else
                                 Over(dummy);
                         }, 0, true);
@@ -1053,7 +1116,12 @@ public class SmallFlowCtrl : MonoBase
                     else
                     {
                         if (isOnOperation)
-                            Next(dummy);
+                        {
+                            if (MarkOpCompleted(data))
+                                Next(dummy);
+                            else
+                                Over(dummy);
+                        }
                         else
                             Over(dummy);
                     }
@@ -1120,13 +1188,19 @@ public class SmallFlowCtrl : MonoBase
                             ExecuteFlowLinkOperation(opLinkages, () =>
                             {
                                 callback?.Invoke(true);
-                                Next(dummy);
+                                if (MarkOpCompleted(data))
+                                    Next(dummy);
+                                else
+                                    Over(dummy);
                             }, 0, dummy);
                         }
                         else
                         {
                             callback?.Invoke(true);
-                            Next(dummy);
+                            if (MarkOpCompleted(data))
+                                Next(dummy);
+                            else
+                                Over(dummy);
                         }
                     }).Forget();
                 }, 0, dummy);
@@ -2112,26 +2186,6 @@ public class SmallFlowCtrl : MonoBase
             return 0;
 
         return flow.children[index_NowStep].score;
-    }
-
-    public override void ProcessEvent(MsgBase msg)
-    {
-        base.ProcessEvent(msg);
-
-        switch (msg.msgId)
-        {
-            case (ushort)ModelOperateEvent.Rotate:
-                if ((msg as MsgBrodcastOperate).senderId == GlobalInfo.account.id)
-                    return;
-
-                // 同步其他成员UI操作联动模型旋转
-                MsgModelRotate msgModelRotate = (msg as MsgBrodcastOperate).GetData<MsgModelRotate>();
-                if (uiRotateModels.TryGetValue(msgModelRotate.id, out Transform model) && model != null)
-                {
-                    model.localEulerAngles = new Vector3((float)Math.Round(model.localEulerAngles.x, 1), (float)Math.Round(model.localEulerAngles.y, 1), msgModelRotate.angleZ);
-                }
-                break;
-        }    
     }
 
     /// <summary>

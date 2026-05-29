@@ -16,6 +16,10 @@ public class LoadingPanel : UIPanelBase
     private float playtime = 0.65f;
     private int showNum;
     private Text progressValue;
+    /// <summary>
+    /// 加载时长高于这个时间才会显示
+    /// </summary>
+    private const float waitTime = 0.2f;
     public static bool Loading = false;
     void Awake()
     {
@@ -27,7 +31,7 @@ public class LoadingPanel : UIPanelBase
     /// </summary>
     public override void Open(UIData uiData = null)
     {
-        base.Open();
+        base.Open(); 
         Loading = true;
         Action = this.FindChildByName("Action");
         progressValue = GetComponentInChildren<Text>();
@@ -39,8 +43,20 @@ public class LoadingPanel : UIPanelBase
 
         Init();
 
-        s.Play();
-        SendMsg(new MsgBase((ushort)UIAnimEvent.ShowAnimMask));
+        var canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        {
+            canvasGroup.alpha = 0;
+
+            Timer.AddTimer(waitTime, name).OnCompleted(() =>
+            {
+                if (canvasGroup)
+                {
+                    canvasGroup.alpha = 1;
+                    s.Play();
+                    Destroy(canvasGroup);
+                }
+            });
+        }
     }
 
     private void Init()
@@ -83,6 +99,8 @@ public class LoadingPanel : UIPanelBase
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
         base.Close(uiData, callback);
+        SendMsg(new MsgBase((ushort)UIAnimEvent.HideAnimMask));
+        Timer.DelTimer(name);
         Loading = false;
     }
     public override void ProcessEvent(MsgBase msg)
