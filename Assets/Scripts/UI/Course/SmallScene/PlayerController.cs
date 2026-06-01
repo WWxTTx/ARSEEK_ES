@@ -492,7 +492,7 @@ public class PlayerController : MonoBase
 
     // 点击旋转目标点
     private Vector3 tapTargetPoint;
-    private bool hasTapTarget;
+    public bool hasTapTarget;
 
     public void SetJoystick(Joystick moveJoystick, Joystick rotateJoystick, float moveRatio, float rotateRatio)
     {

@@ -612,37 +612,84 @@ public partial class ExamCoursePanel : OPLCoursePanel
         // 记录当前步骤中已完成的操作ID（用于部分完成恢复）
         HashSet<string> partialCompletedOps = new HashSet<string>();
 
-        //按顺序匹配：从 flows 第一个步骤开始，在 operations 中按顺序查找，找到则进度+1继续找下一个
+        //优先用可靠的 totalStepIndex 定位进度；旧数据(全为-1)回退到 hint_success 字符串匹配
         if (savedAnswer != null && savedAnswer.operations != null && savedAnswer.operations.Count > 0)
         {
-            var flows = smallSceneModule.smallFlowCtrl.flows;
-            int opIndex = 0;
-            for (int f = 0; f < flows.Length; f++)
+            var ctrl = smallSceneModule.smallFlowCtrl;
+            var flows = ctrl.flows;
+
+            // 模型状态字典：op.ID -> 最终 optionName，用于判定某 op 是否已完成
+            Dictionary<string, string> modelStatesDict = savedAnswer.modelStates != null
+                ? savedAnswer.modelStates.Where(ms => ms.id != null)
+                    .GroupBy(ms => ms.id)
+                    .ToDictionary(g => g.Key, g => g.Last().optionName)
+                : new Dictionary<string, string>();
+
+            // 用户操作过的最远步骤（步骤顺序门控，到达某步说明此前步骤已完成）
+            int maxTotal = -1;
+            foreach (var op in savedAnswer.operations)
             {
-                bool flowMatched = false;
-                for (int s = 0; s < flows[f].steps.Count; s++)
+                if (op.totalStepIndex > maxTotal)
+                    maxTotal = op.totalStepIndex;
+            }
+            if (maxTotal >= 0)
+            {
+                // 有可靠步骤索引：maxTotal 即用户到达的最远步骤
+                ctrl.TotalIndexToFlowStep(maxTotal, out int reachedFlow, out int reachedStep);
+
+                // 判定该最远步骤是否所有 op 都已完成（用模型状态比对）
+                var reachedStepData = flows[reachedFlow].steps[reachedStep];
+                bool reachedStepComplete = IsStepFullyCompleted(reachedStepData, modelStatesDict, partialCompletedOps);
+
+                if (reachedStepComplete)
                 {
-                    int preOpIndex = opIndex;
-                    if (TryMatchStepInOps(flows[f].steps[s], savedAnswer.operations.ToList(), ref opIndex))
+                    // 最远步骤已完成，已完成进度=该步骤，待操作的是下一步
+                    flow = reachedFlow;
+                    step = reachedStep;
+                    partialCompletedOps.Clear();
+                }
+                else
+                {
+                    // 最远步骤未完成：已完成进度=其前一步，partialCompletedOps 为当前步骤已完成的 op
+                    if (reachedStep > 0)
                     {
-                        flow = f;
-                        step = s;
-                        flowMatched = true;
-                        partialCompletedOps.Clear();
+                        flow = reachedFlow;
+                        step = reachedStep - 1;
+                    }
+                    else if (reachedFlow > 0)
+                    {
+                        flow = reachedFlow - 1;
+                        step = flows[flow].steps.Count - 1;
                     }
                     else
                     {
-                        // 步骤未完全匹配，检查是否有部分操作已完成
-                        if (opIndex > preOpIndex && flows[f].steps[s].ops != null)
+                        // 停留在第一个步骤且未完成
+                        flow = 0;
+                        step = -1;
+                    }
+                }
+            }
+            else
+            {
+                // 旧数据：totalStepIndex 全为 -1，回退到 hint_success 字符串按序匹配
+                int opIndex = 0;
+                for (int f = 0; f < flows.Length; f++)
+                {
+                    bool flowMatched = false;
+                    for (int s = 0; s < flows[f].steps.Count; s++)
+                    {
+                        int preOpIndex = opIndex;
+                        if (TryMatchStepInOps(flows[f].steps[s], savedAnswer.operations.ToList(), ref opIndex))
                         {
-                            // 使用模型状态判断哪些op已完成（比hint消息更可靠）
-                            if (savedAnswer.modelStates != null)
+                            flow = f;
+                            step = s;
+                            flowMatched = true;
+                            partialCompletedOps.Clear();
+                        }
+                        else
+                        {
+                            if (opIndex > preOpIndex && flows[f].steps[s].ops != null)
                             {
-                                var modelStatesDict = savedAnswer.modelStates
-                                    .Where(ms => ms.id != null)
-                                    .GroupBy(ms => ms.id)
-                                    .ToDictionary(g => g.Key, g => g.Last().optionName);
-
                                 foreach (var op in flows[f].steps[s].ops)
                                 {
                                     if (op.operation != null && modelStatesDict.TryGetValue(op.operation.ID, out string state))
@@ -652,12 +699,12 @@ public partial class ExamCoursePanel : OPLCoursePanel
                                     }
                                 }
                             }
+                            break;
                         }
-                        break;
                     }
+                    if (!flowMatched)
+                        break;
                 }
-                if (!flowMatched)
-                    break;
             }
         }
 
@@ -666,7 +713,12 @@ public partial class ExamCoursePanel : OPLCoursePanel
         //同步操作对象状态 恢复步骤
         if (step == -1)
         {
+            //停留在第一个步骤且未完成：恢复到首步，补回已完成的部分 op（首步未完成，不能 Next）
             smallSceneModule.smallFlowCtrl.SelectStep(flow, 0, false, savedAnswer);
+            if (partialCompletedOps.Count > 0)
+            {
+                smallSceneModule.smallFlowCtrl.SetCompletedOpIds(partialCompletedOps);
+            }
         }
         else
         {
@@ -744,6 +796,33 @@ public partial class ExamCoursePanel : OPLCoursePanel
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 用最终模型状态判定某步骤是否所有 op 都已完成。
+    /// 未完成时，已完成的 op ID 写入 partialOps（先清空）。
+    /// </summary>
+    private bool IsStepFullyCompleted(SmallStep1 stepData, Dictionary<string, string> modelStatesDict, HashSet<string> partialOps)
+    {
+        partialOps.Clear();
+        if (stepData?.ops == null || stepData.ops.Count == 0)
+            return true;
+
+        bool allDone = true;
+        foreach (var op in stepData.ops)
+        {
+            if (op.operation == null)
+                continue;
+
+            if (modelStatesDict.TryGetValue(op.operation.ID, out string state) && state == op.optionName)
+                partialOps.Add(op.operation.ID);
+            else
+                allDone = false;
+        }
+
+        if (allDone)
+            partialOps.Clear();
+        return allDone;
     }
 
     private void SubmitExamRecord(bool submitRecording = true, bool showToast = true, Action<bool> callBack = null)
@@ -1077,7 +1156,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
         side.interactable = true;
 #endif
 
-        if (NetworkManager.Instance.IsIMSyncState)
+        //仅单人考核走 RecoveryExam（服务器记录定进度+补状态）；多人考核重连由 SyncBaikeState 缓存路径恢复，避免两条路都调 SelectStep 竞态
+        if (NetworkManager.Instance.IsIMSyncState && GlobalInfo.courseMode == CourseMode.Exam)
             RefreshExamOpHistoryAsync(answerOp =>{
                 // 网络请求成功，从 answersDic 提取模型状态并恢复进度 主要目的是为了恢复正确流程的初始视角和联动步骤
                 RecoveryExam(answerOp);

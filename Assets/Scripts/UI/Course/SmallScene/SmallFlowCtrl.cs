@@ -406,6 +406,7 @@ public class SmallFlowCtrl : MonoBase
             {
                 for (int i = 0; i < flows.Length; i++)
                 {
+                    flows[i].ID = flowsTex[i].id;
                     flows[i].flowName = flowsTex[i].title;
                     if (flows[i].steps.Count != flowsTex[i].children.Count)
                     {
@@ -416,6 +417,7 @@ public class SmallFlowCtrl : MonoBase
                     {
                         for (int j = 0; j < flows[i].steps.Count; j++)
                         {
+                            flows[i].steps[j].ID = flowsTex[i].children[j].id;
                             flows[i].steps[j].hint = flowsTex[i].children[j].title;
                         }
                     }
