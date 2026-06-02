@@ -247,6 +247,38 @@ public class PlayerController : MonoBase
         }
     }
 
+    /// <summary>
+    /// 将相机/角色朝向对准世界坐标目标（一次性转向），并取消点击锁定视角。
+    /// 复用 RotateTowardsTarget 的偏航/俯仰角度公式，相机靠 CameraFollow 自动跟随。
+    /// </summary>
+    /// <param name="targetPos">目标世界坐标</param>
+    /// <param name="duration">转向时长，负值时取 cameraRotateDuration</param>
+    public void AimAtTarget(Vector3 targetPos, float duration = -1f)
+    {
+        if (duration < 0f)
+            duration = cameraRotateDuration;
+
+        // 取消点击屏幕锁定视角
+        hasTapTarget = false;
+
+        // 机身水平偏航(Y)
+        Vector3 flatDir = new Vector3(targetPos.x - transform.position.x, 0f, targetPos.z - transform.position.z);
+        if (flatDir.sqrMagnitude > 0.0001f)
+        {
+            float targetY = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
+            transform.DORotate(new Vector3(0f, targetY, 0f), duration);
+        }
+
+        // 俯仰(X) 挂在 verticalPoint
+        Vector3 dir = targetPos - verticalPoint.position;
+        float horizDist = new Vector2(dir.x, dir.z).magnitude;
+        if (horizDist > 0.0001f)
+        {
+            float targetPitch = Mathf.Clamp(-Mathf.Atan2(dir.y, horizDist) * Mathf.Rad2Deg, -89.999f, 89.999f);
+            verticalPoint.DOLocalRotate(new Vector3(targetPitch, 0f, 0f), duration);
+        }
+    }
+
     private float mVertical;
     private float mHorizontal;
     /// <summary>
@@ -373,7 +405,7 @@ public class PlayerController : MonoBase
             CameraFollow();
             if (!agent.pathPending && agent.remainingDistance < agent.stoppingDistance)
             {
-                EndNavigation(targetPoint);
+                EndNavigation(navSnapToTarget ? targetPoint : null);
             }
         }
 
@@ -416,6 +448,8 @@ public class PlayerController : MonoBase
     private bool isNavigating;
     private Transform targetPoint;
     private bool inAnime;
+    // 到达后是否将角色位移并旋转吸附到目标姿态（姿态标记点为 true；对准可操作对象时为 false）
+    private bool navSnapToTarget = true;
 
     private void InitNavigation()
     {
@@ -430,11 +464,23 @@ public class PlayerController : MonoBase
     }
     public void StartNavigation(Transform target)
     {
+        StartNavigation(target, true);
+    }
+
+    /// <summary>
+    /// 开始导航到目标。
+    /// </summary>
+    /// <param name="target">目标点</param>
+    /// <param name="snapToTarget">到达后是否将角色位移/旋转吸附到目标姿态。
+    /// 姿态标记点传 true；仅靠近可操作对象时传 false（不贴到物体上）</param>
+    public void StartNavigation(Transform target, bool snapToTarget)
+    {
         //GetComponent<NavMeshAgent>().enabled = true;
 
         if (agent.SetDestination(target.position))
         {
             targetPoint = target;
+            navSnapToTarget = snapToTarget;
             isNavigating = true;
         }
         //else

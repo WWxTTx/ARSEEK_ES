@@ -74,11 +74,6 @@ public class SmallOp1
     /// </summary>
     [Tooltip("需选择道具")]
     public ModelInfo prop;
-    /// <summary>
-    /// 操作联动，TODO 待迁移数据后删除
-    /// </summary>
-    [Tooltip("操作联动")]
-    public List<SmallStepSequenceState> actions = new List<SmallStepSequenceState>();
 
 #if UNITY_EDITOR
     /// <summary>
@@ -140,15 +135,13 @@ public class SmallStep1
     [Tooltip("初始视角")]
     public List<SmallStepState> initState = new List<SmallStepState>();
     /// <summary>
-    /// 道具状态限制
-    /// </summary>
-    [Tooltip("道具状态限制")]
-    public List<SmallStepState> conditions = new List<SmallStepState>();
-    /// <summary>
     /// 并列操作集合
     /// </summary>
     [Tooltip("并列操作集合")]
     public List<SmallOp1> ops = new List<SmallOp1>();
+
+    [Tooltip("操作联动")]
+    public List<SmallStepSequenceState> actions = new List<SmallStepSequenceState>();
 
 
 #if UNITY_EDITOR

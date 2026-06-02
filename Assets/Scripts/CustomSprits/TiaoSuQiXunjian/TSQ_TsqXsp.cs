@@ -129,6 +129,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         甩负荷试验50,
         甩负荷试验75,
         甩负荷试验100,
+        有功降到0,
     }
 
     UnityAction callback;
@@ -250,6 +251,41 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                             Monitor(false);
                             Othercallback?.Invoke();
                             
+                        });
+                    });
+                });
+                break;
+            case AvailableStatus.有功降到0:
+                RotationControl(0, 0);
+                DOVirtual.DelayedCall(2f, () => {
+                    kdgd.DOLocalRotate(new Vector3(-90, -35, 0), 1);
+                });
+                DOVirtual.DelayedCall(3, () =>
+                {
+                    ChangeFouces(true);
+                    Monitor(true);
+                    RotationControl(14, 6);
+                    DOTween.To(() => 43.3f, x =>
+                    {
+                        TextDic["机组有功"].text = x.ToString("F2");
+                    }, 0f, 6);
+                    DOTween.To(() => 79f, x =>
+                    {
+                        TextDic["导叶目标值"].text = x.ToString("F2");
+                        TextDic["导叶开度"].text = x.ToString("F2");
+                        CalculateBladeOpening(x);
+                    }, 13.91f, 6).OnComplete(() =>
+                    {
+                        ChangeFouces(false);
+                        DOVirtual.DelayedCall(1, () =>
+                        {
+                            kdgd.DOLocalRotate(new Vector3(270, 0, 0), 1);
+                        });
+                        DOVirtual.DelayedCall(3, () =>
+                        {
+                            Monitor(false);
+                            Othercallback?.Invoke();
+                            smallSceneModule.ModelState = ModelState.Operated;
                         });
                     });
                 });

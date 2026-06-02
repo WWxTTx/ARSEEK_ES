@@ -22,16 +22,10 @@ public class SmallFlowCtrl : MonoBase
     public static string observeFlag = "观察";
     public static string inputFlag = "输入";
     public static string clickFlag = "点击";
-    public static string switchOpenFlag = "打开";
-    public static string switchCloseFlag = "关闭";
-    public static string switchOnFlag = "合闸";
-    public static string switchOffFlag = "分闸";
     public static string handFlag = "手部操作";
     public static string pickupFlag = "拾取";
     public static string usedFlag = "消耗";
     public static string retrieveFlag = "收回";
-    public static string enterFlag = "进入";
-    public static string exitFlag = "退出";
     public static string showFlag = "显示";
     public static string hideFlag = "隐藏";
     public static string backpackFlag = "工具箱";
@@ -53,8 +47,6 @@ public class SmallFlowCtrl : MonoBase
         {
             maskOperation.Add(showFlag);
             maskOperation.Add(hideFlag);
-            //maskOperation.Add(enterFlag);
-            //maskOperation.Add(exitFlag);
             maskOperation.Add(observeFlag);
             maskOperation.Add(pickupFlag);
             maskOperation.Add(usedFlag);
@@ -203,11 +195,13 @@ public class SmallFlowCtrl : MonoBase
             {
                 ExecuteInitStateSequentially(nowFlowStep.initState, nowFlowStep, 0, 0, () =>
                 {
+                    AimCameraAtFirstOp();
                     SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepName);
                 });
             }
             else
             {
+                AimCameraAtFirstOp();
                 SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepName);
             }
         }
@@ -285,6 +279,80 @@ public class SmallFlowCtrl : MonoBase
             ExecuteInitStateSequentially(initStates, currentStep, index + 1, popupIndex, onComplete);
         }
     }
+
+    #region 角色对准与导航（自动辅助）
+
+    private PlayerController _playerController;
+    /// <summary>
+    /// 角色控制器（懒加载缓存）。统一从 ModelManager.modelRoot 下查找。
+    /// </summary>
+    private PlayerController playerController
+    {
+        get
+        {
+            if (_playerController == null && ModelManager.Instance != null && ModelManager.Instance.modelRoot != null)
+                _playerController = ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>();
+            return _playerController;
+        }
+    }
+
+    /// <summary>
+    /// 非考核模式下，将相机对准当前步骤第一个可操作对象。
+    /// 在每个步骤开头（index_NowStep 设置、初始视角执行完成后）调用。
+    /// </summary>
+    private void AimCameraAtFirstOp()
+    {
+        if (GlobalInfo.isExam)
+            return;
+        if (nowFlowStep == null || nowFlowStep.ops == null)
+            return;
+
+        SmallOp1 firstOp = nowFlowStep.ops.FirstOrDefault(o => o.operation != null);
+        if (firstOp == null)
+            return;
+
+        PlayerController pc = playerController;
+        if (pc == null)
+            return;
+
+        pc.AimAtTarget(firstOp.operation.transform.position);
+    }
+
+    /// <summary>
+    /// 执行操作前的导航网关：若角色离可操作对象距离 &gt; 1，先寻路到 1 以内再执行；
+    /// 否则直接执行。dummy（远程同步）操作跳过本地导航。两种模式均生效。
+    /// </summary>
+    private void EnsureNearOperationThen(SmallOp1 data, bool dummy, Action proceed)
+    {
+        PlayerController pc = playerController;
+        if (dummy || pc == null || data == null || data.operation == null)
+        {
+            proceed();
+            return;
+        }
+
+        Vector3 targetPos = data.operation.transform.position;
+        if (Vector3.Distance(pc.transform.position, targetPos) > 1f)
+            NavigateNearTargetAsync(pc, data.operation.transform, proceed).Forget();
+        else
+            proceed();
+    }
+
+    /// <summary>
+    /// 异步导航到目标 1 以内（不吸附到目标姿态），完成后执行 proceed。
+    /// </summary>
+    private async UniTaskVoid NavigateNearTargetAsync(PlayerController pc, Transform target, Action proceed)
+    {
+        pc.Model.GetComponent<Animator>().SetBool("isMove", true);
+        pc.StartNavigation(target, false);
+        await UniTask.WaitUntil(() => !pc || pc.NavEnd);
+        if (!pc)
+            return;
+        pc.Model.GetComponent<Animator>().SetBool("isMove", false);
+        proceed();
+    }
+
+    #endregion
 
 
     /// <summary>
@@ -614,6 +682,35 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 获取开关类型操作的互斥的另一状态名。
+    /// 对 Switch 类型，从 operations 列表中找 name != currentState 且不是保留标志的操作名。
+    /// </summary>
+    public string GetOppositeSwitchState(ModelOperation modelOperation)
+    {
+        if (modelOperation == null || modelOperation.operations == null)
+            return null;
+
+        string currentState = modelOperation.currentState;
+
+        foreach (var op in modelOperation.operations)
+        {
+            if (op.name != currentState && !IsReservedOperationName(op.name))
+                return op.name;
+        }
+        return null;
+    }
+
+    private bool IsReservedOperationName(string opName)
+    {
+        return opName == focusFlag
+            || opName == observeFlag
+            || opName == clickFlag
+            || opName == contactFlag
+            || opName == inputFlag
+            || opName.StartsWith(backpackFlag);
+    }
+
+    /// <summary>
     /// 判断输入文本是否正确
     /// </summary>
     /// <param name="optionName">记录或联系操作</param>
@@ -720,21 +817,17 @@ public class SmallFlowCtrl : MonoBase
                 return false;
             }
 
-            //todo 步骤限制条件待删，迁移为操作限制 判断是否满足限制条件
-            //判断是否满足限制条件
-            List<SmallStepState> conditions = nowFlowStep.conditions;
+            //步骤限制条件已移除，现在这里判断的是单个操作，限制条件是否满足
+            List<OpRestrict> conditions = data.operation.operations.Find(value => value.name == operation.currentState).conditions;
             for (int i = 0; i < conditions.Count; i++)
             {
-                if (conditions[i].operation != null && conditions[i].operation.TryGetComponent(out ModelInfo modelInfo))
+                if (conditions[i].optionName != conditions[i].operation.currentState)
                 {
-                    if (modelInfo == null)
-                    { Log.Error("道具未配置modelInfo"); return false; }
-
-                    if (!conditions[i].operation.currentState.Equals(conditions[i].optionName))
-                    { Log.Debug($"道具模式错误 当前道具模式为{conditions[i].operation.currentState} 正确模式为{conditions[i].optionName}"); return false; }
+                    Log.Debug($"{operation.name} 当前状态为{conditions[i].operation.currentState} 正确条件为{conditions[i].optionName}"); 
+                    return false;
                 }
             }
-            Log.Debug(operation.name + "-" + "，是正确操作");
+            Log.Debug($"{operation.name} 满足操作条件");
             return true;
         }
         else
@@ -854,15 +947,16 @@ public class SmallFlowCtrl : MonoBase
                     }
                     SetFinalStateWithLinkages(operation.operation, operation.optionName,
                         ignoreCondition: true, ignoreMove: true);
-                    if (operation.actions != null)
+                }
+                // 步骤级联动（全部并列操作之后执行）
+                if (step.actions != null)
+                {
+                    foreach (var linkage in step.actions)
                     {
-                        foreach (var linkage in operation.actions)
-                        {
-                            if (linkage.operation == null)
-                                continue;
-                            SetFinalStateWithLinkages(linkage.operation, linkage.optionName,
-                                ignoreCondition: true, ignoreMove: true);
-                        }
+                        if (linkage.operation == null)
+                            continue;
+                        SetFinalStateWithLinkages(linkage.operation, linkage.optionName,
+                            ignoreCondition: true, ignoreMove: true);
                     }
                 }
             }
@@ -901,18 +995,19 @@ public class SmallFlowCtrl : MonoBase
                     continue;
                 SetFinalStateWithLinkages(operation.operation, operation.optionName,
                     ignoreCondition: true, ignoreMove: true);
-                if (operation.actions != null)
-                {
-                    foreach (var linkage in operation.actions)
-                    {
-                        if (linkage.operation == null)
-                            continue;
-                        SetFinalStateWithLinkages(linkage.operation, linkage.optionName,
-                            ignoreCondition: true, ignoreMove: true);
-                    }
-                }
                 if (ResetByFlow)
                     RefreshOpHistory(operation.operation, operation.optionName, index_NowFlow, indexStep2);
+            }
+            // 步骤级联动（全部并列操作之后执行）
+            if (step.actions != null)
+            {
+                foreach (var linkage in step.actions)
+                {
+                    if (linkage.operation == null)
+                        continue;
+                    SetFinalStateWithLinkages(linkage.operation, linkage.optionName,
+                        ignoreCondition: true, ignoreMove: true);
+                }
             }
         }
         isRestoringPreviousStates = false;
@@ -1010,16 +1105,13 @@ public class SmallFlowCtrl : MonoBase
 
                 if (prevStep != null)
                 {
-                    foreach (var opData in prevStep.ops)
+                    foreach (var action in prevStep.actions)
                     {
-                        foreach (var action in opData.actions)
+                        if (action.operation != null && (action.operation.name == "Navigation"))
                         {
-                            if (action.operation != null && (action.operation.name == "Navigation"))
-                            {
-                                ExecutePositionBehaviors(action.operation, action.optionName);
-                                found = true;
-                                return;
-                            }
+                            ExecutePositionBehaviors(action.operation, action.optionName);
+                            found = true;
+                            return;
                         }
                     }
                 }
@@ -1069,6 +1161,11 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
     public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, bool dummy = false)
     {
+        EnsureNearOperationThen(data, dummy, () => TryExecuteFreeOperationCore(data, userNo, userName, dummy));
+    }
+
+    private void TryExecuteFreeOperationCore(SmallOp1 data, string userNo, string userName, bool dummy = false)
+    {
         GlobalInfo.WaitUiOq = false;
         NetworkManager.Instance.IsIMSync = false;
         ignoreMove = dummy;
@@ -1096,37 +1193,23 @@ public class SmallFlowCtrl : MonoBase
                         // 仅本人操作才发送分数上传消息（dummy=true 表示非本人操作）
                         SendOperatingRecordMsg(data, op, userNo, userName, isOnOperation && !dummy);
                     }
-                    // 先构建联动操作列表，判断是否需要等待联动完成
-                    List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
-                    //考核模式下 如果执行的步骤正确，就调用步骤结束
-                    if (opLinkages.Count != 0)
+                    // 全部并列操作完成后，执行步骤级联动再进入下一步
+                    if (isOnOperation && MarkOpCompleted(data))
                     {
-                        ExecuteFlowLinkOperation(opLinkages, () =>
+                        List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep);
+                        if (opLinkages.Count != 0)
                         {
-                            Log.Debug("联动操作 流程的联动执行完成");
-                            if (isOnOperation)
+                            ExecuteFlowLinkOperation(opLinkages, () =>
                             {
-                                if (MarkOpCompleted(data))
-                                    Next(dummy);
-                                else
-                                    Over(dummy);
-                            }
-                            else
-                                Over(dummy);
-                        }, 0, true);
-                    }
-                    else
-                    {
-                        if (isOnOperation)
-                        {
-                            if (MarkOpCompleted(data))
+                                Log.Debug("联动操作 流程的联动执行完成");
                                 Next(dummy);
-                            else
-                                Over(dummy);
+                            }, 0, true);
                         }
                         else
-                            Over(dummy);
+                            Next(dummy);
                     }
+                    else
+                        Over(dummy);
                 }, 0, dummy);
             }
             else
@@ -1160,6 +1243,11 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
     {
+        EnsureNearOperationThen(data, dummy, () => TryExecuteOperationCore(data, correctOp, userNo, userName, callback, dummy));
+    }
+
+    private void TryExecuteOperationCore(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
+    {
         GlobalInfo.WaitUiOq = false;
         ignoreMove = dummy;
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
@@ -1183,27 +1271,23 @@ public class SmallFlowCtrl : MonoBase
                     {
                         SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
 
-                        // 先构建联动操作列表，判断是否需要等待联动完成
-                        List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep, data);
-                        if (opLinkages.Count != 0)
+                        callback?.Invoke(true);
+                        // 全部并列操作完成后，执行步骤级联动再进入下一步
+                        if (MarkOpCompleted(data))
                         {
-                            ExecuteFlowLinkOperation(opLinkages, () =>
+                            List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep);
+                            if (opLinkages.Count != 0)
                             {
-                                callback?.Invoke(true);
-                                if (MarkOpCompleted(data))
+                                ExecuteFlowLinkOperation(opLinkages, () =>
+                                {
                                     Next(dummy);
-                                else
-                                    Over(dummy);
-                            }, 0, dummy);
+                                }, 0, dummy);
+                            }
+                            else
+                                Next(dummy);
                         }
                         else
-                        {
-                            callback?.Invoke(true);
-                            if (MarkOpCompleted(data))
-                                Next(dummy);
-                            else
-                                Over(dummy);
-                        }
+                            Over(dummy);
                     }).Forget();
                 }, 0, dummy);
             }
@@ -1361,36 +1445,29 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
-    /// 构建联动操作列表
+    /// 构建步骤级联动操作列表（全部并列操作完成后执行）
     /// </summary>
     /// <param name="smallStep">当前步骤</param>
-    /// <param name="data">操作数据</param>
     /// <returns>联动操作列表</returns>
-    private List<OpLinkage> BuildLinkageOperations(SmallStep1 smallStep, SmallOp1 data)
+    private List<OpLinkage> BuildLinkageOperations(SmallStep1 smallStep)
     {
         List<OpLinkage> opLinkages = new List<OpLinkage>();
-        SmallOp1 smallOp1 = null;
-        for (int i = 0; i < smallStep.ops.Count; i++)
-        {
-            if (data.operation.ID == smallStep.ops[i].operation.ID && smallStep.ops[i].optionName == data.optionName)
-            {
-                smallOp1 = smallStep.ops[i];
-            }
-        }
+        if (smallStep?.actions == null)
+            return opLinkages;
 
-        if (smallOp1 != null)
+        for (int i = 0; i < smallStep.actions.Count; i++)
         {
-            for (int i = 0; i < smallOp1.actions.Count; i++)
-            {
-                OpLinkage opLinkage = new OpLinkage();
-                opLinkage.operation = smallOp1.actions[i].operation;
-                opLinkage.optionName = smallOp1.actions[i].optionName;
-                opLinkage.useCallback = smallOp1.actions[i].useCallback;
+            if (smallStep.actions[i].operation == null)
+                continue;
+
+            OpLinkage opLinkage = new OpLinkage();
+            opLinkage.operation = smallStep.actions[i].operation;
+            opLinkage.optionName = smallStep.actions[i].optionName;
+            opLinkage.useCallback = smallStep.actions[i].useCallback;
 #if UNITY_EDITOR
-                opLinkage.state = smallOp1.actions[i].state;
+            opLinkage.state = smallStep.actions[i].state;
 #endif
-                opLinkages.Add(opLinkage);
-            }
+            opLinkages.Add(opLinkage);
         }
         return opLinkages;
     }

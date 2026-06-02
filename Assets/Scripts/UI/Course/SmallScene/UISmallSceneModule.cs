@@ -1046,15 +1046,7 @@ public class UISmallSceneModule : UIModuleBase
                 return SmallFlowCtrl.observeFlag;
 
             case InteractMode.Switch:
-                if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOpenFlag))
-                    return SmallFlowCtrl.switchCloseFlag;
-                if (modelOperation.currentState.Equals(SmallFlowCtrl.switchCloseFlag))
-                    return SmallFlowCtrl.switchOpenFlag;
-                if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOnFlag))
-                    return SmallFlowCtrl.switchOffFlag;
-                if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOffFlag))
-                    return SmallFlowCtrl.switchOnFlag;
-                return string.Empty;
+                return smallFlowCtrl.GetOppositeSwitchState(modelOperation);
 
             default:
                 return SmallFlowCtrl.clickFlag;
@@ -1143,15 +1135,7 @@ public class UISmallSceneModule : UIModuleBase
                     }
                     break;
                 case InteractMode.Switch:
-                    if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOpenFlag))
-                        data.optionName = SmallFlowCtrl.switchCloseFlag;
-                    else if (modelOperation.currentState.Equals(SmallFlowCtrl.switchCloseFlag))
-                        data.optionName = SmallFlowCtrl.switchOpenFlag;
-
-                    if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOnFlag))
-                        data.optionName = SmallFlowCtrl.switchOffFlag;
-                    else if (modelOperation.currentState.Equals(SmallFlowCtrl.switchOffFlag))
-                        data.optionName = SmallFlowCtrl.switchOnFlag;
+                    data.optionName = smallFlowCtrl.GetOppositeSwitchState(modelOperation);
 
                     //工具操作
                     if (prop != null)
