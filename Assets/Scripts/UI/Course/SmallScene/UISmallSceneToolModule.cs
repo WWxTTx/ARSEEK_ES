@@ -668,7 +668,7 @@ public class UISmallSceneToolModule : UIModuleBase
                             Transform item = null;
                             for (int i = 0; i < Modes.childCount; i++)
                             {
-                                if (smallFlowCtrl.nowFlowStep != null && smallFlowCtrl.nowFlowStep.conditions.Find(value => value.optionName == Modes.GetChild(i).name) != null)
+                                if (smallFlowCtrl.nowFlowStep != null)
                                 {
                                     toolMode = Modes.GetChild(i).name;
                                     Toggle Toggle = Modes.GetChild(i).GetComponentInChildren<Toggle>();

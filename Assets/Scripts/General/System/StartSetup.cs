@@ -60,11 +60,10 @@ public class StartSetup : StartSetupBase
 
         DOTween.defaultEaseType = Ease.InOutCubic;//设置DoTween默认动画曲线
 
-        if (apiUrl != ApiType.外网 || state != VersionType.正式版)//设置是否可打开调试信息面板
+        if (apiUrl == ApiType.本地)//设置是否可打开调试信息面板
             LogManager.Instance.show = ShowLog;
         else
             LogManager.Instance.show = false;
-        //DebuggerSave.UploadEnabled = UploadLog;
 
         ApiData.Init((int)apiUrl, (int)state);// 设置服务器接口地址
         GlobalInfo.InitServerTime();

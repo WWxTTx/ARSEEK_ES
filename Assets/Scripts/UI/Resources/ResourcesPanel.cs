@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -216,7 +216,6 @@ public class ResourcesPanel : UIPanelBase
         if (model != null)
         {
             ModelManager.Instance.CreateModel(model);
-            ModelManager.Instance.SetLightLayer(ModelManager.Instance.modelGo);
             callBack?.Invoke(true, anchors);
             UIManager.Instance.CloseUI<LoadingPanel2>();
         }
@@ -498,18 +497,6 @@ public class ResourcesPanel : UIPanelBase
                     ModelManager.Instance.AddModelUUID(modelInfo);
 
                     storeys.Add(modelInfo);
-
-                    //if (modelInfo.InteractMode == InteractMode.Click)
-                    //{
-                    //    modelInfo.gameObject.AddComponent<CollisionBoxMouseEvent>();
-                    //    canSelect = true;
-                    //}
-                }
-
-                if (modelInfo.PropType == PropType.Anchor && cache.ContainsKey(modelInfo.ID))
-                {
-                    if (!anchors.ContainsKey(modelInfo.ID))
-                        anchors.Add(modelInfo.ID, new System.Tuple<ModelInfo, List<int>>(modelInfo, cache[modelInfo.ID]));
                 }
             }
 
@@ -653,15 +640,6 @@ public class ResourcesPanel : UIPanelBase
     /// <param name="storey">层物体</param>
     public void ShowOneModel(ModelInfo storey)
     {
-        //设置标签显示
-        foreach (ModelInfo Child in storey.GetComponentsInChildren<ModelInfo>(true))
-        {
-            if (Child.PropType == PropType.Anchor)
-            {
-                Child.gameObject.SetActive(true);
-            }
-        }
-
         //ModelManager.Instance.ResetCamera();
 
         if (storey.TryGetComponent(out ModelOperation modelOperation))

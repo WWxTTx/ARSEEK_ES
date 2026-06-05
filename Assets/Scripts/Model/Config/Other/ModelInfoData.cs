@@ -1,114 +1,111 @@
 using UnityEngine;
 
 /// <summary>
-/// µÀ¾ßÀàĞÍ
+/// é“å…·ç±»å‹
 /// </summary>
 [System.Serializable]
 public enum PropType
 {
     /// <summary>
-    /// Ãªµã
-    /// </summary>
     Anchor,
-    /// <summary>
-    /// Í¨ÓÃµÀ¾ß
+    /// é€šç”¨é“å…·
     /// </summary>
     Operate,
     /// <summary>
-    /// ±³°üµÀ¾ß
+    /// èƒŒåŒ…é“å…·
     /// </summary>
     BackPack,
     /// <summary>
-    /// Ğ£×¼Æ÷
+    /// æ ¡å‡†å™¨
     /// </summary>
     Calibrator,
     /// <summary>
-    /// ¶¯»­
+    /// åŠ¨ç”»
     /// </summary>
     Animation,
     /// <summary>
-    /// µØÍ¼Size
+    /// åœ°å›¾Size
     /// </summary>
     Map,
     /// <summary>
-    /// ±³°üÔ­¼ş
+    /// èƒŒåŒ…åŸä»¶
     /// </summary>
     BackPack_Original,
     /// <summary>
-    /// ×ÔÓÉ´¥·¢
-    /// ²»ĞèÒªÅäÖÃµ½Á÷³ÌÖĞ£¬²»¼ÆÈë²Ù×÷¼ÇÂ¼£¬²»ÅĞ¶ÏÕıÈ·ĞÔ
+    /// è‡ªç”±è§¦å‘
+    /// ä¸éœ€è¦é…ç½®åˆ°æµç¨‹ä¸­ï¼Œä¸è®¡å…¥æ“ä½œè®°å½•ï¼Œä¸åˆ¤æ–­æ­£ç¡®æ€§
     /// </summary>
     Free,
     /// <summary>
-    /// ÉÏÎ»»ú
+    /// ä¸Šä½æœº
     /// </summary>
     MasterComputer,
     /// <summary>
-    /// È«¾ÖÊÓ½Ç
+    /// å…¨å±€è§†è§’
     /// </summary>
     GlobalPerspective,
     /// <summary>
-    /// ×Ô¶¯´¥·¢
+    /// è‡ªåŠ¨è§¦å‘
     /// </summary>
     Auto,
     /// <summary>
-    /// °²È«¹¤Æ÷¾ß
+    /// å®‰å…¨å·¥å™¨å…·
     /// </summary>
     SafetyTool,
     /// <summary>
-    /// Í¼Ö½
+    /// å›¾çº¸
     /// </summary>
     Schematics
 }
 
 /// <summary>
-/// ´¥·¢·½Ê½
+/// è§¦å‘æ–¹å¼
 /// </summary>
 [System.Serializable]
 public enum InteractMode
 {
     /// <summary>
-    /// ÎŞ½»»¥
+    /// æ— äº¤äº’
     /// </summary>
     None,
     /// <summary>
-    /// µã»÷
+    /// ç‚¹å‡»
     /// </summary>
     Click,
     /// <summary>
-    /// ¿ª¹Ø
+    /// å¼€å…³
     /// </summary>
     Switch,
     /// <summary>
-    /// ·¶Î§
+    /// èŒƒå›´
     /// </summary>
     Range,
     /// <summary>
-    /// ¿´
+    /// çœ‹
     /// </summary>
     Look,
     /// <summary>
-    /// ²Ëµ¥
+    /// èœå•
     /// </summary>
     Menu,
     /// <summary>
-    /// ¶Ô×¼
+    /// å¯¹å‡†
     /// </summary>
     Aim,
     /// <summary>
-    /// ²Ù×÷UI
+    /// æ“ä½œUI
     /// </summary>
     OpUI,
     /// <summary>
-    /// ²Ëµ¥Ñ¡ÔñUI
+    /// èœå•é€‰æ‹©UI
     /// </summary>
     ListUI,
     /// <summary>
-    /// 2Dµã»÷
+    /// 2Dç‚¹å‡»
     /// </summary>
     Click2D,
     /// <summary>
-    /// 2DÏÂÀ­Ñ¡Ôñ (¿ª¹Ø¡¢µ²Î»µÈ)
+    /// 2Dä¸‹æ‹‰é€‰æ‹© (å¼€å…³ã€æŒ¡ä½ç­‰)
     /// </summary>
     Menu2D
 }
@@ -117,12 +114,12 @@ public enum InteractMode
 public class ModelInfoDataBase
 {
     /// <summary>
-    /// ÏÔÊ¾ĞÅÏ¢
+    /// æ˜¾ç¤ºä¿¡æ¯
     /// </summary>
     //public string Info;
 
     /// <summary>
-    /// ´¥·¢·½Ê½
+    /// è§¦å‘æ–¹å¼
     /// </summary>
     public InteractMode InteractMode = InteractMode.Click;
     [SerializeReference]
@@ -132,19 +129,19 @@ public class ModelInfoDataBase
 public class ModelInfo_BackPack : ModelInfoDataBase
 {
     /// <summary>
-    /// µÀ¾ßÍ¼±ê
+    /// é“å…·å›¾æ ‡
     /// </summary>
     public Sprite Icon;
     /// <summary>
-    /// µÀ¾ßÑ¡ÖĞÏÔÊ¾Í¼Æ¬
+    /// é“å…·é€‰ä¸­æ˜¾ç¤ºå›¾ç‰‡
     /// </summary>
     public Sprite Icon2D;
     /// <summary>
-    /// ÊÇ·ñ³õÊ¼ÔÚ±³°üÄÚ
+    /// æ˜¯å¦åˆå§‹åœ¨èƒŒåŒ…å†…
     /// </summary>
     public bool InBackPack;
     /// <summary>
-    /// ×¥È¡Î»ÖÃ
+    /// æŠ“å–ä½ç½®
     /// </summary>
     public Transform GrabPointTrans;
 }
@@ -152,23 +149,23 @@ public class ModelInfo_BackPack : ModelInfoDataBase
 public class ModelInfo_BackPackOriginal : ModelInfoDataBase
 {
     /// <summary>
-    /// Ô­¼şÍ¼±ê
+    /// åŸä»¶å›¾æ ‡
     /// </summary>
     public Sprite Icon;
     /// <summary>
-    /// µÀ¾ßÑ¡ÖĞÏÔÊ¾Í¼Æ¬
+    /// é“å…·é€‰ä¸­æ˜¾ç¤ºå›¾ç‰‡
     /// </summary>
     public Sprite Icon2D;
     /// <summary>
-    /// Ô­¼şÊıÁ¿
+    /// åŸä»¶æ•°é‡
     /// </summary>
     public int num;
     /// <summary>
-    /// ÊÇ·ñ³õÊ¼ÔÚ±³°üÄÚ
+    /// æ˜¯å¦åˆå§‹åœ¨èƒŒåŒ…å†…
     /// </summary>
     public bool InBackPack;
     /// <summary>
-    /// ×¥È¡Î»ÖÃ
+    /// æŠ“å–ä½ç½®
     /// </summary>
     public Transform GrabPointTrans;
 }
@@ -176,15 +173,15 @@ public class ModelInfo_BackPackOriginal : ModelInfoDataBase
 public class ModelInfo_SafetyTool : ModelInfoDataBase
 {
     /// <summary>
-    /// µÀ¾ßÍ¼±ê
+    /// é“å…·å›¾æ ‡
     /// </summary>
     public Sprite Icon;
     /// <summary>
-    /// µÀ¾ß´©´÷Í¼Æ¬
+    /// é“å…·ç©¿æˆ´å›¾ç‰‡
     /// </summary>
     public Sprite Icon2D;
     /// <summary>
-    /// ÊÇ·ñ³õÊ¼ÔÚ±³°üÄÚ
+    /// æ˜¯å¦åˆå§‹åœ¨èƒŒåŒ…å†…
     /// </summary>
     public bool InBackPack;
 }
@@ -195,11 +192,11 @@ public class InteractDataBase { }
 public class OpUIData : InteractDataBase
 {
     /// <summary>
-    /// ²Ù×÷UI
+    /// æ“ä½œUI
     /// </summary>
     public Transform content;
     /// <summary>
-    /// Ä¿±êÎïÌå
+    /// ç›®æ ‡ç‰©ä½“
     /// </summary>
     public Transform targetObject;
 }

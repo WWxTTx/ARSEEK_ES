@@ -119,36 +119,6 @@ public class Option_GeneralModule : UIModuleBase
             }
         });
 
-        //        var ChangeFileSavePath = this.GetComponentByChildName<Button>("ChangeFileSavePath");
-        //        {
-        //#if UNITY_STANDALONE
-        //            ChangeFileSavePath.onClick.AddListener(() =>
-        //            {
-        //                FormTool.OpenFolderDialog("选择录屏存储路径", PlayerPrefs.GetString(GlobalInfo.fileSavePathCacheKey), path =>
-        //                {
-        //                    PlayerPrefs.SetString(GlobalInfo.fileSavePathCacheKey, path);
-        //                    this.GetComponentByChildName<Text>("FileSavePath").EllipsisText(PlayerPrefs.GetString(GlobalInfo.fileSavePathCacheKey), "...");
-        //                });
-        //            });
-        //#else
-        //            ChangeFileSavePath.interactable = false;
-        //            ChangeFileSavePath.FindChildByName("Image").gameObject.SetActive(false);
-        //#endif
-        //        }
-
-        //        var ChangeInput = this.GetComponentByChildName<Button>("ChangeInput");
-        //        {
-        //#if UNITY_STANDALONE
-        //            ChangeInput.onClick.AddListener(() =>
-        //            {
-        //                //
-        //            });
-        //#else
-        //            ChangeInput.interactable = false;
-        //            ChangeInput.FindChildByName("Image").gameObject.SetActive(false);
-        //#endif
-        //        }
-
         this.GetComponentByChildName<Button>("Clear").onClick.AddListener(() =>
         {
             var popupDic = new System.Collections.Generic.Dictionary<string, PopupButtonData>();
@@ -174,38 +144,6 @@ public class Option_GeneralModule : UIModuleBase
                 target.group.allowSwitchOff = false;
             }
         }
-
-        //this.GetComponentByChildName<Text>("FileSavePath").EllipsisText(PlayerPrefs.GetString(GlobalInfo.fileSavePathCacheKey), "...");
-
-        //var InputDevice = this.GetComponentByChildName<Text>("InputDevice");
-        //{
-        //    var device = PlayerPrefs.GetString(GlobalInfo.inputDeviceCacheKey);
-
-        //    if (Microphone.devices.Length == 0)
-        //    {
-        //        UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("未找到任何输入设备!"));
-        //        InputDevice.text = "无设备";
-
-        //        var ChangeInput = this.GetComponentByChildName<Button>("ChangeInput");
-        //        {
-        //            ChangeInput.interactable = false;
-        //            ChangeInput.FindChildByName("Image").gameObject.SetActive(false);
-        //        }
-        //    }
-        //    else
-        //    {
-        //        if (Microphone.devices.Contains(device))
-        //        {
-        //            InputDevice.text = device;
-        //        }
-        //        else
-        //        {
-        //            InputDevice.text = Microphone.devices[0];
-        //        }
-        //        this.GetComponentByChildName<Button>("ChangeInput").interactable = true;
-        //    }
-        //}
-
         RefreshCache();
     }
 

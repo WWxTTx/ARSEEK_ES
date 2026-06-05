@@ -15,13 +15,11 @@ public class VariableJoystick : Joystick
     [SerializeField] private bool enableTapRotation = true;
 
     private Vector2 fixedPosition = Vector2.zero;
-    private bool tapRotationTriggered;
-    private Vector2 pressStartPosition;
-
     /// <summary>
     /// 点击旋转是否已触发
     /// </summary>
-    public bool IsTapRotation => enableTapRotation && tapRotationTriggered;
+    public static bool tapRotationTriggered;
+    private Vector2 pressStartPosition;
 
     /// <summary>
     /// 点击时的屏幕坐标位置

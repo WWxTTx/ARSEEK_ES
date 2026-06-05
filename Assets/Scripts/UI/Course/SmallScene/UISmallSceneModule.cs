@@ -484,9 +484,6 @@ public class UISmallSceneModule : UIModuleBase
         //根据配置设置有无漫游模式
         if (GlobalInfo.hasRole)
         {
-            //漫游模式 使用预制体灯光
-            ModelManager.Instance.ControlSceneLight(false);
-
             playerController = modelRoot.GetComponentInChildren<PlayerController>();
             if (playerController == null)
             {
@@ -619,7 +616,7 @@ public class UISmallSceneModule : UIModuleBase
             Joystick rotateJoystick = transform.GetComponentByChildName<Joystick>("RotateJoystick");
             moveJoystick.gameObject.SetActive(true);
             rotateJoystick.gameObject.SetActive(true);
-            playerController.SetJoystick(moveJoystick, rotateJoystick, mobileMoveRatio, mobleRotateRatio);
+            playerController.SetJoystick(moveJoystick, rotateJoystick);
 
             FirstPersonBtn = transform.GetComponentByChildName<Button>("FirstPersonBtn");
             ThirdPersonBtn = transform.GetComponentByChildName<Button>("ThirdPersonBtn");
@@ -693,12 +690,6 @@ public class UISmallSceneModule : UIModuleBase
 
             WarnTog.gameObject.SetActive(true);
             WarnList.SetSiblingIndex(masterComputer.transform.GetSiblingIndex() + 1);
-        }
-
-        if (playerController && smallFlowCtrl.naviPoints.Count > 0)
-        {
-            UIManager.Instance.OpenModuleUI<UISmallSceneMinMapModule>(ParentPanel, transform.parent,
-                new MinMapData(smallFlowCtrl.orthographicSize, smallFlowCtrl.naviPoints, playerController));
         }
 
         ToolSprite = transform.GetComponentByChildName<Image>("ToolSprite");
@@ -1182,67 +1173,6 @@ public class UISmallSceneModule : UIModuleBase
             }
         }
         ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, correctOp));
-    }
-
-    /// <summary>
-    /// 执行2D操作
-    /// </summary>
-    private void TryExecute2DOp(ModelOperation modelOperation, string optionName)
-    {
-        string currentState = modelOperation.currentState;
-
-        ModelState = ModelState.Operating;
-        bool isOnOperation = smallFlowCtrl.IsOnOperation(modelOperation, prop, out SmallOp1 data) && prop != null && data.optionName.Equals(optionName);
-            //todo 隐藏错误提示
-            if (isOnOperation)
-            {
-                //SoundManager.Instance.PlayEffect("TrueProblem");
-            }
-            else
-            {
-                smallFlowCtrl.RestoreState(modelOperation, currentState);
-                //OnErrorShow();
-            }
-        
-        Execute2DOperation(modelOperation, optionName, isOnOperation);
-    }
-
-    /// <summary>
-    /// 执行2D操作
-    /// </summary>
-    /// <param name="modelOperation">操作对象</param>
-    /// <param name="optionName"></param>
-    /// <param name="correctOp">是否是当前步骤的正确操作</param>
-    private void Execute2DOperation(ModelOperation modelOperation, string optionName, bool correctOp)
-    {
-        SmallOp1 data = new SmallOp1();
-        data.operation = modelOperation;
-        data.prop = prop;
-        data.optionName = optionName;
-        ToolManager.SendBroadcastMsg(new MsgOperation((ushort)SmallFlowModuleEvent.Operate, data.operation.GetComponent<ModelInfo>().ID, data.optionName, data.prop?.ID, correctOp), true);
-    }
-
-
-    /// <summary>
-    /// 执行操作回调
-    /// </summary>
-    /// <param name="success"></param>
-    /// <param name="modelOperation">执行失败时还原道具状态</param>
-    /// <param name="restoredState">执行失败时还原道具状态</param>
-    /// <param name="freeOperation">是否为不计入记录的操作</param>
-    private void OnExecuteCompleted(bool success, bool freeOperation = false, ModelOperation modelOperation = null, string restoredState = null)
-    {
-        RetakeBackpackModel(true);
-        if (success)
-        {
-        }
-        else//操作执行失败
-        {
-            if (!GlobalInfo.IsExamMode() && !freeOperation)
-                OnErrorShow();
-
-            smallFlowCtrl.RestoreState(modelOperation, restoredState);
-        }
     }
 
     /// <summary>
@@ -2086,9 +2016,6 @@ public class UISmallSceneModule : UIModuleBase
         SpeechManager.Instance.StopSpeech();
 
         UnityEngine.AI.NavMesh.RemoveAllNavMeshData();
-
-        ModelManager.Instance.ControlSceneLight(true, LightShadows.Soft);
-        ModelManager.Instance.ResetSceneLight();
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", true);
 
         ChangeProp(null);

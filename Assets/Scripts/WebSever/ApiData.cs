@@ -104,26 +104,32 @@ namespace UnityFramework.Runtime
             //设置内网或外网地址
             switch (index_apiUrl)
             {
+                case 0://本地
+                    baseAddress = "http://10.0.1.5:90/api/base/";
+                    userAddress = "http://10.0.1.5:90/api/user/";
+                    contentAddress = "http://10.0.1.5:90/api/content/";
+                    ServiceApiData.exam_rtc_api_url = "http://10.0.1.5:21345/colla/rtc/";
+                    logAddress = "http://10.0.1.5:90/api/ops/log/";
+                    break;
                 case 1://测试外网
                     baseAddress = "http://139.155.5.87:9981/api/base/";
                     userAddress = "http://139.155.5.87:9981/api/user/";
                     contentAddress = "http://139.155.5.87:9981/api/content/";
-                    ServiceApiData.rtc_api_url = "https://test.api.arseek.cn/v5/api/rtc/";
+                    ServiceApiData.exam_rtc_api_url = "https://test.api.arseek.cn/v5/api/rtc/";
                     logAddress = "http://139.155.5.87:9981/api/ops/log/";
                     break;
                 case 2://正式外网
                     baseAddress = "https://api.arseek.cn/3d/api/res/api/base/";
                     userAddress = "https://api.arseek.cn/3d/api/res/api/user/";
                     contentAddress = "https://api.arseek.cn/3d/api/res/api/content/";
-                    ServiceApiData.rtc_api_url = "https://api.arseek.cn/v5/api/rtc/";
+                    ServiceApiData.exam_rtc_api_url = "https://api.arseek.cn/v5/api/rtc/";
                     logAddress = "https://api.arseek.cn/3d/api/res/api/ops/log/";
                     break;
                 case 3://华能测试外网
                     baseAddress = "http://hn-test.arseek.cn/api/base/";
                     userAddress = "http://hn-test.arseek.cn/api/user/";
                     contentAddress = "http://hn-test.arseek.cn/api/content/";
-                    ServiceApiData.rtc_api_url = "https://test.api.arseek.cn/v5/api/rtc/";
-                    ServiceApiData.exam_rtc_api_url = "http://139.155.5.87:21345/colla/rtc/";// "http://139.155.246.138:12345/colla/rtc/";//10.0.1.125:12345
+                    ServiceApiData.exam_rtc_api_url = "http://139.155.5.87:21345/colla/rtc/";
                     logAddress = "http://hn-test.arseek.cn/api/ops/log/";
                     break;
                 case 4://外出局域网，可修改配置文件，修改IP

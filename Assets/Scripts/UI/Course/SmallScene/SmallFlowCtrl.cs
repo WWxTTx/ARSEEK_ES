@@ -98,10 +98,6 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     public ModelOperation globalPerspective;
     /// <summary>
-    /// 导航点集合
-    /// </summary>
-    public List<NavigationPoint> naviPoints;
-    /// <summary>
     /// 所有操作道具集合
     /// </summary>
     public Dictionary<string, ModelOperation> operationIDs;
@@ -315,7 +311,13 @@ public class SmallFlowCtrl : MonoBase
         if (pc == null)
             return;
 
-        pc.AimAtTarget(firstOp.operation.transform.position);
+        //所有可操作对象必然有一个射线检测碰撞盒，使用其中心点的世界坐标是最准确的锁定
+        //延迟0.1f是为了避免锁定和设置最终状态在同一帧执行，导致锁定到设置最终状态前的位置
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            pc.AimAtTarget(firstOp.operation.GetComponent<Collider>().bounds.center);
+        });
+      
     }
 
     /// <summary>
@@ -495,7 +497,6 @@ public class SmallFlowCtrl : MonoBase
 
         ModelInfo[] modelInfos = GetComponentsInChildren<ModelInfo>(true);
         operationIDs = new Dictionary<string, ModelOperation>();
-        naviPoints = new List<NavigationPoint>();
         autoProps = new Dictionary<string, ModelOperation>();
         //先加通用道具
         toolIDs = new Dictionary<string, ModelInfo>();
@@ -515,9 +516,6 @@ public class SmallFlowCtrl : MonoBase
     {
         switch (modelInfo.PropType)
         {
-            case PropType.Anchor:
-                naviPoints.Add(new NavigationPoint() { Name = modelInfo.Name, Point = modelInfo.transform });
-                break;
             case PropType.Map:
                 int.TryParse(modelInfo.Name, out orthographicSize);
                 break;

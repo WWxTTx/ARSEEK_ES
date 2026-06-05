@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.AI;
@@ -325,14 +325,14 @@ namespace UnityFramework.Runtime
         /// <param name="loadNavMesh">是否加载导航网格</param>
         /// <param name="isShowLoading">是否显示加载界面</param>
         /// <param name="call">回调函数，返回创建的图片</param>
-        public void LoadModel(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> call)
+        public void LoadModel(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> call, bool loadLighting = true)
         {
             UnparsedData(abName, downLoadPath, DtataType.abs, out string savePath, out string name, out string version);
             DownLoadFile(name, version, downLoadPath, savePath, DtataType.abs, isShowLoading, (f) =>
             {
                 if (f >= 1)//成功
                 {
-                    LoadABPrefab(savePath, loadNavMesh, call);
+                    LoadABPrefab(savePath, loadNavMesh, call, loadLighting);
                 }
                 else if (f <= -1)//失败
                 {
@@ -347,7 +347,7 @@ namespace UnityFramework.Runtime
         /// <param name="downLoadPath">资源下载路径</param>
         /// <param name="isShowLoading">是否显示加载界面</param>
         /// <param name="call">回调函数，返回创建的图片</param>
-        public void LoadModelAsync(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> callBack, UnityAction<float> progress = null)
+        public void LoadModelAsync(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> callBack, UnityAction<float> progress = null, bool loadLighting = true)
         {
             if (isShowLoading)
             {
@@ -372,6 +372,21 @@ namespace UnityFramework.Runtime
                                     if (meshData != null && meshData.Length > 0)
                                     {
                                         NavMesh.AddNavMeshData(meshData[0]);
+                                    }
+                                }
+                                if (loadLighting)
+                                {
+                                    Texture2D[] allTextures = LoadLocalAsset.Instance.LoadABAll<Texture2D>(savePath);
+                                    if (allTextures != null && allTextures.Length > 0)
+                                    {
+                                        var lmList = new List<LightmapData>();
+                                        foreach (var tex in allTextures)
+                                        {
+                                            if (tex.name.StartsWith("Lightmap-"))
+                                                lmList.Add(new LightmapData { lightmapColor = tex });
+                                        }
+                                        if (lmList.Count > 0)
+                                            LightmapSettings.lightmaps = lmList.ToArray();
                                     }
                                 }
                                 callBack(items[0]);
@@ -408,7 +423,7 @@ namespace UnityFramework.Runtime
         /// <param name="downLoadPath">资源下载路径</param>
         /// <param name="isShowLoading">是否显示加载界面</param>
         /// <param name="callBack">回调函数</param>
-        public void LoadSnapshotModelAsync(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> callBack, UnityAction<float> progress = null)
+        public void LoadSnapshotModelAsync(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> callBack, UnityAction<float> progress = null, bool loadLighting = true)
         {
             if (isShowLoading)
             {
@@ -441,6 +456,21 @@ namespace UnityFramework.Runtime
                                     NavMesh.AddNavMeshData(meshData[0]);
                                 }
                             }
+                            if (loadLighting)
+                            {
+                                Texture2D[] allTextures = LoadLocalAsset.Instance.LoadABAll<Texture2D>(originSavePath);
+                                if (allTextures != null && allTextures.Length > 0)
+                                {
+                                    var lmList = new List<LightmapData>();
+                                    foreach (var tex in allTextures)
+                                    {
+                                        if (tex.name.StartsWith("Lightmap-"))
+                                            lmList.Add(new LightmapData { lightmapColor = tex });
+                                    }
+                                    if (lmList.Count > 0)
+                                        LightmapSettings.lightmaps = lmList.ToArray();
+                                }
+                            }
                             callBack(items[0]);
                         }
                         else
@@ -461,7 +491,7 @@ namespace UnityFramework.Runtime
             else
             {
                 //考核资源预下载失败，重新加载
-                LoadModelAsync(abName, downLoadPath, loadNavMesh, isShowLoading, callBack, progress);
+                LoadModelAsync(abName, downLoadPath, loadNavMesh, isShowLoading, callBack, progress, loadLighting);
             }
         }
 
@@ -471,7 +501,7 @@ namespace UnityFramework.Runtime
         /// <param name="path"></param>
         /// <param name="loadNavMesh">是否加载导航网格</param>
         /// <param name="call"></param>
-        public void LoadABPrefab(string path, bool loadNavMesh, UnityAction<GameObject> call)
+        public void LoadABPrefab(string path, bool loadNavMesh, UnityAction<GameObject> call, bool loadLighting = true)
         {
             GameObject[] list = LoadLocalAsset.Instance.LoadABAll<GameObject>(path);
             if (list != null && list.Length > 0)
@@ -482,6 +512,21 @@ namespace UnityFramework.Runtime
                     if (meshData != null && meshData.Length > 0)
                     {
                         NavMesh.AddNavMeshData(meshData[0]);
+                    }
+                }
+                if (loadLighting)
+                {
+                    Texture2D[] allTextures = LoadLocalAsset.Instance.LoadABAll<Texture2D>(path);
+                    if (allTextures != null && allTextures.Length > 0)
+                    {
+                        var lmList = new List<LightmapData>();
+                        foreach (var tex in allTextures)
+                        {
+                            if (tex.name.StartsWith("Lightmap-"))
+                                lmList.Add(new LightmapData { lightmapColor = tex });
+                        }
+                        if (lmList.Count > 0)
+                            LightmapSettings.lightmaps = lmList.ToArray();
                     }
                 }
                 call(list[0]);

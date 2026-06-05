@@ -31,9 +31,6 @@ namespace UnityFramework.Runtime
         private Vector3 resetCamEuler;
         private Vector3 resetCamPos;
 
-        private Vector3 initSceneLightPos;
-        private Vector3 initSceneLightEuler;
-
         protected override void InstanceAwake()
         {
             mainCamTrans = Camera.main.transform;
@@ -44,9 +41,6 @@ namespace UnityFramework.Runtime
             initCamEuler = mainCamTrans.eulerAngles;
             resetCamPos = initCamPos;
             resetCamEuler = initCamEuler;
-
-            initSceneLightPos = sceneLight.transform.position;
-            initSceneLightEuler = sceneLight.transform.eulerAngles;
         }
 
         /// <summary>
@@ -457,55 +451,6 @@ namespace UnityFramework.Runtime
         {
             Camera.main.gameObject.GetComponent<UniversalAdditionalCameraData>().renderPostProcessing = isOn/* && Setting_GeneralModule.volume*/;
         }
-        #endregion
-
-        #region 灯光相关
-        public Light sceneLight;
-        /// <summary>
-        /// 控制灯光
-        /// </summary>
-        /// <param name="isOn"></param>
-        /// <param name="lightShadows"></param>
-        public void ControlSceneLight(bool isOn, LightShadows lightShadows = LightShadows.None)
-        {
-            sceneLight.enabled = isOn;
-            if (isOn)
-                sceneLight.shadows = lightShadows;
-        }
-        /// <summary>
-        /// 设置忽略光照层
-        /// </summary>
-        /// <param name="go"></param>
-        public void SetLightLayer(GameObject go)
-        {
-            int layer = LayerMask.NameToLayer("Ignore Light");
-
-            SaveBaking[] saveBakings = go.GetComponentsInChildren<SaveBaking>(true);
-            foreach (SaveBaking saveBaking in saveBakings)
-            {
-                saveBaking.BindLightmap();
-                SetLayerRecursively(saveBaking.transform, layer);
-            }
-        }
-        private void SetLayerRecursively(Transform transform, int layer)
-        {
-            transform.gameObject.layer = layer;
-            foreach (Transform child in transform)
-            {
-                SetLayerRecursively(child, layer);
-            }
-        }
-        /// <summary>
-        /// 还原默认灯光位置
-        /// </summary>
-        public void ResetSceneLight()
-        {
-            if (sceneLight == null)
-                return;
-            sceneLight.transform.position = initSceneLightPos;
-            sceneLight.transform.eulerAngles = initSceneLightEuler;
-        }
-
         #endregion
 
         #region 相机裁切面

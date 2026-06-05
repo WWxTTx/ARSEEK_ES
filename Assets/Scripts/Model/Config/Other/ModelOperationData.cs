@@ -1971,42 +1971,6 @@ public class BehaveRotateAxis : BehaveDotween
 }
 
 /// <summary>
-/// 控制灯光
-/// </summary>
-[Serializable]
-public class BehaveLight : BehaveBase
-{
-    public Vector3 position;
-    public Vector3 angle;
-
-    public BehaveLight()
-    {
-        behaveType = BehaveType.Light;
-    }
-
-    public override void Execute(UnityAction callback = null)
-    {
-        base.Execute(callback);
-        if (ModelManager.Instance.sceneLight != null)
-        {
-            ModelManager.Instance.sceneLight.transform.position = position;
-            ModelManager.Instance.sceneLight.transform.eulerAngles = angle;
-        }
-        callback?.Invoke();
-    }
-
-    public override void SetInitialState()
-    {
-        ModelManager.Instance.ResetSceneLight();
-    }
-
-    public override void SetFinalState()
-    {
-        Execute();
-    }
-}
-
-/// <summary>
 /// 控制操作道具状态
 /// </summary>
 [Serializable]

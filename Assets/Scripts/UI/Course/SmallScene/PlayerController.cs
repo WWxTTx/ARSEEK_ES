@@ -2,8 +2,14 @@ using UnityEngine;
 using DG.Tweening;
 using UnityEngine.AI;
 using UnityFramework.Runtime;
-using UnityEngine.Events;
 
+/// <summary>
+///   存在三个控制旋转的方法
+///   1.滑动改变朝向
+///   2.点击一个位置检测到物体 朝向该物体
+///   3.AimAtTarget 指向任务流程关注点
+///   自动导航时不可操作打断移动，因为该移动的回调中包含走到对应位置后的事件
+/// </summary>
 public class PlayerController : MonoBase
 {
     /// <summary>
@@ -150,7 +156,7 @@ public class PlayerController : MonoBase
     private void Rotate()
     {
 #if UNITY_ANDROID || UNITY_IOS
-        if (rotateJoystick is VariableJoystick vj && vj.IsTapRotation)
+        if (rotateJoystick is VariableJoystick vj && VariableJoystick.tapRotationTriggered)
         {
             if (!hasTapTarget)
             {
@@ -259,9 +265,9 @@ public class PlayerController : MonoBase
             duration = cameraRotateDuration;
 
         // 取消点击屏幕锁定视角
-        hasTapTarget = false;
+        VariableJoystick.tapRotationTriggered = false;
 
-        // 机身水平偏航(Y)
+            // 机身水平偏航(Y)
         Vector3 flatDir = new Vector3(targetPos.x - transform.position.x, 0f, targetPos.z - transform.position.z);
         if (flatDir.sqrMagnitude > 0.0001f)
         {
@@ -533,19 +539,17 @@ public class PlayerController : MonoBase
 
     private Joystick moveJoystick;
     private Joystick rotateJoystick;
-    private float moveRatio;
-    private float rotateRatio;
+
 
     // 点击旋转目标点
     private Vector3 tapTargetPoint;
     public bool hasTapTarget;
 
-    public void SetJoystick(Joystick moveJoystick, Joystick rotateJoystick, float moveRatio, float rotateRatio)
+
+    public void SetJoystick(Joystick moveJoystick, Joystick rotateJoystick)
     {
         this.moveJoystick = moveJoystick;
         this.rotateJoystick = rotateJoystick;
-        this.moveRatio = moveRatio;
-        this.rotateRatio = rotateRatio;
     }
 
     public override void ProcessEvent(MsgBase msg)
