@@ -888,34 +888,14 @@ public class UISmallSceneToolModule : UIModuleBase
                 if (!inputHistoryTog.isOn)
                     tmpTooltem = items[SmallFlowCtrl.historyFlag].transform;
             }
-            else if (smallOp.optionName.Equals(SmallFlowCtrl.observeFlag))//观察
-            {
-                if (string.IsNullOrEmpty(prop) || !prop.Equals(SmallFlowCtrl.observeFlag))
-                    tmpTooltem = items[SmallFlowCtrl.observeFlag].transform;
-            }
-            else /*if (!smallOp.optionName.Equals(SmallFlowCtrl.inputFlag))//不是输入*/
+            else
             {
                 if (smallOp.prop == null)//空手操作
                 {
-                    //// 检查玩家当前是否已经选中了"手部操作"
-                    //if (string.IsNullOrEmpty(prop) || !prop.Equals(SmallFlowCtrl.handFlag))
-                    //    // 如果没有选中"手部操作"，则获取手部操作的UI项用于高亮提示
-                    //    tmpTooltem = items[SmallFlowCtrl.handFlag].transform;
+
                 }
                 else//道具操作
                 {
-                    //if (smallOp.prop.PropType == PropType.MasterComputer)
-                    //{
-                    //    tmpToolID = smallOp.operation.transform.GetInstanceID();
-                    //    if (!newHighlights.ContainsKey(tmpToolID))
-                    //    {
-                    //        if (!highlights.ContainsKey(tmpToolID))
-                    //            newHighlights.Add(tmpToolID, UIHighlight(smallOp.operation.transform));
-                    //        else
-                    //            newHighlights.Add(tmpToolID, highlights[tmpToolID]);
-                    //    }
-                    //}
-
                     if (string.IsNullOrEmpty(prop) || !prop.Equals(smallOp.prop.ID))
                     {
                         if (!backpackTog.isOn && (smallOp.prop.PropType == PropType.BackPack

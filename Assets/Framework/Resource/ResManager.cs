@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.AI;
@@ -325,14 +325,14 @@ namespace UnityFramework.Runtime
         /// <param name="loadNavMesh">是否加载导航网格</param>
         /// <param name="isShowLoading">是否显示加载界面</param>
         /// <param name="call">回调函数，返回创建的图片</param>
-        public void LoadModel(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> call, bool loadLighting = true)
+        public void LoadModel(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> call)
         {
             UnparsedData(abName, downLoadPath, DtataType.abs, out string savePath, out string name, out string version);
             DownLoadFile(name, version, downLoadPath, savePath, DtataType.abs, isShowLoading, (f) =>
             {
                 if (f >= 1)//成功
                 {
-                    LoadABPrefab(savePath, loadNavMesh, call, loadLighting);
+                    LoadABPrefab(savePath, loadNavMesh, call);
                 }
                 else if (f <= -1)//失败
                 {
@@ -347,7 +347,7 @@ namespace UnityFramework.Runtime
         /// <param name="downLoadPath">资源下载路径</param>
         /// <param name="isShowLoading">是否显示加载界面</param>
         /// <param name="call">回调函数，返回创建的图片</param>
-        public void LoadModelAsync(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> callBack, UnityAction<float> progress = null, bool loadLighting = true)
+        public void LoadModelAsync(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> callBack, UnityAction<float> progress = null)
         {
             if (isShowLoading)
             {
@@ -374,21 +374,7 @@ namespace UnityFramework.Runtime
                                         NavMesh.AddNavMeshData(meshData[0]);
                                     }
                                 }
-                                if (loadLighting)
-                                {
-                                    Texture2D[] allTextures = LoadLocalAsset.Instance.LoadABAll<Texture2D>(savePath);
-                                    if (allTextures != null && allTextures.Length > 0)
-                                    {
-                                        var lmList = new List<LightmapData>();
-                                        foreach (var tex in allTextures)
-                                        {
-                                            if (tex.name.StartsWith("Lightmap-"))
-                                                lmList.Add(new LightmapData { lightmapColor = tex });
-                                        }
-                                        if (lmList.Count > 0)
-                                            LightmapSettings.lightmaps = lmList.ToArray();
-                                    }
-                                }
+                                ApplyQualitySettings(items[0]);
                                 callBack(items[0]);
                             }
                             else
@@ -423,7 +409,7 @@ namespace UnityFramework.Runtime
         /// <param name="downLoadPath">资源下载路径</param>
         /// <param name="isShowLoading">是否显示加载界面</param>
         /// <param name="callBack">回调函数</param>
-        public void LoadSnapshotModelAsync(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> callBack, UnityAction<float> progress = null, bool loadLighting = true)
+        public void LoadSnapshotModelAsync(string abName, string downLoadPath, bool loadNavMesh, bool isShowLoading, UnityAction<GameObject> callBack, UnityAction<float> progress = null)
         {
             if (isShowLoading)
             {
@@ -456,21 +442,7 @@ namespace UnityFramework.Runtime
                                     NavMesh.AddNavMeshData(meshData[0]);
                                 }
                             }
-                            if (loadLighting)
-                            {
-                                Texture2D[] allTextures = LoadLocalAsset.Instance.LoadABAll<Texture2D>(originSavePath);
-                                if (allTextures != null && allTextures.Length > 0)
-                                {
-                                    var lmList = new List<LightmapData>();
-                                    foreach (var tex in allTextures)
-                                    {
-                                        if (tex.name.StartsWith("Lightmap-"))
-                                            lmList.Add(new LightmapData { lightmapColor = tex });
-                                    }
-                                    if (lmList.Count > 0)
-                                        LightmapSettings.lightmaps = lmList.ToArray();
-                                }
-                            }
+                            ApplyQualitySettings(items[0]);
                             callBack(items[0]);
                         }
                         else
@@ -491,7 +463,7 @@ namespace UnityFramework.Runtime
             else
             {
                 //考核资源预下载失败，重新加载
-                LoadModelAsync(abName, downLoadPath, loadNavMesh, isShowLoading, callBack, progress, loadLighting);
+                LoadModelAsync(abName, downLoadPath, loadNavMesh, isShowLoading, callBack, progress);
             }
         }
 
@@ -501,7 +473,7 @@ namespace UnityFramework.Runtime
         /// <param name="path"></param>
         /// <param name="loadNavMesh">是否加载导航网格</param>
         /// <param name="call"></param>
-        public void LoadABPrefab(string path, bool loadNavMesh, UnityAction<GameObject> call, bool loadLighting = true)
+        public void LoadABPrefab(string path, bool loadNavMesh, UnityAction<GameObject> call)
         {
             GameObject[] list = LoadLocalAsset.Instance.LoadABAll<GameObject>(path);
             if (list != null && list.Length > 0)
@@ -514,27 +486,41 @@ namespace UnityFramework.Runtime
                         NavMesh.AddNavMeshData(meshData[0]);
                     }
                 }
-                if (loadLighting)
-                {
-                    Texture2D[] allTextures = LoadLocalAsset.Instance.LoadABAll<Texture2D>(path);
-                    if (allTextures != null && allTextures.Length > 0)
-                    {
-                        var lmList = new List<LightmapData>();
-                        foreach (var tex in allTextures)
-                        {
-                            if (tex.name.StartsWith("Lightmap-"))
-                                lmList.Add(new LightmapData { lightmapColor = tex });
-                        }
-                        if (lmList.Count > 0)
-                            LightmapSettings.lightmaps = lmList.ToArray();
-                    }
-                }
+                ApplyQualitySettings(list[0]);
                 call(list[0]);
             }
             else
                 call(null);
 
             LoadLocalAsset.Instance.UnloadAB(path, false);
+        }
+
+        public static void ApplyQualitySettings(GameObject modelRoot)
+        {
+            if (modelRoot == null) return;
+
+            var rendering = modelRoot.transform.Find("ModelRoot/Rendering");
+            if (rendering == null) return;
+
+            var reflectionProbe = rendering.Find("Reflection Probe");
+            var globalVolume = rendering.Find("Global Volume");
+
+            switch (PlayerPrefs.GetString(GlobalInfo.qualityCacheKey))
+            {
+                case "Low":
+                    if (reflectionProbe != null) reflectionProbe.gameObject.SetActive(false);
+                    if (globalVolume != null) globalVolume.gameObject.SetActive(false);
+                    break;
+                case "Middle":
+                    if (reflectionProbe != null) reflectionProbe.gameObject.SetActive(true);
+                    if (globalVolume != null) globalVolume.gameObject.SetActive(false);
+                    break;
+                case "High":
+                default:
+                    if (reflectionProbe != null) reflectionProbe.gameObject.SetActive(true);
+                    if (globalVolume != null) globalVolume.gameObject.SetActive(true);
+                    break;
+            }
         }
 
         /// <summary>

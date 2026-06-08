@@ -6,11 +6,6 @@ using UnityFramework.Runtime;
 public class Option_GeneralModule : UIModuleBase
 {
     /// <summary>
-    /// 体积雾开关
-    /// </summary>
-    public static bool volume = false;
-
-    /// <summary>
     /// 将滑动条值映射到速度系数
     /// 滑动条 0-0.5 → 系数 0.5-1
     /// 滑动条 0.5-1 → 系数 1-2
@@ -193,27 +188,32 @@ public class Option_GeneralModule : UIModuleBase
     }
 
     /// <summary>
-    /// 低
-    /// 低 低
-    /// 低 灯光+阴影
-    /// 低 灯光和影+阴影
+    /// 低质量 - 关闭Reflection Probe和Global Volume
     /// </summary>
     private static void Low()
     {
         ModelManager.Instance.ControlQualityLevel(1);
         ModelManager.Instance.ControlPostProcessing(false);
-        volume = false;
+        ResManager.ApplyQualitySettings(ModelManager.Instance.modelGo);
     }
+
+    /// <summary>
+    /// 中等质量 - 开启Reflection Probe
+    /// </summary>
     private static void Middle()
     {
         ModelManager.Instance.ControlQualityLevel(2);
         ModelManager.Instance.ControlPostProcessing(true);
-        volume = true;
+        ResManager.ApplyQualitySettings(ModelManager.Instance.modelGo);
     }
+
+    /// <summary>
+    /// 高质量 - 开启Reflection Probe + Global Volume
+    /// </summary>
     private static void High()
     {
         ModelManager.Instance.ControlQualityLevel(3);
         ModelManager.Instance.ControlPostProcessing(true);
-        volume = true;
+        ResManager.ApplyQualitySettings(ModelManager.Instance.modelGo);
     }
 }

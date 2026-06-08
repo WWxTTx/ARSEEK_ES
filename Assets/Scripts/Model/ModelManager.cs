@@ -402,49 +402,9 @@ namespace UnityFramework.Runtime
         {
             QualitySettings.SetQualityLevel(index, true);
         }
-        /// <summary>
-        /// 后处理控制
-        /// </summary>
-        public UnityEngine.Rendering.Volume processVolume
-        {
-            get
-            {
-                if (_processVolume == null)
-                    _processVolume = ComponentExtend.GetComponentByChildName<UnityEngine.Rendering.Volume>(GameObject.Find("StartSetupBase").transform, "Global Volume");
 
-                return _processVolume;
-            }
-        }
-        private UnityEngine.Rendering.Volume _processVolume;
-        public List<UnityEngine.Rendering.VolumeProfile> profiles;
         /// <summary>
         /// 控制后处理
-        /// </summary>
-        /// <param name="isOn">是否开启 默认关闭</param>
-        /// <param name="index">启用第几个配置 默认第1个</param>
-        public void ControlGlobalVolume(bool isOn = false, int index = 0)
-        {
-            if (!isOn || !Option_GeneralModule.volume)
-            {
-                processVolume.enabled = false;
-                return;
-            }
-
-            if (profiles == null)
-            {
-                throw new System.Exception("未配置后处理!!");
-            }
-
-            if (profiles.Count < index + 1)
-            {
-                throw new System.Exception("后处理列表索引超界!!");
-            }
-
-            processVolume.profile = profiles[index];
-            processVolume.enabled = true;
-        }
-        /// <summary>
-        /// 控制相机后处理
         /// </summary>
         /// <param name="isOn">是否开启</param>
         public void ControlPostProcessing(bool isOn)
