@@ -68,7 +68,7 @@ public class SpeechManager : Singleton<SpeechManager>
     /// </summary>
     private Dictionary<string, float> specialSymbols = new Dictionary<string, float>();
 
-    public bool LoadData()
+    public void LoadData()
     {
         GlobalInfo.UpdateSpeechMode();
         // 如果语音模式开启且不在考核模式，加载语音数据
@@ -84,10 +84,8 @@ public class SpeechManager : Singleton<SpeechManager>
                 {
                     Debug.LogError("获取百科语音失败");
                 });
-                return true;
             }
         }
-        return false;
     }
 
     public void SaveData(List<SpeechData> pediaSpeechData)
@@ -134,15 +132,48 @@ public class SpeechManager : Singleton<SpeechManager>
 
     void OnDestroy()
     {
+        waitStepCts?.Cancel();
+        waitStepCts?.Dispose();
+        waitStepCts = null;
         Cancell();
     }
 
-    private Func<bool> stepSpeechDataReadyPredicate;
+    private CancellationTokenSource waitStepCts;
 
+    /// <summary>
+    /// 有限等待语音准备
+    /// </summary>
+    /// <param name="stepId"></param>
+    /// <param name="index"></param>
+    /// <param name="tipType"></param>
+    /// <returns></returns>
     public async UniTaskVoid WaitStepSpeechData(string stepId, int index, TipType tipType)
     {
-        stepSpeechDataReadyPredicate = () => StepSpeechData != null;
-        await UniTask.WaitUntil(stepSpeechDataReadyPredicate, cancellationToken: this.GetCancellationTokenOnDestroy());
+        waitStepCts?.Cancel();
+        waitStepCts?.Dispose();
+        waitStepCts = new CancellationTokenSource();
+
+        var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            waitStepCts.Token,
+            this.GetCancellationTokenOnDestroy()
+        );
+
+        try
+        {
+            await UniTask.WaitUntil(
+                () => StepSpeechData != null,
+                cancellationToken: linked.Token
+            ).Timeout(TimeSpan.FromSeconds(5));
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        finally
+        {
+            linked.Dispose();
+        }
+
         PlayImmediate(stepId, index, tipType);
     }
 
@@ -372,13 +403,10 @@ public class SpeechManager : Singleton<SpeechManager>
             return;
 
         // 等待 StepSpeechData 初始化
-        if (LoadData())
+        if (StepSpeechData == null)
         {
-            if (StepSpeechData == null)
-            {
-                WaitStepSpeechData(stepId, index, tipType).Forget();
-                return;
-            }
+            WaitStepSpeechData(stepId, index, tipType).Forget();
+            return;
         }
 
         if (lasttype == TipType.StepComplete)

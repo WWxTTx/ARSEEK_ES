@@ -20,7 +20,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <NoWarn>0169;USG0001</NoWarn>
-    <DefineConstants>UNITY_2020_3_29;UNITY_2020_3;UNITY_2020;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_4_OR_NEWER;UNITY_2018_1_OR_NEWER;UNITY_2018_2_OR_NEWER;UNITY_2018_3_OR_NEWER;UNITY_2018_4_OR_NEWER;UNITY_2019_1_OR_NEWER;UNITY_2019_2_OR_NEWER;UNITY_2019_3_OR_NEWER;UNITY_2019_4_OR_NEWER;UNITY_2020_1_OR_NEWER;UNITY_2020_2_OR_NEWER;UNITY_2020_3_OR_NEWER;UNITY_INCLUDE_TESTS;USE_SEARCH_ENGINE_API;SCENE_TEMPLATE_MODULE;ENABLE_AR;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_EVENT_QUEUE;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_TEXTURE_STREAMING;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_VR;ENABLE_WEBCAM;ENABLE_UNITYWEBREQUEST;ENABLE_WWW;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_SERVICES_COLLAB_SOFTLOCKS;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;ENABLE_CLOUD_SERVICES_NATIVE_CRASH_REPORTING;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_HUB_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_DIRECTOR_AUDIO;ENABLE_DIRECTOR_TEXTURE;ENABLE_MANAGED_JOBS;ENABLE_MANAGED_TRANSFORM_JOBS;ENABLE_MANAGED_ANIMATION_JOBS;ENABLE_MANAGED_AUDIO_JOBS;ENABLE_RUNTIME_PERMISSIONS;ENABLE_ENGINE_CODE_STRIPPING;ENABLE_ONSCREEN_KEYBOARD;ENABLE_MANAGED_UNITYTLS;INCLUDE_DYNAMIC_GI;ENABLE_MONO_BDWGC;ENABLE_SCRIPTING_GC_WBARRIERS;PLATFORM_SUPPORTS_MONO;ENABLE_VIDEO;PLATFORM_ANDROID;UNITY_ANDROID;UNITY_ANDROID_API;ENABLE_EGL;ENABLE_NETWORK;ENABLE_RUNTIME_GI;ENABLE_CRUNCH_TEXTURE_COMPRESSION;UNITY_CAN_SHOW_SPLASH_SCREEN;UNITY_HAS_GOOGLEVR;UNITY_HAS_TANGO;ENABLE_SPATIALTRACKING;PLATFORM_EXTENDS_VULKAN_DEVICE;PLATFORM_HAS_MULTIPLE_SWAPCHAINS;UNITY_ANDROID_SUPPORTS_SHADOWFILES;ENABLE_UNITYADS_RUNTIME;UNITY_UNITYADS_API;ENABLE_MONO;NET_4_6;ENABLE_PROFILER;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_UNITY_COLLECTIONS_CHECKS;ENABLE_BURST_AOT;UNITY_TEAM_LICENSE;UNITY_PRO_LICENSE;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_DIRECTOR;ENABLE_LOCALIZATION;ENABLE_SPRITES;ENABLE_TERRAIN;ENABLE_TILEMAP;ENABLE_TIMELINE;ENABLE_LEGACY_INPUT_MANAGER;VUPLEX_CCU;UNITY_POST_PROCESSING_STACK_V2;NormalLog;ErrorLog;VUPLEX_STANDALONE;ENABLE_DEBUG_AND_ABOVE_LOG;FMETP_URP;CSHARP_7_OR_LATER;CSHARP_7_3_OR_NEWER</DefineConstants>
+    <DefineConstants>UNITY_2020_3_29;UNITY_2020_3;UNITY_2020;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_4_OR_NEWER;UNITY_2018_1_OR_NEWER;UNITY_2018_2_OR_NEWER;UNITY_2018_3_OR_NEWER;UNITY_2018_4_OR_NEWER;UNITY_2019_1_OR_NEWER;UNITY_2019_2_OR_NEWER;UNITY_2019_3_OR_NEWER;UNITY_2019_4_OR_NEWER;UNITY_2020_1_OR_NEWER;UNITY_2020_2_OR_NEWER;UNITY_2020_3_OR_NEWER;UNITY_INCLUDE_TESTS;USE_SEARCH_ENGINE_API;SCENE_TEMPLATE_MODULE;ENABLE_AR;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_EVENT_QUEUE;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_TEXTURE_STREAMING;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_VR;ENABLE_WEBCAM;ENABLE_UNITYWEBREQUEST;ENABLE_WWW;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_SERVICES_COLLAB_SOFTLOCKS;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;ENABLE_CLOUD_SERVICES_NATIVE_CRASH_REPORTING;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_HUB_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_DIRECTOR_AUDIO;ENABLE_DIRECTOR_TEXTURE;ENABLE_MANAGED_JOBS;ENABLE_MANAGED_TRANSFORM_JOBS;ENABLE_MANAGED_ANIMATION_JOBS;ENABLE_MANAGED_AUDIO_JOBS;ENABLE_RUNTIME_PERMISSIONS;ENABLE_ENGINE_CODE_STRIPPING;ENABLE_ONSCREEN_KEYBOARD;ENABLE_MANAGED_UNITYTLS;INCLUDE_DYNAMIC_GI;ENABLE_MONO_BDWGC;ENABLE_SCRIPTING_GC_WBARRIERS;PLATFORM_SUPPORTS_MONO;ENABLE_VIDEO;PLATFORM_ANDROID;UNITY_ANDROID;UNITY_ANDROID_API;ENABLE_EGL;ENABLE_NETWORK;ENABLE_RUNTIME_GI;ENABLE_CRUNCH_TEXTURE_COMPRESSION;UNITY_CAN_SHOW_SPLASH_SCREEN;UNITY_HAS_GOOGLEVR;UNITY_HAS_TANGO;ENABLE_SPATIALTRACKING;PLATFORM_EXTENDS_VULKAN_DEVICE;PLATFORM_HAS_MULTIPLE_SWAPCHAINS;UNITY_ANDROID_SUPPORTS_SHADOWFILES;ENABLE_UNITYADS_RUNTIME;UNITY_UNITYADS_API;ENABLE_MONO;NET_4_6;ENABLE_PROFILER;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_UNITY_COLLECTIONS_CHECKS;ENABLE_BURST_AOT;UNITY_TEAM_LICENSE;UNITY_PRO_LICENSE;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_DIRECTOR;ENABLE_LOCALIZATION;ENABLE_SPRITES;ENABLE_TERRAIN;ENABLE_TILEMAP;ENABLE_TIMELINE;ENABLE_LEGACY_INPUT_MANAGER;VUPLEX_CCU;UNITY_POST_PROCESSING_STACK_V2;NormalLog;ErrorLog;VUPLEX_STANDALONE;ENABLE_DEBUG_AND_ABOVE_LOG;FMETP_URP;VUPLEX_DISABLE_SRP_WARNING;CSHARP_7_OR_LATER;CSHARP_7_3_OR_NEWER</DefineConstants>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -477,9 +477,9 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\x509\extension\X509ExtensionUtil.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\encodings\OaepEncoding.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\HTTPUpdateDelegator.cs" />
-    <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\AEADParameters.cs" />
-    <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsRsaSigner.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Mapper\FMPCStreamEncoder.cs" />
+    <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsRsaSigner.cs" />
+    <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\AEADParameters.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\RC4Engine.cs" />
     <Compile Include="Assets\Scripts\Model\Base\ModelRotate.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\x509\X509CrlEntry.cs" />
@@ -959,8 +959,8 @@
     <Compile Include="Assets\Scripts\UI\Resources\ResourcesDownloader.cs" />
     <Compile Include="Assets\SDK\DatePicker\DatePicker\DatePicker_Instantiation.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\PlatformSupport\Collections\Specialized\NotifyCollectionChangedEventArgs.cs" />
-    <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\raw\Nat.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsStream.cs" />
+    <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\raw\Nat.cs" />
     <Compile Include="Assets\Framework\Base\StartSetupBase.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x9\X9ECParameters.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\BerSequence.cs" />
@@ -1152,8 +1152,8 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\LazyASN1InputStream.cs" />
     <Compile Include="Assets\Scripts\Model\Config\ModelOperation.cs" />
     <Compile Include="Assets\Scripts\Destroy\Overview\SpriteTog.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\LCU_mlfsjs.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Decompression\DeflateStream.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\LCU_mlfsjs.cs" />
     <Compile Include="Assets\Scripts\General\Manager\SoundManager.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Mapper\GameViewShotEncoder.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecP160K1Curve.cs" />
@@ -1491,8 +1491,8 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\cryptopro\CryptoProObjectIdentifiers.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\RC2WrapEngine.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT409FieldElement.cs" />
-    <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Cookies\CookieJar.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\IPointerInputDetector.cs" />
+    <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Cookies\CookieJar.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\collections\HashSet.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Demos\Scripts\CanvasPopupDemo.cs" />
     <Compile Include="Assets\Framework\Debugger\Scripts\Runtime\Base\FpsCounter.cs" />
@@ -1703,7 +1703,6 @@
     <None Include="Assets\SDK\TextMesh Pro\Resources\Shaders\TMP_SDF-Surface.shader" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn3.11\cs\ja\System.Text.Json.SourceGeneration.resources.dll" />
     <None Include="Assets\Packages\System.Collections.Immutable.6.0.0\THIRD-PARTY-NOTICES.TXT" />
-    <None Include="Assets\Scripts\UI\Course\SmallScene\SmallFlowCtrl_Summary.txt" />
     <None Include="Assets\Packages\System.Buffers.4.5.1\useSharedDesignerContext.txt" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn3.11\cs\it\System.Text.Json.SourceGeneration.resources.dll" />
     <None Include="Assets\SDK\TextMesh Pro\Sprites\EmojiOne Attribution.txt" />
@@ -3013,6 +3012,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="AnkleBreaker.UnityMCP.Editor.csproj">
+      <Project>{2FCC7C98-3461-92C7-5F6E-B4357CCBB281}</Project>
+      <Name>AnkleBreaker.UnityMCP.Editor</Name>
+    </ProjectReference>
     <ProjectReference Include="RenderHeads.AVProMovieCapture.Editor.csproj">
       <Project>{CA04786A-613B-D8C4-DB09-B94B9E7CC7AF}</Project>
       <Name>RenderHeads.AVProMovieCapture.Editor</Name>

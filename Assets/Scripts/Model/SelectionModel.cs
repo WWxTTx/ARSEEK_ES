@@ -205,9 +205,11 @@ public class SelectionModel : MonoBase
     public void SetSelectState(Transform tf, bool state)
     {
         //本身的box
-        CollisionBoxMouseEvent box = tf.GetComponent<CollisionBoxMouseEvent>();
-        if (box != null)
-            box.SetState(state);
+        CollisionBoxMouseEvent[] boxes = tf.GetComponentsInChildren<CollisionBoxMouseEvent>(true);
+        for (int i = 0; i < boxes.Length; i++)
+        {
+            boxes[i].SetState(state);
+        }
     }
 
     /// <summary>

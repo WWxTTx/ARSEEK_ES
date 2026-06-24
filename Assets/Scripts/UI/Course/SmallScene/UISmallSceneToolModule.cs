@@ -878,6 +878,9 @@ public class UISmallSceneToolModule : UIModuleBase
         int tmpToolID; 
         foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops)
         {
+            if (smallFlowCtrl.IsOpCompleted(smallOp))
+                continue;
+
             if (smallOp.optionName.Equals(SmallFlowCtrl.contactFlag))//联系
             {
                 if (!contactTog.isOn)

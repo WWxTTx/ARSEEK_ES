@@ -314,7 +314,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
         });
     }
 
-    private void GotoNextStep()
+    private void GotoNextStep(string optionName)
     {
         inputInteractable = true;
 
@@ -328,7 +328,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                     inputItem.interactable = false;
             }
         }
-        smallFlowCtrl.Next(false);
+        smallFlowCtrl.CompleteUIOperation(optionName);
     }
 
     /// <summary>
@@ -689,7 +689,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
             SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
                  msgTupleString.arg.Item3,  -1,
                 msgTupleString.arg.Item1, msgTupleString.arg.Item2, OpType.Input));
-            GotoNextStep();
+            GotoNextStep(SmallFlowCtrl.inputFlag);
         }
         else
         {
@@ -731,7 +731,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
             SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
                 msgTupleString.arg.Item3,  -1,
                 msgTupleString.arg.Item1, msgTupleString.arg.Item2, OpType.Contact));
-            GotoNextStep();
+            GotoNextStep(SmallFlowCtrl.contactFlag);
         }
         else
         {

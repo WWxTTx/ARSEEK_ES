@@ -9,11 +9,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
-    <ProjectGuid>{CA04786A-613B-D8C4-DB09-B94B9E7CC7AF}</ProjectGuid>
+    <RootNamespace>UnityMCP.Editor</RootNamespace>
+    <ProjectGuid>{2FCC7C98-3461-92C7-5F6E-B4357CCBB281}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <AssemblyName>RenderHeads.AVProMovieCapture.Editor</AssemblyName>
+    <AssemblyName>AnkleBreaker.UnityMCP.Editor</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <BaseDirectory>.</BaseDirectory>
@@ -156,25 +156,54 @@
     <Analyzer Include="C:\Users\15405\Desktop\ARSEEK_ES\Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn4.0\cs\ko\System.Text.Json.SourceGeneration.resources.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\CaptureEditorWindow.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\PluginProcessor.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\CameraSelectorEditor.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\EditorScreenshot.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\EditorUtils.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\PostProcessBuild_macOS.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\PreProcessBuild.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\CaptureFromCameraEditor.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\CaptureFromScreenEditor.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\PreProcessBuild_iOS.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\CaptureFromCamera360ODSEditor.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\PostProcessBuild_iOS.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\CaptureFromCamera360Editor.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\CaptureFromTextureEditor.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\CaptureBaseEditor.cs" />
-    <Compile Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\Scripts\Settings.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPSelectionCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPTerrainCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPRequestQueue.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPEditorCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPBridgeServer.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPPrefsCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPPackageManagerCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MiniJson.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPActionRecord.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPScenarioCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPTextureCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPShaderGraphCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPTestRunnerCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPPhysicsCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPAgentSession.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPUpdateChecker.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPComponentCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPSearchCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPInstanceRegistry.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPMemoryProfilerCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPAmplifyCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPBuildCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPRendererCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPActionHistoryWindow.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPSettingsManager.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPUndoCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPScriptCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPDashboardWindow.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPActionHistory.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPContextManager.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPScriptableObjectCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPGameObjectCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPSelfTest.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPAnimationCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPScreenshotCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPConstraintCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPInputCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPSceneCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPParticleCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPTagLayerCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPAssemblyDefCommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPObjectId.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPToolbarElement.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPUMACommands.cs" />
+    <Compile Include="Packages\com.anklebreaker.unity-mcp\Editor\MCPConsoleCommands.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\SDK\RenderHeads\AVProMovieCapture\Editor\AVProMovieCapture.Editor.asmdef" />
+    <None Include="Packages\com.anklebreaker.unity-mcp\Editor\AnkleBreaker.UnityMCP.Editor.asmdef" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -1189,6 +1218,14 @@
       <HintPath>D:\Program Files\Unity 2020.3.29f1\Editor\Data\MonoBleedingEdge\lib\mono\4.7.1-api\Facades\System.Xml.XPath.XDocument.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.TestRunner">
+      <HintPath>Library\ScriptAssemblies\UnityEngine.TestRunner.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEditor.TestRunner">
+      <HintPath>Library\ScriptAssemblies\UnityEditor.TestRunner.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEditor.UI">
       <HintPath>Library\ScriptAssemblies\UnityEditor.UI.dll</HintPath>
       <Private>False</Private>
@@ -1197,20 +1234,8 @@
       <HintPath>Library\ScriptAssemblies\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEditor.TestRunner">
-      <HintPath>Library\ScriptAssemblies\UnityEditor.TestRunner.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.TestRunner">
-      <HintPath>Library\ScriptAssemblies\UnityEngine.TestRunner.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="RenderHeads.AVProMovieCapture.Runtime.csproj">
-      <Project>{EA95622F-CBA7-2A56-4894-2340B4761F82}</Project>
-      <Name>RenderHeads.AVProMovieCapture.Runtime</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />

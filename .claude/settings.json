@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Bash(git *)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(echo:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(sed:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell:*)",
+      "Bash(cmd:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}

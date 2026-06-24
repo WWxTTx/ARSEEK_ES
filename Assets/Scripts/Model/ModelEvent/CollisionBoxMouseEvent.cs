@@ -1,10 +1,12 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
-[RequireComponent(typeof(BoxCollider))]
+
 public class CollisionBoxMouseEvent : MonoBehaviour
 {
+    public ModelOperation Target;
+
     public class OnCollisionMouseDown : UnityEvent { }
     public OnCollisionMouseDown onMouseDown { get; set; } = new OnCollisionMouseDown();
 

@@ -315,29 +315,9 @@ public class SmallFlowCtrl : MonoBase
         //延迟0.1f是为了避免锁定和设置最终状态在同一帧执行，导致锁定到设置最终状态前的位置
         DOVirtual.DelayedCall(0.1f, () =>
         {
-            pc.AimAtTarget(firstOp.operation.GetComponent<Collider>().bounds.center);
+            pc.AimAtTarget(firstOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform.position);
         });
       
-    }
-
-    /// <summary>
-    /// 执行操作前的导航网关：若角色离可操作对象距离 &gt; 1，先寻路到 1 以内再执行；
-    /// 否则直接执行。dummy（远程同步）操作跳过本地导航。两种模式均生效。
-    /// </summary>
-    private void EnsureNearOperationThen(SmallOp1 data, bool dummy, Action proceed)
-    {
-        PlayerController pc = playerController;
-        if (dummy || pc == null || data == null || data.operation == null)
-        {
-            proceed();
-            return;
-        }
-
-        Vector3 targetPos = data.operation.transform.position;
-        if (Vector3.Distance(pc.transform.position, targetPos) > 1f)
-            NavigateNearTargetAsync(pc, data.operation.transform, proceed).Forget();
-        else
-            proceed();
     }
 
     /// <summary>
@@ -705,6 +685,8 @@ public class SmallFlowCtrl : MonoBase
             || opName == clickFlag
             || opName == contactFlag
             || opName == inputFlag
+            || opName == showFlag
+            || opName == hideFlag
             || opName.StartsWith(backpackFlag);
     }
 
@@ -722,7 +704,7 @@ public class SmallFlowCtrl : MonoBase
             return false;
         }
 
-        SmallOp1 data = nowFlowStep.ops.Find(value => value.operation.ID.Equals(optionName));
+        SmallOp1 data = nowFlowStep.ops.Find(value => value.optionName.Equals(optionName));
         if (data == null)
         {
             Log.Debug($"当前正确操作不是{optionName}");
@@ -1159,11 +1141,6 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
     public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, bool dummy = false)
     {
-        EnsureNearOperationThen(data, dummy, () => TryExecuteFreeOperationCore(data, userNo, userName, dummy));
-    }
-
-    private void TryExecuteFreeOperationCore(SmallOp1 data, string userNo, string userName, bool dummy = false)
-    {
         GlobalInfo.WaitUiOq = false;
         NetworkManager.Instance.IsIMSync = false;
         ignoreMove = dummy;
@@ -1171,14 +1148,16 @@ public class SmallFlowCtrl : MonoBase
             ModelManager.Instance.CameraDotween = true;
 
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
-        bool isOnOperation = IsOnOperation(data.optionName, data.operation.ID);
+        SmallOp1 stepOp;
+        bool isOnOperation = IsOnOperation(data.operation, data.prop, out stepOp);
+        string effectiveOptionName = stepOp?.optionName ?? data.optionName;
 
         Log.Debug("调试 当前需要执行:" + nowFlowStep.ID + " 执行结果： " + isOnOperation);
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
-        ExecuteOperation(data.operation, data.optionName, data.prop, (op) =>
+        ExecuteOperation(data.operation, effectiveOptionName, data.prop, (op) =>
         {
-            ModelOperationEventManager.Publish(new ModelStateEvent(modelInfoId, data.optionName));
+            ModelOperationEventManager.Publish(new ModelStateEvent(modelInfoId, effectiveOptionName));
             if (op != null)
             {
                 OnFreeOperationInvoked?.Invoke();
@@ -1189,10 +1168,10 @@ public class SmallFlowCtrl : MonoBase
                     if (!string.IsNullOrEmpty(op.hint_success) && !dummy)
                     {
                         // 仅本人操作才发送分数上传消息（dummy=true 表示非本人操作）
-                        SendOperatingRecordMsg(data, op, userNo, userName, isOnOperation && !dummy);
+                        SendOperatingRecordMsg(stepOp ?? data, op, userNo, userName, isOnOperation && !dummy);
                     }
                     // 全部并列操作完成后，执行步骤级联动再进入下一步
-                    if (isOnOperation && MarkOpCompleted(data))
+                    if (isOnOperation && MarkOpCompleted(stepOp ?? data))
                     {
                         List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep);
                         if (opLinkages.Count != 0)
@@ -1241,11 +1220,6 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
     {
-        EnsureNearOperationThen(data, dummy, () => TryExecuteOperationCore(data, correctOp, userNo, userName, callback, dummy));
-    }
-
-    private void TryExecuteOperationCore(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
-    {
         GlobalInfo.WaitUiOq = false;
         ignoreMove = dummy;
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
@@ -1253,8 +1227,10 @@ public class SmallFlowCtrl : MonoBase
             ModelManager.Instance.CameraDotween = true;
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
-        // Tips 类型语音,自动进入0 与 smallSceneModule.ShowHint冲突 增加了一个标志位，如果是配置了流程解说 则不重复执行提示0
-        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.Tips);
+        // 并列操作序号，用于匹配对应语音
+        int opIndex = nowFlowStep.ops.FindIndex(o => o.operation == data.operation && o.optionName == data.optionName);
+        if (opIndex < 0) opIndex = 0;
+        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, opIndex, TipType.Tips);
         ExecuteOperation(data.operation, data.optionName, data.prop, (op) =>
         {
             if (op != null)
@@ -1267,7 +1243,7 @@ public class SmallFlowCtrl : MonoBase
                         SendOperatingRecordMsg(data, op, userNo, userName, correctOp);
                     WaitUadioToNext(() =>
                     {
-                        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepComplete);
+                        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, opIndex, TipType.StepComplete);
 
                         callback?.Invoke(true);
                         // 全部并列操作完成后，执行步骤级联动再进入下一步
@@ -1440,6 +1416,32 @@ public class SmallFlowCtrl : MonoBase
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
             }
         }
+    }
+
+    /// <summary>
+    /// 完成联系/输入等UI操作：标记完成 + 执行步骤级联动 + 进入下一步
+    /// 解决 OnContact/OnInput 直接调 GotoNextStep → Next 而跳过联动和 MarkOpCompleted 的问题
+    /// </summary>
+    public void CompleteUIOperation(string optionName, bool dummy = false)
+    {
+        SmallOp1 data = nowFlowStep?.ops?.Find(value => value.optionName.Equals(optionName));
+        if (data == null) return;
+
+        if (MarkOpCompleted(data))
+        {
+            List<OpLinkage> opLinkages = BuildLinkageOperations(nowFlowStep);
+            if (opLinkages.Count != 0)
+            {
+                ExecuteFlowLinkOperation(opLinkages, () =>
+                {
+                    Next(dummy);
+                }, 0, dummy);
+            }
+            else
+                Next(dummy);
+        }
+        else
+            Over(dummy);
     }
 
     /// <summary>
@@ -1757,15 +1759,27 @@ public class SmallFlowCtrl : MonoBase
 
         if (component.TryGetComponent(out ModelRestrict modelRestrict))
         {
-            if (modelRestrict.modelHighlight.highlightNode != null)
+            var operation = component.GetComponent<ModelOperation>();
+
+            foreach (var node in modelRestrict.modelHighlight.highlightNodes)
             {
-                HighlightEffectManager.Instance.Add(modelRestrict.modelHighlight.highlightNode, priority == 0 ? hintHighlight : selectHighlight,
+                if (node == null)
+                    continue;
+
+                HighlightEffectManager.Instance.Add(node, priority == 0 ? hintHighlight : selectHighlight,
                    modelRestrict.modelHighlight.outlineWidth, modelRestrict.modelHighlight.visibility, modelRestrict.modelHighlight.constantWidth, priority);
 
                 if (priority == 0)
-                    HighlightEffectManager.Instance.HighlightFlashing(modelRestrict.modelHighlight.highlightNode);
+                    HighlightEffectManager.Instance.HighlightFlashing(node);
                 else
-                    HighlightEffectManager.Instance.RemoveHighlightFlashing(modelRestrict.modelHighlight.highlightNode);
+                    HighlightEffectManager.Instance.RemoveHighlightFlashing(node);
+
+                if (operation != null)
+                {
+                    var boxEvents = node.GetComponentsInChildren<CollisionBoxMouseEvent>(true);
+                    foreach (var be in boxEvents)
+                        be.Target = operation;
+                }
             }
 
             if (priority == 0 && modelRestrict.modelGhost.ghostNode != null)
@@ -1774,6 +1788,7 @@ public class SmallFlowCtrl : MonoBase
             }
         }
     }
+
     /// <summary>
     /// 移除高亮或虚影
     /// </summary>
@@ -1786,13 +1801,16 @@ public class SmallFlowCtrl : MonoBase
 
         if (component.TryGetComponent(out ModelRestrict modelRestrict))
         {
-            if (modelRestrict.modelHighlight.highlightNode != null)
+            foreach (var node in modelRestrict.modelHighlight.highlightNodes)
             {
-                HighlightEffectManager.Instance.Remove(modelRestrict.modelHighlight.highlightNode, priority);
+                if (node == null)
+                    continue;
+
+                HighlightEffectManager.Instance.Remove(node, priority);
                 if (priority == 0)
-                    HighlightEffectManager.Instance.RemoveHighlightFlashing(modelRestrict.modelHighlight.highlightNode);
+                    HighlightEffectManager.Instance.RemoveHighlightFlashing(node);
                 else
-                    HighlightEffectManager.Instance.HighlightFlashing(modelRestrict.modelHighlight.highlightNode);
+                    HighlightEffectManager.Instance.HighlightFlashing(node);
             }
 
             if (priority == 0 && modelRestrict.modelGhost.ghostNode != null)
@@ -1801,10 +1819,7 @@ public class SmallFlowCtrl : MonoBase
             }
         }
     }
-    /// <summary>
-    /// 显示2D操作高亮
-    /// </summary>
-    /// <param name="component"></param>
+
     public void Add2DHint(Component component)
     {
         if (component == null)

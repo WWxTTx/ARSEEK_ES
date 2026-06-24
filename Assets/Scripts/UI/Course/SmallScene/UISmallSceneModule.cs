@@ -294,7 +294,6 @@ public class UISmallSceneModule : UIModuleBase
     /// 操作历史记录
     /// </summary>
     public UISmallSceneOperationHistory operationHistoryModule;
-
     /// <summary>
     /// 是否切换鼠标模式
     /// false:光标锁定在游戏窗口的中心
@@ -304,14 +303,49 @@ public class UISmallSceneModule : UIModuleBase
     /// 是否打开大地图
     /// </summary>
     private bool inMap;
-
     private bool isMouseDown = false;
     /// <summary>
     /// 鼠标拖动阈值, 超过该值判断为拖动，不会触发点击事件
     /// </summary>
     private float dragThreshold = 0.01f;
     private Vector3 lastMousePosition;
+    /// 射线检测获取最优 ModelOperation
+    /// 优先选择直接命中 ModelOperation 自身碰撞盒的（共享 highlight 的大一圈碰撞盒）
+    /// 其次选择命中 highlight 子物体通过父级查找的（默认 ModelOperation）
+    /// </summary>
+    private bool TryGetModelOperationFromRay(out ModelOperation result)
+    {
+        result = null;
+        RaycastHit[] hits = Physics.RaycastAll(ray, 10, modelLayerMask);
+        if (hits.Length == 0)
+            return false;
 
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (var hit in hits)
+        {
+            var boxEvent = hit.transform.GetComponent<CollisionBoxMouseEvent>();
+            if (boxEvent != null && boxEvent.Target != null)
+            {
+                result = boxEvent.Target;
+                hitInfo = hit;
+                return true;
+            }
+
+            var parentOp = hit.transform.GetComponentInParent<ModelOperation>();
+            if (parentOp != null)
+            {
+                result = parentOp;
+                hitInfo = hit;
+                return true;
+            }
+
+            // 遇到的碰撞体既不是有效点击目标也不属于可操作模型，视为阻挡体，停止穿透
+            return false;
+        }
+
+        return false;
+    }
     private ModelState _modelState;
     public ModelState ModelState
     {
@@ -714,7 +748,7 @@ public class UISmallSceneModule : UIModuleBase
                 Focus.gameObject.SetActive(true);
                 ray = mainCam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f)); /*mainCam.ScreenPointToRay(Input.mousePosition);*/
                 //新增限制射线检查距离，以避免穿透当前设备检查到远处的目标
-                if (Physics.Raycast(ray, out hitInfo, 5/*Mathf.Infinity*/, modelLayerMask) && hitInfo.transform.GetComponent<ModelOperation>() != null)
+                if (TryGetModelOperationFromRay(out _))
                 {
                     RaySelect();
                 }
@@ -738,7 +772,7 @@ public class UISmallSceneModule : UIModuleBase
                 ray = mainCam.ScreenPointToRay(Input.mousePosition);
 
                 //新增限制射线检查距离，以避免穿透当前设备检查到远处的目标
-                if (Physics.Raycast(ray, out hitInfo, 5/*Mathf.Infinity*/, modelLayerMask) && hitInfo.transform.GetComponent<ModelOperation>() != null)
+                if (TryGetModelOperationFromRay(out _))
                 {
                     RaySelect();
                     if (Input.GetMouseButtonDown(0) && IsOperatableState)
@@ -775,7 +809,7 @@ public class UISmallSceneModule : UIModuleBase
 #endif
             {
                 ray = mainCam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
-                if (Physics.Raycast(ray, out hitInfo, Mathf.Infinity, modelLayerMask) && hitInfo.transform.GetComponent<ModelOperation>() != null)
+                if (TryGetModelOperationFromRay(out _))
                 {
                     RaySelect();
 #if UNITY_STANDALONE
@@ -808,7 +842,8 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     void RaySelect()
     {
-        var rayResult = hitInfo.transform.GetComponent<ModelOperation>();
+        var boxEvent = hitInfo.transform.GetComponent<CollisionBoxMouseEvent>();
+        var rayResult = boxEvent != null && boxEvent.Target != null ? boxEvent.Target : hitInfo.transform.GetComponentInParent<ModelOperation>();
 
         if (rayResult == modelOperation_Focused)
         {
@@ -827,7 +862,7 @@ public class UISmallSceneModule : UIModuleBase
             Focus.sprite = select;
             Focus.transform.GetChild(0).gameObject.SetActive(true);
 
-            var hitModelInfo = hitInfo.transform.GetComponent<ModelInfo>();
+            var hitModelInfo = hitInfo.transform.GetComponentInParent<ModelInfo>();
             string modelName = hitModelInfo.Name;
             //if (modelName.Length > nameMax)
             //    modelName = modelName.Substring(0, nameMax - 1) + "...";
@@ -1585,6 +1620,7 @@ public class UISmallSceneModule : UIModuleBase
                     focusMasterComputerDescrption = msgElement.name;
                 }
                 break;
+#if UNITY_STANDALONE || UNITY_EDITOR
             case (ushort)ShortcutEvent.PressAnyKey:
                 ShortcutManager.Instance.CheckShortcutKey(msg, new Dictionary<string, Action>()
                 {
@@ -1616,6 +1652,7 @@ public class UISmallSceneModule : UIModuleBase
                     }
                 });
                 break;
+#endif
             case (ushort)SmallFlowModuleEvent.MaxMap:
                 inMap = ((MsgBool)msg).arg1;
                 break;

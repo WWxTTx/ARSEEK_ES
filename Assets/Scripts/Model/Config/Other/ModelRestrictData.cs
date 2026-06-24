@@ -1,72 +1,73 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Ïà»úÒÆ¶¯ÀàĞÍ
+/// ç›¸æœºç§»åŠ¨ç±»å‹
 /// </summary>
 public enum CameraMoveType
 {
     /// <summary>
-    /// ½ûÓÃÒÆ¶¯
+    /// ç¦ç”¨ç§»åŠ¨
     /// </summary>
     None,
     /// <summary>
-    /// Ë®Æ½×óÓÒÒÆ¶¯
+    /// æ°´å¹³å·¦å³ç§»åŠ¨
     /// </summary>
     Vertical,
     /// <summary>
-    /// ´¹Ö±ÉÏÏÂÒÆ¶¯
+    /// å‚ç›´ä¸Šä¸‹ç§»åŠ¨
     /// </summary>
     Horizontal,
     /// <summary>
-    /// ÉÏÏÂ×óÓÒ×ÔÓÉÒÆ¶¯
+    /// ä¸Šä¸‹å·¦å³è‡ªç”±ç§»åŠ¨
     /// </summary>
     Pan
 }
 
 /// <summary>
-/// Ïà»úĞı×ªÀàĞÍ
+/// ç›¸æœºæ—‹è½¬ç±»å‹
 /// </summary>
 public enum CameraRotateType
 {
     /// <summary>
-    /// ½ûÓÃĞı×ª
+    /// ç¦ç”¨æ—‹è½¬
     /// </summary>
     None,
     /// <summary>
-    /// ÒÔ×Ô¼ºÎªÖĞĞÄĞı×ª
+    /// ä»¥è‡ªå·±ä¸ºä¸­å¿ƒæ—‹è½¬
     /// </summary>
     LookAround,
     /// <summary>
-    /// ÈÆÃªµãĞı×ª
+    /// ç»•é”šç‚¹æ—‹è½¬
     /// </summary>
     RotateAround,
     /// <summary>
-    /// ÈÆÊó±êÎ»ÖÃĞı×ª
+    /// ç»•é¼ æ ‡ä½ç½®æ—‹è½¬
     /// </summary>
     RotateAroundMouse,
     RotateAroundScreen
 }
 
 /// <summary>
-/// Ïà»úËõ·ÅÀàĞÍ
+/// ç›¸æœºç¼©æ”¾ç±»å‹
 /// </summary>
 public enum CameraZoomType
 {
     /// <summary>
-    /// ½ûÓÃËõ·Å
+    /// ç¦ç”¨ç¼©æ”¾
     /// </summary>
     None,
     /// <summary>
-    /// ³¯Ïà»úÕıÇ°·½À­½üÀ­Ô¶
+    /// æœç›¸æœºæ­£å‰æ–¹æ‹‰è¿‘æ‹‰è¿œ
     /// </summary>
     Forward,
     /// <summary>
-    /// ³¯Êó±êÎ»ÖÃÀ­½üÀ­Ô¶
+    /// æœé¼ æ ‡ä½ç½®æ‹‰è¿‘æ‹‰è¿œ
     /// </summary>
     Mouse,
     /// <summary>
-    /// ³¯ÃªµãÀ­½üÀ­Ô¶
+    /// æœé”šç‚¹æ‹‰è¿‘æ‹‰è¿œ
     /// </summary>
     Pivot
 }
@@ -74,16 +75,16 @@ public enum CameraZoomType
 [Serializable]
 public class RestrictMove
 {
-    [Tooltip("Ë®Æ½·½ÏòÒÆ¶¯×îĞ¡Öµ")]
+    [Tooltip("æ°´å¹³æ–¹å‘ç§»åŠ¨æœ€å°å€¼")]
     [Range(0f, 1f)]
     public float minMove_H = 0f;
-    [Tooltip("Ë®Æ½·½ÏòÒÆ¶¯×î´óÖµ")]
+    [Tooltip("æ°´å¹³æ–¹å‘ç§»åŠ¨æœ€å¤§å€¼")]
     [Range(0f, 1f)]
     public float maxMove_H = 1f;
-    [Tooltip("´¹Ö±·½ÏòÒÆ¶¯×îĞ¡Öµ")]
+    [Tooltip("å‚ç›´æ–¹å‘ç§»åŠ¨æœ€å°å€¼")]
     [Range(0f, 1f)]
     public float minMove_V = 0f;
-    [Tooltip("´¹Ö±·½ÏòÒÆ¶¯×î´óÖµ")]
+    [Tooltip("å‚ç›´æ–¹å‘ç§»åŠ¨æœ€å¤§å€¼")]
     [Range(0f, 1f)]
     public float maxMove_V = 1f;
 }
@@ -91,27 +92,27 @@ public class RestrictMove
 [Serializable]
 public class RestrictCameraMove
 {
-    [Tooltip("ÒÆ¶¯·½Ïò£¨¹´Ñ¡Ê±Ä£ĞÍÒÆ¶¯·½ÏòºÍÊó±êÒÆ¶¯·½ÏòÒ»ÖÂ£©")]
+    [Tooltip("ç§»åŠ¨æ–¹å‘ï¼ˆå‹¾é€‰æ—¶æ¨¡å‹ç§»åŠ¨æ–¹å‘å’Œé¼ æ ‡ç§»åŠ¨æ–¹å‘ä¸€è‡´ï¼‰")]
     public bool moveAlongMouse = true;
 
-    [Tooltip("Ïò×óÒÆ¶¯×î´óÖµ")]
+    [Tooltip("å‘å·¦ç§»åŠ¨æœ€å¤§å€¼")]
     public float maxMove_L = 0f;
-    [Tooltip("ÏòÓÒÒÆ¶¯×î´óÖµ")]
+    [Tooltip("å‘å³ç§»åŠ¨æœ€å¤§å€¼")]
     public float maxMove_R = 0f;
 
-    [Tooltip("ÏòÉÏÒÆ¶¯×î´óÖµ")]
+    [Tooltip("å‘ä¸Šç§»åŠ¨æœ€å¤§å€¼")]
     public float maxMove_U = 0f;
-    [Tooltip("ÏòÏÂÒÆ¶¯×î´óÖµ")]
+    [Tooltip("å‘ä¸‹ç§»åŠ¨æœ€å¤§å€¼")]
     public float maxMove_D = 0f;
 }
 
 [Serializable]
 public class RestrictRotate
 {
-    [Tooltip("×îĞ¡½Ç¶È")]
+    [Tooltip("æœ€å°è§’åº¦")]
     [Range(1f, 90f)]
     public float minAngle = 10f;
-    [Tooltip("×î´ó½Ç¶È")]
+    [Tooltip("æœ€å¤§è§’åº¦")]
     [Range(1f, 180f)]
     public float maxAngle = 170f;
 }
@@ -121,62 +122,62 @@ public class RestrictCameraRotate
 {
     public bool allowPitch = true;
 
-    [Tooltip("¸©Ñö½Ç×îĞ¡½Ç¶È")]
+    [Tooltip("ä¿¯ä»°è§’æœ€å°è§’åº¦")]
     public float minAngle_P = -80f;
-    [Tooltip("¸©Ñö½Ç×î´ó½Ç¶È")]
+    [Tooltip("ä¿¯ä»°è§’æœ€å¤§è§’åº¦")]
     public float maxAngle_P = 80f;
 
     public bool allowYaw = true;
 
-    [Tooltip("Æ«º½½Ç×îĞ¡½Ç¶È")]
+    [Tooltip("åèˆªè§’æœ€å°è§’åº¦")]
     public float minAngle_Y = -180f;
-    [Tooltip("Æ«º½½Ç×î´ó½Ç¶È")]
+    [Tooltip("åèˆªè§’æœ€å¤§è§’åº¦")]
     public float maxAngle_Y = 180f;
 }
 
 [Serializable]
 public class RestrictScale
 {
-    [Tooltip("×îĞ¡Ëõ·Å±ÈÀı")]
+    [Tooltip("æœ€å°ç¼©æ”¾æ¯”ä¾‹")]
     public float minScale = 0.5f;
-    [Tooltip("×î´óËõ·Å±ÈÀı")]
+    [Tooltip("æœ€å¤§ç¼©æ”¾æ¯”ä¾‹")]
     public float maxScale = 2.5f;
 }
 
 [Serializable]
 public class RestrictCameraZoom
 {
-    [Tooltip("×îĞ¡Ëõ½ø¾àÀë")]
+    [Tooltip("æœ€å°ç¼©è¿›è·ç¦»")]
     public float minDistance = 1f;
-    [Tooltip("×î´óËõ½ø¾àÀë")]
+    [Tooltip("æœ€å¤§ç¼©è¿›è·ç¦»")]
     public float maxDistance = 20f;
 }
 
 /// <summary>
-/// Ä£ĞÍ¸ßÁÁ
+/// æ¨¡å‹é«˜äº®
 /// </summary>
 [Serializable]
 public class ModelHighlight
 {
-    [Tooltip("¸ßÁÁ½Úµã")]
-    public Transform highlightNode;
+    [Tooltip("é«˜äº®èŠ‚ç‚¹")]
+    public List<Transform> highlightNodes = new List<Transform>();
 
-    [Tooltip("¸ßÁÁ¿í¶È")]
+    [Tooltip("é«˜äº®å®½åº¦")]
     public float outlineWidth = 0.15f;
 
-    [Tooltip("äÖÈ¾Ä£Ê½")]
+    [Tooltip("æ¸²æŸ“æ¨¡å¼")]
     public bool constantWidth = false;
 
-    [Tooltip("¿É¼ûĞÔ")]
+    [Tooltip("å¯è§æ€§")]
     public HighlightPlus.Visibility visibility = HighlightPlus.Visibility.AlwaysOnTop;
 }
 
 /// <summary>
-/// Ä£ĞÍĞéÓ°
+/// æ¨¡å‹è™šå½±
 /// </summary>
 [Serializable]
 public class ModelGhost
 {
-    [Tooltip("ĞéÓ°½Úµã")]
+    [Tooltip("è™šå½±èŠ‚ç‚¹")]
     public Transform ghostNode;
 }
