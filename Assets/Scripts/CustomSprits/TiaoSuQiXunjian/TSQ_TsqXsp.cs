@@ -100,7 +100,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         巡检 = 0,
         查看故障信息,
         传感器定位试验,
-        xx,
+        导叶手动关到零,
 
         旋钮开度给定13,
         开机时间,
@@ -114,7 +114,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         跟踪频给,
         跟踪网频,
         静特性试验,
-        开机不计时,
+        导叶手动开到满,
         残压测频A,
         残压测频B,
         设置水头,
@@ -218,7 +218,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             case AvailableStatus.旋钮开度给定13:
                 SetUIPanel("操作界面");
                 int mbkd = 13;
-                RotationControl(1, 0);
+                kd = float.Parse(TextDic["导叶开度"].text);
+                RotationControl((int)kd, 0);
                 DOVirtual.DelayedCall(2f, () => {
                     kdgd.DOLocalRotate(new Vector3(-90, 35, 0), 1);
                 });
@@ -256,7 +257,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 });
                 break;
             case AvailableStatus.有功降到0:
-                RotationControl(0, 0);
+                kd = float.Parse(TextDic["导叶开度"].text);
+                RotationControl((int)kd, 0);
                 DOVirtual.DelayedCall(2f, () => {
                     kdgd.DOLocalRotate(new Vector3(-90, -35, 0), 1);
                 });
@@ -291,10 +293,11 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 });
                 break;
             case AvailableStatus.开机时间:
-            case AvailableStatus.开机不计时:
+            case AvailableStatus.导叶手动开到满:
                 bool isusetime = status == AvailableStatus.开机时间;
 
-                RotationControl(0, 0);
+                kd = float.Parse(TextDic["导叶开度"].text);
+                RotationControl((int)kd, 0);
                 float usetime = 10f;
                 DOVirtual.DelayedCall(1, () =>
                 {
@@ -353,6 +356,48 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                             Othercallback?.Invoke();
                             
                         });
+                    });
+                });
+                break;
+            case AvailableStatus.导叶手动关到零:
+                kd = float.Parse(TextDic["导叶开度"].text);
+                RotationControl((int)kd, 0);
+                DOVirtual.DelayedCall(1, () =>
+                {
+                    kdgd.DOLocalRotate(new Vector3(-90, -35, 0), 1);
+                });
+
+                DOVirtual.DelayedCall(2, () =>
+                {
+                    ChangeFouces(true);
+                    jsq.DOLocalMove(new Vector3(-0.28f, 0.22f, -0.22f), 0);
+                    jsq.gameObject.SetActive(true);
+                    DOVirtual.DelayedCall(5, () =>
+                    {
+                        jsq.DOLocalMove(new Vector3(-0.074f, 0.128f, -0.22f), 0);
+                        jsq.gameObject.SetActive(false);
+                    });
+                    RotationControl(0, 4f);
+                    DOTween.To(() => kd, x =>
+                    {
+                        TextDic["导叶开度"].text = x.ToString("F2");
+                        TextDic["导叶目标值"].text = x.ToString("F2");
+                        CalculateBladeOpening(x);
+                    }, 0, 4f);
+                });
+
+                DOVirtual.DelayedCall(6, () =>
+                {
+                    ChangeFouces(false);
+                    DOVirtual.DelayedCall(1, () =>
+                    {
+                        kdgd.DOLocalRotate(new Vector3(270, 0, 0), 1);
+                    });
+                    DOVirtual.DelayedCall(3, () =>
+                    {
+                        Monitor(false);
+                        Othercallback?.Invoke();
+
                     });
                 });
                 break;

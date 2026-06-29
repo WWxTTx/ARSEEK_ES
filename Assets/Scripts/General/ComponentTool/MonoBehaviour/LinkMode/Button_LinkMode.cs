@@ -4,20 +4,20 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// ¹ı¶É×´Ì¬Áª¶¯¡¢´øÓĞÒôĞ§µÄButton
-/// ¿É×¢²á½ûÓÃ×´Ì¬µã»÷ÊÂ¼ş
+/// é“¾æ¥çŠ¶æ€ç»„ä»¶åˆ—è¡¨ä»¥å®ç°è”åŠ¨æ•ˆæœçš„Button
+/// å¯æ³¨å†Œé“¾æ¥çŠ¶æ€ç»„ä»¶åˆ—è¡¨
 /// </summary>
 public class Button_LinkMode : Button, ILinkMode
 {
     public bool CanControl => interactable;
 
     /// <summary>
-    /// ×ÓÎïÌåÁª¶¯×é¼şÁĞ±í
+    /// è¦è”åŠ¨çš„ç»„ä»¶åˆ—è¡¨
     /// </summary>
     private List<ILinkMode> linkModeComponents = new List<ILinkMode>();
 
     /// <summary>
-    /// ½ûÓÃÊ±µã»÷ÊÂ¼ş
+    /// ç¦ç”¨æ—¶ç‚¹å‡»äº‹ä»¶
     /// </summary>
     public ButtonClickedEvent OnDisableClick = new ButtonClickedEvent();
 
@@ -55,7 +55,7 @@ public class Button_LinkMode : Button, ILinkMode
     }
 
     /// <summary>
-    /// Ìí¼Ó¹ı¶É×´Ì¬Áª¶¯µÄGraphic
+    /// æ·»åŠ è¦è”åŠ¨çŠ¶æ€è”åŠ¨çš„Graphic
     /// </summary>
     /// <param name="target"></param>
 

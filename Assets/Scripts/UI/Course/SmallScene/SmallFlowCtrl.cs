@@ -204,6 +204,36 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 统计初始视角中弹窗语音的数量（非考核模式下有BehavePopup的initState项数）
+    /// </summary>
+    private int GetInitStatePopupVoiceCount()
+    {
+        if (GlobalInfo.isExam || nowFlowStep?.initState == null)
+            return 0;
+        int count = 0;
+        foreach (var state in nowFlowStep.initState)
+        {
+            if (state.operation == null) continue;
+            foreach (var op in state.operation.operations)
+            {
+                if (op.name.Equals(state.optionName) && op.behaveBases != null)
+                {
+                    foreach (var behave in op.behaveBases)
+                    {
+                        if (behave is BehavePopup)
+                        {
+                            count++;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        return count;
+    }
+
+    /// <summary>
     /// 依次执行初始视角中的操作（支持弹窗等待）
     /// </summary>
     /// <param name="initStates">初始视角操作列表</param>
@@ -266,7 +296,7 @@ public class SmallFlowCtrl : MonoBase
                 ToolManager.SendBroadcastMsg(new MsgBool((ushort)SmallFlowModuleEvent.ClousePop, true));
             };
             popupBehave.Execute(onclick);
-            SpeechManager.Instance.PlayImmediate(currentStep.ID, currentPopupIndex, TipType.Tips);
+            SpeechManager.Instance.PlayImmediate(currentStep.ID, currentStep.ops.Count + currentPopupIndex - 1, TipType.Tips);
         }
         else
         {
@@ -318,6 +348,31 @@ public class SmallFlowCtrl : MonoBase
             pc.AimAtTarget(firstOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform.position);
         });
       
+    }
+
+    /// <summary>
+    /// 非考核模式下，将相机对准当前步骤中下一个未完成的操作对象。
+    /// 每次操作完成后调用，如果步骤未结束则瞄准下一个需点击的目标。
+    /// </summary>
+    private void AimCameraAtNextOp()
+    {
+        if (GlobalInfo.isExam)
+            return;
+        if (nowFlowStep == null || nowFlowStep.ops == null)
+            return;
+
+        SmallOp1 nextOp = nowFlowStep.ops.FirstOrDefault(o => o.operation != null && !completedOpIds.Contains(o.operation.ID));
+        if (nextOp == null)
+            return;
+
+        PlayerController pc = playerController;
+        if (pc == null)
+            return;
+
+        DOVirtual.DelayedCall(0.1f, () =>
+        {
+            pc.AimAtTarget(nextOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform.position);
+        });
     }
 
     /// <summary>
@@ -1201,6 +1256,10 @@ public class SmallFlowCtrl : MonoBase
         OnStepAdvanced?.Invoke(index_NowFlow, index_NowStep);
         ModelManager.Instance.CameraDotween = false;
 
+        // 步骤未结束时，瞄准下一个需点击的操作目标
+        if (!dummy)
+            AimCameraAtNextOp();
+
         //发送步骤操作结束消息
         if (!dummy)
             DOVirtual.DelayedCall(0.1f, () =>
@@ -1243,7 +1302,9 @@ public class SmallFlowCtrl : MonoBase
                         SendOperatingRecordMsg(data, op, userNo, userName, correctOp);
                     WaitUadioToNext(() =>
                     {
-                        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, opIndex, TipType.StepComplete);
+                        int stepOpIndex = nowFlowStep.ops.FindIndex(o => o.operation == data.operation && o.optionName == data.optionName);
+                        if (stepOpIndex < 0) stepOpIndex = 0;
+                        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, stepOpIndex, TipType.StepComplete);
 
                         callback?.Invoke(true);
                         // 全部并列操作完成后，执行步骤级联动再进入下一步
@@ -1343,6 +1404,9 @@ public class SmallFlowCtrl : MonoBase
         }
 
         var op = opLinkages[index];
+
+        // 步骤级联动：每个联动项播放对应的Tips语音，索引需跳过初始视角弹窗语音
+        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, nowFlowStep.ops.Count + GetInitStatePopupVoiceCount() + index, TipType.Tips);
 
         // 检查是否有弹窗（非考核）
         bool hasPopup = false;
@@ -2047,9 +2111,9 @@ public class SmallFlowCtrl : MonoBase
                                 if (op.actions[m].operation.GetComponent<ModelInfo>().PropType != PropType.Auto)
                                     SetFinalState(op.actions[m].operation, op.actions[m].optionName, false, true);
                             }
-                            catch
+                            catch (Exception e)
                             {
-                                Log.Error(operation.name + "  该物体配置错误");
+                                Log.Error($"{operation.name}  actions[{m}]配置错误: operation={(op.actions[m].operation == null ? "null" : op.actions[m].operation.name)}, optionName={op.actions[m].optionName}, 异常: {e.Message}");
                             }
                         }
                     }

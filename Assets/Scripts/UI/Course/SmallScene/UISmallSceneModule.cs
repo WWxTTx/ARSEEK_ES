@@ -1835,7 +1835,7 @@ public class UISmallSceneModule : UIModuleBase
 
     /// <summary>
     /// 显示提示信息弹窗
-    /// opIndex -1 是自定义脚本的提示，没用制作对应语音
+    /// opIndex -1 是自定义脚本的提示，没制作对应语音
     /// </summary>
     /// <param name="hint"></param>
     /// <param name="stepHint"></param>

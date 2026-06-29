@@ -351,10 +351,13 @@ public class SpeechManager : Singleton<SpeechManager>
                 );
             }
         }
-        finally // 确保无论成功、取消还是异常都会执行
+        finally
         {
-            onComplete?.Invoke();// 清除提示字幕
-            SetSubTitle(string.Empty); // 清除字幕
+            if (!ct.IsCancellationRequested)
+            {
+                onComplete?.Invoke();
+                SetSubTitle(string.Empty);
+            }
         }
     }
 

@@ -226,7 +226,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
             cs[3].text = "0";
             cs[4].text = "0";
             cs[5].text = "0";
-            cs[6].text = "100";//转速 
+            cs[6].text = "99";//转速
             cs[7].text = "0";
             cs[8].text = "0";
             cs[9].text = "0";
@@ -316,6 +316,9 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                 break;
             case "空载运行":
                 SetScreen(1);
+                break;
+            case "转速降低":
+                cs[6].text = "18";//转速手动停机时，先降到18，刹车后才降到0
                 break;
         }
         if (eventname == "控制")

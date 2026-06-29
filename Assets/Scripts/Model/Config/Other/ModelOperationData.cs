@@ -2258,6 +2258,10 @@ public class BehaveObserveRotate : BehaveDotween
     /// 俯仰角
     /// </summary>
     public float pitch;
+    /// <summary>
+    /// 是否向外看（false=看向中心点，true=沿径向向外看）
+    /// </summary>
+    public bool lookOutward;
 
     public BehaveObserveRotate()
     {
@@ -2283,7 +2287,16 @@ public class BehaveObserveRotate : BehaveDotween
                 Vector3 pivotPos = ctrlGO.transform.position;
                 float startAngle = Quaternion.FromToRotation(ctrlGO.transform.right, Vector3.right).eulerAngles.y + 90f + startAngleOffset;
                 Vector3 startPosition = new Vector3(pivotPos.x + aRadius * Mathf.Cos(startAngle * Mathf.Deg2Rad), pivotPos.y + yOffset, pivotPos.z + bRadius * Mathf.Sin(startAngle * Mathf.Deg2Rad));
-                Vector3 startEuler = Quaternion.LookRotation(ctrlGO.transform.position - startPosition, Vector3.up).eulerAngles;
+                Vector3 startEuler;
+                if (lookOutward)
+                {
+                    Vector3 outwardDir = (startPosition - pivotPos).normalized;
+                    startEuler = Quaternion.LookRotation(outwardDir, Vector3.up).eulerAngles;
+                }
+                else
+                {
+                    startEuler = Quaternion.LookRotation(ctrlGO.transform.position - startPosition, Vector3.up).eulerAngles;
+                }
 
                 sequence.Append(camera.DOMove(startPosition, time));
                 sequence.Join(camera.DORotate(new Vector3(pitch, startEuler.y, startEuler.z), time));
@@ -2294,8 +2307,17 @@ public class BehaveObserveRotate : BehaveDotween
                         float x = pivotPos.x + aRadius * Mathf.Cos(radian);
                         float z = pivotPos.z + bRadius * Mathf.Sin(radian);
                         camera.position = new Vector3(x, camera.position.y, z);
-                        camera.LookAt(ctrlGO.transform);
-                        camera.eulerAngles = new Vector3(/*startEuler.x*/pitch, camera.eulerAngles.y, startEuler.z);
+                        if (lookOutward)
+                        {
+                            Vector3 outwardDir = (camera.position - pivotPos).normalized;
+                            camera.LookAt(camera.position + outwardDir, Vector3.up);
+                            camera.eulerAngles = new Vector3(pitch, camera.eulerAngles.y, startEuler.z);
+                        }
+                        else
+                        {
+                            camera.LookAt(ctrlGO.transform);
+                            camera.eulerAngles = new Vector3(/*startEuler.x*/pitch, camera.eulerAngles.y, startEuler.z);
+                        }
                     }));
 
                 sequence.AppendCallback(() =>
