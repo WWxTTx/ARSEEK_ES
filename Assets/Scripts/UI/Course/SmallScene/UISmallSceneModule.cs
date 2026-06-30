@@ -434,11 +434,6 @@ public class UISmallSceneModule : UIModuleBase
     public override void Open(UIData uiData = null)
     {
         base.Open(uiData);
-
-        //只有培训模式打开完整提示词
-        if (CourseMode.Training == GlobalInfo.courseMode)
-            UIManager.Instance.OpenModuleUI<UISmallSceneInfoModule>(ParentPanel, transform, null);
-
         AddMsg(new ushort[]{
              ushort.MaxValue,
             (ushort)OperationListEvent.Open,
@@ -680,8 +675,10 @@ public class UISmallSceneModule : UIModuleBase
 #if UNITY_ANDROID || UNITY_IOS
 #else
             if (!GlobalInfo.ShowPopup)
+            {
                 Cursor.lockState = CursorLockMode.Locked;//鼠标锁定屏幕中心
-            GlobalInfo.CursorLockMode = CursorLockMode.Locked;
+                GlobalInfo.CursorLockMode = CursorLockMode.Locked;
+            }
 #endif
         }
         else
@@ -1368,7 +1365,8 @@ public class UISmallSceneModule : UIModuleBase
                 if (!GlobalInfo.ShowPopup)
                     Cursor.lockState = CursorLockMode.Locked;
             }
-            GlobalInfo.CursorLockMode = isSelect ? CursorLockMode.None : CursorLockMode.Locked;
+            if (!GlobalInfo.ShowPopup || isSelect)
+                GlobalInfo.CursorLockMode = isSelect ? CursorLockMode.None : CursorLockMode.Locked;
 #endif
         }
     }
@@ -1395,7 +1393,7 @@ public class UISmallSceneModule : UIModuleBase
                 }
                 break;
             case (ushort)OperationListEvent.Hide:
-                UIManager.Instance.HideModuleUI<UISmallSceneFlowModule>(ParentPanel);
+                flowModule?.CollapseModule();
                 break;
             case (ushort)HistoryEvent.Open:
                 bool showMoule = ((MsgBool)msg).arg1;
@@ -1631,11 +1629,8 @@ public class UISmallSceneModule : UIModuleBase
                                 return;
                             if(playerController == null)
                                 return;
-                            if (!isAlt)
-                            {
-                                EnableCameraControl(isAlt);
-                                SetSelect(!isAlt);
-                            }
+                            EnableCameraControl(isAlt);
+                            SetSelect(!isAlt);
                         }
                     },
                     {

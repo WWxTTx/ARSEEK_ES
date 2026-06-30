@@ -1,10 +1,12 @@
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
 using Text = UnityEngine.UI.Text;
@@ -113,10 +115,19 @@ public class SpeechManager : Singleton<SpeechManager>
 
     UnityAction<SpeechData> onDataFetched;
     UnityAction onComplete;
+    [System.Obsolete("Use RegisterTipDisplay instead")]
     public void SetTipUI(UnityAction<SpeechData> onDataFetched, UnityAction onComplete)
     {
         this.onDataFetched = onDataFetched;
         this.onComplete = onComplete;
+    }
+
+    private CanvasGroup tipCanvasGroup;
+    private Text tipText;
+    public void RegisterTipDisplay(CanvasGroup canvasGroup, Text text)
+    {
+        tipCanvasGroup = canvasGroup;
+        tipText = text;
     }
 
 
@@ -212,6 +223,12 @@ public class SpeechManager : Singleton<SpeechManager>
         if (tipType == TipType.Tips)
         {
             onDataFetched?.Invoke(speechData);
+            if (tipText != null)
+            {
+                tipText.text = speechData.text.Replace(" ", " ");
+                LayoutRebuilder.ForceRebuildLayoutImmediate(tipText.rectTransform);
+                tipCanvasGroup?.DOFade(1f, 0);
+            }
         }
 
         LoadLocalAsset.Instance.LoadAudio(speechData.audioUrl, audioClip =>
@@ -356,6 +373,7 @@ public class SpeechManager : Singleton<SpeechManager>
             if (!ct.IsCancellationRequested)
             {
                 onComplete?.Invoke();
+                tipCanvasGroup?.DOFade(0f, 0);
                 SetSubTitle(string.Empty);
             }
         }

@@ -120,6 +120,8 @@ public class PopupPanel : UIPanelBase
     public override void Open(UIData uiData = null)
     {
         base.Open(uiData);
+        GlobalInfo.ShowPopup = true;
+        Cursor.lockState = CursorLockMode.None;
         title = transform.GetComponentByChildName<Text>("Title");
         CloseButton = transform.GetComponentByChildName<Button>("CloseBtn");
         textInfo = transform.GetComponentByChildName<Text>("Text");
@@ -266,6 +268,7 @@ public class PopupPanel : UIPanelBase
     {
         //弹窗时禁用快捷键
         ShortcutManager.Instance.enabled = true;
+        GlobalInfo.ShowPopup = false;
         GlobalInfo.SysPopup = false;
         base.Close(uiData, callback);
     }

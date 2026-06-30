@@ -152,11 +152,7 @@ public class Option_GeneralModule : UIModuleBase
     {
         if (string.IsNullOrEmpty(PlayerPrefs.GetString(GlobalInfo.qualityCacheKey)))
         {
-#if UNITY_EDITOR || UNITY_STANDALONE
-            PlayerPrefs.SetString(GlobalInfo.qualityCacheKey, "High");
-#else
             PlayerPrefs.SetString(GlobalInfo.qualityCacheKey, "Low");
-#endif
         }
 
         if (string.IsNullOrEmpty(PlayerPrefs.GetString(GlobalInfo.fileSavePathCacheKey)))

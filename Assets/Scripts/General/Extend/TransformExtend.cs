@@ -265,8 +265,14 @@ public static class TransformExtend
                 {
                     oldChildren.Add(tmp.name, tmp);
                 }
+                else
+                {
+                    Log.Debug($"[同名调试] UpdateItemsView | oldChildren 已有同名Key被跳过: {tmp.name}");
+                }
             }
         }
+
+        Log.Debug($"[同名调试] UpdateItemsView | childCount:{childCount} | infosCount:{count} | oldChildrenKeys:[{string.Join(",", oldChildren.Keys)}]");
 
         for (int i = 0; i < count; i++)
         {
@@ -278,6 +284,7 @@ public static class TransformExtend
             }
 
             Transform tmp = null;
+            bool isNew = false;
             if (!oldChildren.ContainsKey(tmpName))
             {
                 tmp = Object.Instantiate(defaultTf, Self);
@@ -289,6 +296,7 @@ public static class TransformExtend
                 {
                     tmp.name += Self.childCount;
                 }
+                isNew = true;
                 newChildCallback?.Invoke(tmp, t);
             }
             else
@@ -296,6 +304,7 @@ public static class TransformExtend
                 tmp = oldChildren[tmpName];
                 oldChildCallback?.Invoke(tmp, t);
             }
+            Log.Debug($"[同名调试] UpdateItemsView | [{i}] tmpName:{tmpName} | isNew:{isNew} | transformName:{tmp.name}");
             tmp.gameObject.SetActive(true);
         }
     }

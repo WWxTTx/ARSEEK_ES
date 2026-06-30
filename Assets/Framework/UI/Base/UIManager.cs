@@ -99,9 +99,6 @@ namespace UnityFramework.Runtime
 
 
             canvas = canvasGO.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceCamera;
-            canvas.worldCamera = Camera.main.transform.parent.GetComponent<Camera>();
-            canvas.planeDistance = 10f;
 
             Vector2 canvasSize = canvas.GetComponent<RectTransform>().sizeDelta;
             GlobalInfo.CanvasWidth = (int)canvasSize.x;

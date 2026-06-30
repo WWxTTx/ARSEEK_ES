@@ -90,7 +90,9 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                 {
                     case NetworkManager.MEMBER_LIST:
                         //成员列表消息
-                        UpdateRoomMembers(JsonTool.DeSerializable<List<Member>>(jObject[NetworkManager.PAYLOAD]["members"].ToString()));
+                        string membersJson = jObject[NetworkManager.PAYLOAD]["members"].ToString();
+                        Log.Debug($"[同名调试] MEMBER_LIST 原始JSON: {membersJson}");
+                        UpdateRoomMembers(JsonTool.DeSerializable<List<Member>>(membersJson));
                         break;
                     case NetworkManager.MEMBER_IN:
                         //成员进入房间消息

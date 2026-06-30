@@ -321,6 +321,12 @@ public class Thermometry : BehaveBase
     {
         if (ctrlGO != null)
         {
+            // 每次打开先复位
+            ctrlGO.transform.DOKill();
+            ctrlGO.transform.localPosition = new Vector3(-0.184f, 0.234f, -0.329f);
+            ctrlGO.transform.localRotation = Quaternion.Euler(0, 90, 0);
+            ctrlGO.transform.localScale = Vector3.one;
+         
             ctrlGO.SetActive(true);
             ctrlGO.transform.DOScale(1f, 0);
             ctrlGO.transform.DOLocalMove(new Vector3(0f, 0.05f, 0f), 0f);

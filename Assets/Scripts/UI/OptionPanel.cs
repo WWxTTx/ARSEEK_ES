@@ -123,11 +123,13 @@ public class OptionPanel : UIPanelBase
 
         this.GetComponentByChildName<Button>("Close").onClick.AddListener(() => UIManager.Instance.CloseUI<OptionPanel>());
 
+        GlobalInfo.ShowPopup = true;
         SendMsg(new MsgBool((ushort)CoursePanelEvent.Option, true));
     }
 
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
+        GlobalInfo.ShowPopup = false;
         if (!GlobalInfo.MultiplePopup)
             Cursor.lockState = GlobalInfo.CursorLockMode;
         UIManager.Instance.CloseAllModuleUI<ToastPanel>(this);

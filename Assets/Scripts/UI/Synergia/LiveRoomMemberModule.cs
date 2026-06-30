@@ -420,6 +420,8 @@ public class LiveRoomMemberModule : UIModuleBase
     /// </summary>
     public void UpdateMemberList(List<Member> members)
     {
+        Log.Debug($"[同名调试] UpdateMemberList | 收到成员数:{members.Count} | IDs:[{string.Join(",", members.Select(m => m.Id))}] | Names:[{string.Join(",", members.Select(m => m.Nickname))}]");
+
         //对比新旧成员列表，移除不在新列表中的用户视线标记
         List<int> oldIds = new List<int>(allMemberItem.Keys);
         List<int> newIds = members.Select(m => m.Id).ToList();
@@ -430,16 +432,20 @@ public class LiveRoomMemberModule : UIModuleBase
         MemberCount.text = $"({members.Count}人)";
         allMemberItem.Clear();
 
-        MemberScrollView.content.UpdateItemsView(FilterMemberList(members), i => i.Id.ToString(), SetNewMember, SetOldMember);
+        var filteredMembers = FilterMemberList(members);
+        Log.Debug($"[同名调试] UpdateMemberList | 过滤后成员数:{filteredMembers.Count} | IDs:[{string.Join(",", filteredMembers.Select(m => m.Id))}] | Names:[{string.Join(",", filteredMembers.Select(m => m.Nickname))}]");
+        MemberScrollView.content.UpdateItemsView(filteredMembers, i => i.Id.ToString(), SetNewMember, SetOldMember);
     }
 
     private List<Member> FilterMemberList(List<Member> members)
     {
         string searchKeyword = SearchModule.Text.Replace(" ", "");
+        Log.Debug($"[同名调试] FilterMemberList | 输入:{members.Count} | searchKeyword:'{searchKeyword}'");
 
         if (!string.IsNullOrEmpty(searchKeyword))
         {
             members = members.Select(item => item).Where(member => member.Nickname.Contains(searchKeyword)).ToList();
+            Log.Debug($"[同名调试] FilterMemberList | 搜索过滤后:{members.Count}");
         }
 
         Empty.SetActive(members.Count == 0);

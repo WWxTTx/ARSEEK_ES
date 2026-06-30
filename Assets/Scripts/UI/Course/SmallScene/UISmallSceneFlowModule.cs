@@ -13,6 +13,7 @@ using static UnityFramework.Runtime.RequestData;
 public class UISmallSceneFlowModule : UIModuleBase
 {
     private RectTransform Background;
+    public bool IsExpanded => Background != null && Background.anchoredPosition.x >= -1f;
 
     private SmallFlowCtrl smallFlowCtrl;
     private UISmallSceneModule smallSceneModule;
@@ -54,11 +55,23 @@ public class UISmallSceneFlowModule : UIModuleBase
         });
 
         Background = this.GetComponentByChildName<RectTransform>("Background");
-        this.GetComponentByChildName<Button>("Close").onClick.AddListener(() => SendMsg(new MsgBase((ushort)OperationListEvent.Hide)));
+        this.GetComponentByChildName<Button>("Close").onClick.AddListener(CollapseModule);
 
         smallSceneModule = transform.parent.GetComponentInChildren<UISmallSceneModule>();
         smallFlowCtrl = ModelManager.Instance.modelGo.GetComponent<SmallFlowCtrl>();
         InitTreeView();
+
+#if UNITY_STANDALONE
+        var content = this.FindChildByName("Background")?.Find("View");
+#else
+        var content = this.FindChildByName("View");
+#endif
+        if (content != null)
+        {
+            var text = content.GetComponentInChildren<Text>();
+            var canvasGroup = content.GetComponent<CanvasGroup>();
+            SpeechManager.Instance.RegisterTipDisplay(canvasGroup, text);
+        }
     }
 
     /// <summary>
@@ -396,23 +409,33 @@ public class UISmallSceneFlowModule : UIModuleBase
     protected override float joinAnimePlayTime => 0.3f;
     protected override float exitAnimePlayTime => 0.2f;
 
-    private void OpenModule()
+    public void ExpandModule()
     {
 #if UNITY_ANDROID || UNITY_IOS
-        JoinSequence.Join(Background.DOAnchorPos3DX(0, JoinAnimePlayTime));
+        Background.DOAnchorPos3DX(0, joinAnimePlayTime);
 #else
         if (!GlobalInfo.IsExamMode())
-            JoinSequence.Join(Background.DOAnchorPos3DX(44f, JoinAnimePlayTime));
+            Background.DOAnchorPos3DX(44f, joinAnimePlayTime);
 #endif
+    }
+
+    public void CollapseModule()
+    {
+#if UNITY_ANDROID || UNITY_IOS
+        Background.DOAnchorPos3DX(Background.sizeDelta.x, exitAnimePlayTime);
+#else
+        Background.DOAnchorPos3DX(-Background.sizeDelta.x, exitAnimePlayTime);
+#endif
+    }
+
+    private void OpenModule()
+    {
+        ExpandModule();
     }
 
     public override void ExitAnim(UnityAction callback)
     {
-#if UNITY_ANDROID || UNITY_IOS
-        ExitSequence.Join(Background.DOAnchorPos3DX(Background.sizeDelta.x, ExitAnimePlayTime));
-#else
-        ExitSequence.Join(Background.DOAnchorPos3DX(-Background.sizeDelta.x, ExitAnimePlayTime));
-#endif
+        CollapseModule();
         base.ExitAnim(callback);
     }
     #endregion

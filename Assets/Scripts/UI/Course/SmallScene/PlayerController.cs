@@ -89,7 +89,6 @@ public class PlayerController : MonoBase
     private Transform verticalPoint;
     private Transform cameraFollowPoint;
     private Transform firstCameraFollowPoint;
-    private Transform externalFollowPoint;
 
     private Transform model;
     private Animator animator;
@@ -415,9 +414,21 @@ public class PlayerController : MonoBase
             }
         }
 
-        //CameraDotween是否正在执行相机动画的标志位 动画中不可控制角色和相机 相机由外部自由控制
-        if (GlobalInfo.SysPopup || rotateJoystick == null || ModelManager.Instance.CameraDotween)
+        //CameraDotween: 观察/聚焦等行为由DOTween控制相机位置，不可跟随
+        if (GlobalInfo.SysPopup || ModelManager.Instance.CameraDotween)
             return;
+
+        //弹窗但非系统弹窗：光标解锁，阻断输入但相机仍需跟随角色到新位置
+        if (Cursor.lockState != CursorLockMode.Locked)
+        {
+            if (!isNavigating)
+                CameraFollow();
+            return;
+        }
+#if UNITY_ANDROID || UNITY_IOS
+        if (rotateJoystick == null)
+            return;
+#endif
 
         if (!isNavigating)
         {

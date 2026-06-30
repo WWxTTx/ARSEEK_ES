@@ -149,11 +149,6 @@ public class UISmallSceneToolModule : UIModuleBase
                                     items[modelInfo.ID].transform.GetComponentByChildName<Text>("Num").text = $"x{toolNumber[modelInfo.ID]}";
                             }
                             break;
-                        case PropType.SafetyTool:
-                            //items[modelInfo.ID].isOn = true;
-                            items[modelInfo.ID].SetIsOnWithoutNotify(true);
-                            items[modelInfo.ID].GetComponentInChildren<CanvasGroup>().alpha = 0.4f;
-                            break;
                     }
                 }
                 else
@@ -166,9 +161,6 @@ public class UISmallSceneToolModule : UIModuleBase
                                 if (toolNumber[modelInfo.ID] < (modelInfo.InfoData as ModelInfo_BackPackOriginal).num)
                                     items[modelInfo.ID].transform.GetComponentByChildName<Text>("Num").text = $"x{++toolNumber[modelInfo.ID]}";
                             }
-                            break;
-                        case PropType.SafetyTool:
-                            items[modelInfo.ID].isOn = false;
                             break;
                     }
                     items[modelInfo.ID].transform.gameObject.SetActive(true);
@@ -202,12 +194,6 @@ public class UISmallSceneToolModule : UIModuleBase
                 else
                 {
                     this.FindChildByName(modelInfo.Name).gameObject.SetActive(true);
-                    switch (modelInfo.PropType)
-                    {
-                        case PropType.SafetyTool:
-                            items[modelInfo.ID].isOn = false;
-                            break;
-                    }
                 }
             });
         }
@@ -225,20 +211,8 @@ public class UISmallSceneToolModule : UIModuleBase
 
         InitContactToggle();
         InitInputToggle();
-        //InitLookToggle();
-        //InitHandToggle();
         InitDrawingToggle();
-        InitMasterComputerToggle();
         InitBackpack();
-
-        //添加快捷键提示
-#if UNITY_STANDALONE
-        var list = items.Values.Where(toggle => toggle.transform.parent == ToolContent && toggle.gameObject.activeInHierarchy).ToList();
-        for (int i = 0; i < list.Count; i++)
-        {
-            list[i].GetComponentByChildName<Text>("ShortcutKey").text = $"F{i + 1}";// (i + 1).ToString();
-        }
-#endif
 
         ToolContent.GetComponentInParent<ScrollRect>().horizontalNormalizedPosition = 0f;
     }
@@ -284,68 +258,7 @@ public class UISmallSceneToolModule : UIModuleBase
         items.Add(SmallFlowCtrl.historyFlag, inputHistoryTog);
     }
 
-    /// <summary>
-    /// 初始化观察
-    /// </summary>
-    private void InitLookToggle()
-    {
-        var look = ToolContent.FindChildByName(SmallFlowCtrl.observeFlag);
-        var text = look.GetComponentByChildName<Text>("Name");
-        var toggle = look.GetComponentInChildren<Toggle>();
-        toggle.onValueChanged.AddListener(isOn =>
-        {
-            text.color = isOn ? textSelectColor : Color.white;
-            if (isOn)
-            {
-                CloseBackpack();
-                prop = SmallFlowCtrl.observeFlag;
-                SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, SmallFlowCtrl.observeFlag));
-                RefreshTip();
-            }
-            else if (!toggle.group.AnyTogglesOn())
-            {
-                prop = null;
-                SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, null));
-                RefreshTip();
-            }
-        });
-        permanentToggles.Add(toggle);
-        items.Add(SmallFlowCtrl.observeFlag, toggle);
 
-        look.gameObject.SetActive(false);
-    }
-
-    /// <summary>
-    /// 初始化手部操作工具
-    /// </summary>
-    private void InitHandToggle()
-    {
-        var hand = ToolContent.FindChildByName(SmallFlowCtrl.handFlag);
-        var text = hand.GetComponentByChildName<Text>("Name");
-        var toggle = hand.GetComponentInChildren<Toggle>();
-        toggle.onValueChanged.AddListener(isOn =>
-        {
-            text.color = isOn ? textSelectColor : Color.white;
-
-            if (isOn)
-            {
-                CloseBackpack();
-                prop = SmallFlowCtrl.handFlag;
-                SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, SmallFlowCtrl.handFlag));
-                RefreshTip();
-            }
-            else if (!toggle.group.AnyTogglesOn())
-            {
-                prop = null;
-                SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, null));
-                RefreshTip();
-            }
-        });
-        permanentToggles.Add(toggle);
-        items.Add(SmallFlowCtrl.handFlag, toggle);
-
-        hand.gameObject.SetActive(false);
-    }
 
     /// <summary>
     /// 初始化图纸工具
@@ -442,74 +355,7 @@ public class UISmallSceneToolModule : UIModuleBase
         SchematicPanel.SetViews(schematics, textSelectColor);
     }
 
-    /// <summary>
-    /// 初始化上位机工具
-    /// </summary>
-    private void InitMasterComputerToggle()
-    {
-        var master = ToolContent.FindChildByName(SmallFlowCtrl.masterFlag);
-        if (smallSceneModule.masterComputer != null)
-        {
-            master.gameObject.SetActive(true);
-            var text = master.GetComponentByChildName<Text>("Name");
-            var toggle = master.GetComponentInChildren<Toggle>();
-            toggle.onValueChanged.AddListener(isOn =>
-            {
-                text.color = isOn ? textSelectColor : Color.white;
-                if (isOn)
-                {
-                    smallSceneModule.masterComputer.gameObject.SetActive(true);
-                    ShowTool(false, 1f);
-                }
-                else
-                {
-                    smallSceneModule.masterComputer.gameObject.SetActive(false);
-                    ShowTool(true);
-                }
-            });
-            items.Add(SmallFlowCtrl.masterFlag, toggle);
-        }
-        else
-        {
-            var masterComputerProp = smallFlowCtrl.toolIDs.FirstOrDefault(t => t.Value.PropType == PropType.MasterComputer).Value;
-            if (masterComputerProp != null)
-            {
-                master.gameObject.SetActive(true);
-                var text = master.GetComponentByChildName<Text>("Name");
-                var toggle = master.GetComponentInChildren<Toggle>();
-                toggle.onValueChanged.AddListener(isOn =>
-                {
-                    text.color = isOn ? textSelectColor : Color.white;
-                    if (isOn)
-                    {
-                        CloseBackpack();
-                        prop = masterComputerProp.ID;
-                        SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, masterComputerProp.ID));
-                        RefreshTip();
-
-                        Sprite masterSprite = masterComputerProp.transform.Find("WindowView/View/Show")?.GetComponent<Image>()?.sprite;
-                        MasterComputerPanel.ShowDrawing(masterComputerProp.Name, masterSprite);
-                    }
-                    else
-                    {
-                        MasterComputerPanel.HideView();
-                    }
-                    if (!toggle.group.AnyTogglesOn())
-                    {
-                        prop = null;
-                        SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, null));
-                        RefreshTip();
-                    }
-                });
-                permanentToggles.Add(toggle);
-                items.Add(masterComputerProp.ID, toggle);
-            }
-            else
-            {
-                master.gameObject.SetActive(false);
-            }
-        }
-    }
+ 
 
     /// <summary>
     /// 初始化背包
@@ -517,16 +363,12 @@ public class UISmallSceneToolModule : UIModuleBase
     private void InitBackpack()
     {
         var backpackToolPrefab = GridContent.GetChild(0);
-        var safetyToolPrefab = GridContent.GetChild(1);
 
         foreach (var info in smallFlowCtrl.toolIDs)
         {
             Transform item = null;
             switch (info.Value.PropType)
             {
-                case PropType.SafetyTool:
-                    item = Instantiate(safetyToolPrefab, GridContent);
-                    break;
                 case PropType.BackPack:
                 case PropType.BackPack_Original:
                     item = Instantiate(backpackToolPrefab, GridContent);
@@ -598,15 +440,6 @@ public class UISmallSceneToolModule : UIModuleBase
                     }
                 }
                 break;
-            case PropType.SafetyTool:
-                {
-                    var data = info.InfoData as ModelInfo_SafetyTool;
-                    {
-                        item.GetComponentByChildName<Image>("Icon").sprite = data.Icon;
-                        item.gameObject.SetActive(data.InBackPack);
-                    }
-                }
-                break;
         }
     }
 
@@ -628,23 +461,6 @@ public class UISmallSceneToolModule : UIModuleBase
 
         switch (info.PropType)
         {
-            case PropType.SafetyTool:
-                toggle.onValueChanged.AddListener(isOn =>
-                {
-                    toggle.GetComponentInChildren<CanvasGroup>().alpha = isOn ? 0.4f : 1f;
-                    if (isOn)
-                    {
-                        safetyProps.Add(info.ID);
-                        smallSceneModule.TryExecuteToolOp(info, SmallFlowCtrl.usedFlag);
-                    }
-                    else
-                    {
-                        smallSceneModule.TryExecuteToolOp(info, SmallFlowCtrl.pickupFlag);
-                        safetyProps.Remove(info.ID);
-                    }
-                    RefreshTip();
-                });
-                break;
             default:
                 toggle.onValueChanged.AddListener(isOn =>
                 {
@@ -685,18 +501,6 @@ public class UISmallSceneToolModule : UIModuleBase
                     }
                     else
                     {
-                        ClearModes();
-
-                        ////关闭工具模式高亮提示
-                        //Transform Modes = item.FindChildByName("Modes");
-                        //if (Modes && Modes.childCount > 1)
-                        //{
-                        //    Modes.gameObject.SetActive(false);
-
-                        //    if (toolModeHighlight != null)
-                        //    { toolModeHighlight.Kill(); toolMode = string.Empty; }
-                        //}
-
                         if (!toggle.group.AnyTogglesOn())
                         {
                             prop = null;
@@ -773,29 +577,7 @@ public class UISmallSceneToolModule : UIModuleBase
                 if (tog)
                     tog.isOn = true;
             }
-            else
-            {
-                if (trans.childCount > 1)
-                {
-                    for (int i = trans.childCount - 1; i > 0; i--)
-                    {
-                        if (trans.GetChild(i).gameObject)
-                        {
-                            Object.DestroyImmediate(trans.GetChild(i).gameObject);
-                        }
-                    }
-                }
-            }
         }
-    }
-
-    private void ClearModes()
-    {
-        Transform trans = transform.FindChildByName("ExternalModes");
-        trans.gameObject.SetActive(false);
-
-        if (toolModeHighlight != null)
-        { toolModeHighlight.Kill(); toolMode = string.Empty; }
     }
 
     /// <summary>
@@ -817,7 +599,9 @@ public class UISmallSceneToolModule : UIModuleBase
                     var text = content.GetComponentByChildName<Text>("Name");
                     if (text != null)
                     {
+#if UNITY_ANDROID || UNITY_IOS
                         text.AutoComponent<UITextScroll>();
+#endif
                     }
                 }
             }
@@ -831,8 +615,7 @@ public class UISmallSceneToolModule : UIModuleBase
     {
         //var list = items.Values.Where(toggle => toggle.transform.parent == GridContent).ToList();
         var list = items.Where(item => item.Value.transform.parent == GridContent
-            && smallFlowCtrl.toolIDs.ContainsKey(item.Key)
-            && smallFlowCtrl.toolIDs[item.Key].PropType != PropType.SafetyTool).Select(item => item.Value).ToList();
+            && smallFlowCtrl.toolIDs.ContainsKey(item.Key)).Select(item => item.Value).ToList();
 
         foreach (var toggle in list)
             toggle.isOn = false;
@@ -902,8 +685,7 @@ public class UISmallSceneToolModule : UIModuleBase
                     if (string.IsNullOrEmpty(prop) || !prop.Equals(smallOp.prop.ID))
                     {
                         if (!backpackTog.isOn && (smallOp.prop.PropType == PropType.BackPack
-                            || smallOp.prop.PropType == PropType.BackPack_Original
-                            || smallOp.prop.PropType == PropType.SafetyTool))
+                            || smallOp.prop.PropType == PropType.BackPack_Original))
                         {
                             tmpToolID = backpackTog.transform.GetInstanceID();
                             if (!newHighlights.ContainsKey(tmpToolID))

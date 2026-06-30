@@ -282,6 +282,41 @@ public class GlobalInfo
     /// 当前是否有系统等弹窗显示
     /// </summary>
     public static bool SysPopup = false;
+
+    /// <summary>
+    /// 当前是否有弹窗显示
+    /// </summary>
+    public static bool ShowPopup
+    {
+        get
+        {
+            if (_showPopup > 0)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        set
+        {
+            if (value)
+            {
+                _showPopup++;
+            }
+            else
+            {
+                _showPopup--;
+            }
+
+            if (_showPopup < 0)
+            {
+                Debug.LogError("就不应该能等于负数,检查相关设置!");
+                _showPopup = 0;
+            }
+        }
+    }
     /// <summary>
     /// 当前是否有多个弹窗
     /// </summary>
