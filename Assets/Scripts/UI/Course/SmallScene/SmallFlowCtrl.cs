@@ -1047,7 +1047,14 @@ public class SmallFlowCtrl : MonoBase
         }
         isRestoringPreviousStates = false;
 
-        // 4. 考核模式：使用联机考核记录恢复其余操作状态
+        // 4. 设置当前步骤索引（触发 ExecuteInitStateSequentially 执行目标步骤的初始视角）
+        index_NowStep = stepIndex;
+
+        // 5. 显式设置角色位置（从上一步联动或当前步骤初始视角中搜索导航点）
+        ApplyPlayerPositionForStepJump(stepIndex);
+
+        // 6. 考核模式：用联机考核记录覆盖初始视角状态（考核记录优先级最高）
+        // 必须在 index_NowStep 之后执行，确保分层：默认状态 → initState → 考核操作记录
         if (!ResetByFlow)
         {
             if (answerOp != null)
@@ -1055,12 +1062,6 @@ public class SmallFlowCtrl : MonoBase
             else
                 FindObjectOfType<ExamCoursePanel>().GetComponent<ExamCoursePanel>().RefreshExamOpHistoryAsync(SetExamModelStateData);
         }
-
-        // 5. 显式设置角色位置（从上一步联动或当前步骤初始视角中搜索导航点）
-        ApplyPlayerPositionForStepJump(stepIndex);
-
-        // 6. 设置当前步骤索引（触发 ExecuteInitStateSequentially 执行目标步骤的初始视角）
-        index_NowStep = stepIndex;
     }
 
 
@@ -1809,6 +1810,54 @@ public class SmallFlowCtrl : MonoBase
                 RunAction(action.operation.operations.Find(value => value.name.Equals(action.optionName)).actions.FindAll(a => a.operation != null), null, 0, dummy);
             }
         }, dummy);
+    }
+
+    /// <summary>
+    /// 仅设置点击目标（无高亮效果），用于考核模式下路由点击到正确的 ModelOperation
+    /// </summary>
+    public void SetClickTarget(Component component)
+    {
+        if (component == null)
+            return;
+
+        if (component.TryGetComponent(out ModelRestrict modelRestrict))
+        {
+            var operation = component.GetComponent<ModelOperation>();
+            if (operation == null)
+                return;
+
+            foreach (var node in modelRestrict.modelHighlight.highlightNodes)
+            {
+                if (node == null)
+                    continue;
+
+                var boxEvents = node.GetComponentsInChildren<CollisionBoxMouseEvent>(true);
+                foreach (var be in boxEvents)
+                    be.Target = operation;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 清除点击目标
+    /// </summary>
+    public void ClearClickTarget(Component component)
+    {
+        if (component == null)
+            return;
+
+        if (component.TryGetComponent(out ModelRestrict modelRestrict))
+        {
+            foreach (var node in modelRestrict.modelHighlight.highlightNodes)
+            {
+                if (node == null)
+                    continue;
+
+                var boxEvents = node.GetComponentsInChildren<CollisionBoxMouseEvent>(true);
+                foreach (var be in boxEvents)
+                    be.Target = null;
+            }
+        }
     }
 
     /// <summary>

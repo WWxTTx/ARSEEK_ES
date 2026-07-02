@@ -1945,7 +1945,10 @@ public class UISmallSceneModule : UIModuleBase
     public void RefreshHighlight()
     {
         if (GlobalInfo.IsExamMode())
+        {
+            RefreshClickTargets();
             return;
+        }
 
         var newHighlights = new HashSet<Component>();
 
@@ -2001,6 +2004,41 @@ public class UISmallSceneModule : UIModuleBase
         }
 
         highlights = newHighlights;
+    }
+
+    /// <summary>
+    /// 考核模式下仅刷新点击目标路由（无高亮效果）
+    /// 确保一个物体对应多个操作时，点击能路由到正确的 ModelOperation
+    /// </summary>
+    private HashSet<Component> clickTargets = new HashSet<Component>();
+
+    private void RefreshClickTargets()
+    {
+        var newTargets = new HashSet<Component>();
+
+        if (smallFlowCtrl.nowFlowStep != null)
+        {
+            foreach (var smallOp in smallFlowCtrl.nowFlowStep.ops)
+            {
+                if (smallFlowCtrl.IsOpCompleted(smallOp))
+                    continue;
+                if (smallOp.operation == null)
+                    continue;
+
+                if (!clickTargets.Contains(smallOp.operation))
+                    smallFlowCtrl.SetClickTarget(smallOp.operation);
+
+                newTargets.Add(smallOp.operation);
+            }
+        }
+
+        foreach (var component in clickTargets)
+        {
+            if (!newTargets.Contains(component))
+                smallFlowCtrl.ClearClickTarget(component);
+        }
+
+        clickTargets = newTargets;
     }
 
     private void StepHighlight(int flowIndex, int stepIndex)

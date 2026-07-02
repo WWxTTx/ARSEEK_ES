@@ -201,7 +201,6 @@
     <Compile Include="Assets\Scripts\UI\Module\ShowVideoModule.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\ServerSentEvents\EventSource.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Decompression\Deflate.cs" />
-    <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\EnergySaving\FPSManager.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Manager\NetworkManager.AgentHelper.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\IAgentHelper\IIMAgentHelper.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x509\X509CertificateStructure.cs" />

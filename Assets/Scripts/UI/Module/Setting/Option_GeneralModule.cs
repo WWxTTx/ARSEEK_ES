@@ -183,6 +183,28 @@ public class Option_GeneralModule : UIModuleBase
         }
     }
 
+    private static void ApplyFrameSettings(int qualityIndex)
+    {
+#if UNITY_STANDALONE
+        QualitySettings.vSyncCount = 1;
+        Application.targetFrameRate = -1;
+#elif UNITY_ANDROID
+        QualitySettings.vSyncCount = 0;
+        switch (qualityIndex)
+        {
+            case 1:
+                Application.targetFrameRate = 30;
+                break;
+            case 2:
+                Application.targetFrameRate = 60;
+                break;
+            default:
+                Application.targetFrameRate = -1;
+                break;
+        }
+#endif
+    }
+
     /// <summary>
     /// 低质量 - 关闭Reflection Probe和Global Volume
     /// </summary>
@@ -191,6 +213,7 @@ public class Option_GeneralModule : UIModuleBase
         ModelManager.Instance.ControlQualityLevel(1);
         ModelManager.Instance.ControlPostProcessing(false);
         ResManager.ApplyQualitySettings(ModelManager.Instance.modelGo);
+        ApplyFrameSettings(1);
     }
 
     /// <summary>
@@ -201,6 +224,7 @@ public class Option_GeneralModule : UIModuleBase
         ModelManager.Instance.ControlQualityLevel(2);
         ModelManager.Instance.ControlPostProcessing(true);
         ResManager.ApplyQualitySettings(ModelManager.Instance.modelGo);
+        ApplyFrameSettings(2);
     }
 
     /// <summary>
@@ -211,5 +235,6 @@ public class Option_GeneralModule : UIModuleBase
         ModelManager.Instance.ControlQualityLevel(3);
         ModelManager.Instance.ControlPostProcessing(true);
         ResManager.ApplyQualitySettings(ModelManager.Instance.modelGo);
+        ApplyFrameSettings(3);
     }
 }
