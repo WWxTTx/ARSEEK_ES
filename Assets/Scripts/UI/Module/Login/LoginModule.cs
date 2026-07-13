@@ -178,7 +178,8 @@ public class LoginModule : UIModuleBase
 
                 this.GetComponentByChildName<Button>("UsernameExtendButton").onClick.AddListener(() =>
                 {
-                    List<KeyValuePair<string, string>> accounts = CommonAccount?.ToList();
+                    if (CommonAccount == null) return;
+                    List<KeyValuePair<string, string>> accounts = CommonAccount.ToList();
                     accounts.Reverse();
                     ExtendContent.transform.FindChildByName("Content").RefreshItemsView(accounts, (item, info) =>
                     {

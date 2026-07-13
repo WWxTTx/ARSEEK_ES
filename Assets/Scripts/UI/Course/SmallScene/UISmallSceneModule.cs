@@ -300,6 +300,14 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     private bool isAlt;
     /// <summary>
+    /// 打开设置界面前的鼠标模式
+    /// </summary>
+    private bool preOptionIsAlt;
+    /// <summary>
+    /// 打开设置界面前的鼠标锁定状态
+    /// </summary>
+    private CursorLockMode preOptionCursorLockMode;
+    /// <summary>
     /// 是否打开大地图
     /// </summary>
     private bool inMap;
@@ -316,7 +324,7 @@ public class UISmallSceneModule : UIModuleBase
     private bool TryGetModelOperationFromRay(out ModelOperation result)
     {
         result = null;
-        RaycastHit[] hits = Physics.RaycastAll(ray, 10, modelLayerMask);
+        RaycastHit[] hits = Physics.RaycastAll(ray, 15, modelLayerMask);
         if (hits.Length == 0)
             return false;
 
@@ -463,7 +471,8 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)SmallFlowModuleEvent.ClousePop,
             (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.OtherLeave,
-            (ushort)SmallFlowModuleEvent.StartExecute
+            (ushort)SmallFlowModuleEvent.StartExecute,
+            (ushort)CoursePanelEvent.Option
         });
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", false);
 
@@ -805,6 +814,7 @@ public class UISmallSceneModule : UIModuleBase
             if (Cursor.lockState != CursorLockMode.None)
 #endif
             {
+                Focus.gameObject.SetActive(IsOperatableState);
                 ray = mainCam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
                 if (TryGetModelOperationFromRay(out _))
                 {
@@ -830,6 +840,10 @@ public class UISmallSceneModule : UIModuleBase
                     UnRaySelect();
                     isMouseDown = false;
                 }
+            }
+            else
+            {
+                Focus.gameObject.SetActive(false);
             }
         }
     }
@@ -1351,7 +1365,6 @@ public class UISmallSceneModule : UIModuleBase
         isAlt = isSelect;
         if (playerController)
         {
-            Focus.enabled = !isSelect;
             Focus.transform.GetChild(0).gameObject.SetActive(isSelect ? false : modelOperation_Highlight != null);
 #if UNITY_ANDROID || UNITY_IOS
             fakeCursorLocked = !isSelect;
@@ -1362,7 +1375,7 @@ public class UISmallSceneModule : UIModuleBase
             }
             else
             {
-                if (!GlobalInfo.ShowPopup)
+                if (!GlobalInfo.ShowPopup && !GlobalInfo.InPaintMode)
                     Cursor.lockState = CursorLockMode.Locked;
             }
             if (!GlobalInfo.ShowPopup || isSelect)
@@ -1373,9 +1386,20 @@ public class UISmallSceneModule : UIModuleBase
 
     private void EnableCameraControl(bool enabled)
     {
+        if (enabled && GlobalInfo.InPaintMode)
+            return;
         CameraMove.enabled = enabled;
         CameraRotate.enabled = enabled;
         CameraZoom.enabled = enabled;
+    }
+
+    /// <summary>
+    /// 切换到自由点击模式（解锁光标，禁用相机控制）
+    /// </summary>
+    public void SwitchToFreeClick()
+    {
+        SetSelect(true);
+        EnableCameraControl(false);
     }
 
     public override void ProcessEvent(MsgBase msg)
@@ -1636,18 +1660,30 @@ public class UISmallSceneModule : UIModuleBase
                     {
                         ShortcutManager.OpenOption, ()=>
                         {
-                            if(playerController == null)
-                                return;
-                            if (!isAlt)
+                            if (!UIManager.Instance.IsOpen<OptionPanel>())
                             {
-                                EnableCameraControl(false);
-                                SetSelect(true);
+                                preOptionIsAlt = isAlt;
+                                preOptionCursorLockMode = Cursor.lockState;
+                                if (!isAlt)
+                                {
+                                    EnableCameraControl(false);
+                                    SetSelect(true);
+                                }
                             }
                         }
                     }
                 });
                 break;
 #endif
+            case (ushort)CoursePanelEvent.Option:
+                if (!((MsgBool)msg).arg1)
+                {
+                    SetSelect(preOptionIsAlt);
+                    EnableCameraControl(!preOptionIsAlt);
+                    if (!GlobalInfo.MultiplePopup)
+                        Cursor.lockState = preOptionCursorLockMode;
+                }
+                break;
             case (ushort)SmallFlowModuleEvent.MaxMap:
                 inMap = ((MsgBool)msg).arg1;
                 break;

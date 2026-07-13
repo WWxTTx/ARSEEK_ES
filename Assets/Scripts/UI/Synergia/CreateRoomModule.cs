@@ -116,14 +116,14 @@ public class CreateRoomModule : ResourcesModule
         }
         else
         {
-            SelectCourse.SetActive(false);
-            PrevBtn.gameObject.SetActive(false);
-            RoomInfo.SetActive(true);
             thisCourseId = createRoomModuleData.courseId;
-
-            ////填充默认房间名称
-            //if (GlobalInfo.courseDicExists.TryGetValue(thisCourseId, out Course course))
-            //    RoomName.text = course.name;
+            CheckCachedRoom(() =>
+            {
+                if (this == null) return;
+                SelectCourse.SetActive(false);
+                PrevBtn.gameObject.SetActive(false);
+                RoomInfo.SetActive(true);
+            });
         }
     }
 
@@ -236,6 +236,67 @@ public class CreateRoomModule : ResourcesModule
     protected virtual void CloseModule()
     {
         UIManager.Instance.CloseModuleUI<CreateRoomModule>(ParentPanel);
+    }
+
+    /// <summary>
+    /// 快捷创建时检查是否有未解散的旧房间
+    /// </summary>
+    private void CheckCachedRoom(UnityAction onContinue)
+    {
+        string cachedRoomUuid = PlayerPrefs.GetString(GlobalInfo.CachedRoom, " ");
+        if (string.IsNullOrWhiteSpace(cachedRoomUuid))
+        {
+            onContinue?.Invoke();
+            return;
+        }
+
+        NetworkManager.Instance.GetRoomList((rooms) =>
+        {
+            if (this == null) return;
+
+            RoomInfoModel cachedRoom = null;
+            foreach (var room in rooms)
+            {
+                if (room.Uuid == cachedRoomUuid)
+                {
+                    cachedRoom = room;
+                    break;
+                }
+            }
+
+            if (cachedRoom == null || cachedRoom.creatorId != GlobalInfo.account.id)
+            {
+                GlobalInfo.ClearCachedRoom();
+                onContinue?.Invoke();
+                return;
+            }
+
+            var popupDic = new Dictionary<string, PopupButtonData>();
+            popupDic.Add("确定", new PopupButtonData(() =>
+            {
+                if (this == null) return;
+                GlobalInfo.ClearCachedRoom();
+                NetworkManager.Instance.DeleteRoom(cachedRoomUuid, () =>
+                {
+                    onContinue?.Invoke();
+                }, (code, msg) =>
+                {
+                    Log.Error($"删除房间失败 {msg}");
+                    onContinue?.Invoke();
+                });
+            }, true));
+            popupDic.Add("取消", new PopupButtonData(() =>
+            {
+                if (this == null) return;
+                CloseModule();
+            }));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您有未解散的旧房间，是否解散并创建新房间？", popupDic, null, false));
+        }, (code, msg) =>
+        {
+            if (this == null) return;
+            Log.Error($"获取房间列表失败 {msg}");
+            onContinue?.Invoke();
+        });
     }
 
     #region 课程列表
@@ -557,13 +618,13 @@ public class CreateRoomModule : ResourcesModule
         if (ParentPanel is TrainingPanel)
         {
             UIManager.Instance.CloseUI<TrainingPanel>();
-            UIManager.Instance.OpenUI<OPLSynCoursePanel>();
         }
-        else
+        else if (ParentPanel is OPLCoursePanel op)
         {
+            op.SkipDestructiveCleanup = true;
             UIManager.Instance.CloseUI<OPLCoursePanel>();
-            UIManager.Instance.OpenUI<OPLSynCoursePanel>();
         }
+        UIManager.Instance.OpenUI<OPLSynCoursePanel>();
         NetworkManager.Instance.SetUserColor(GlobalInfo.account.id);
         this.WaitTime(0.5f, () => UIManager.Instance.CloseUI<TransitionPanel>());
 

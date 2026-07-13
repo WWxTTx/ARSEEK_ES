@@ -325,10 +325,8 @@ public class Thermometry : BehaveBase
             ctrlGO.transform.DOKill();
             ctrlGO.transform.localPosition = new Vector3(-0.184f, 0.234f, -0.329f);
             ctrlGO.transform.localRotation = Quaternion.Euler(0, 90, 0);
-            ctrlGO.transform.localScale = Vector3.one;
          
             ctrlGO.SetActive(true);
-            ctrlGO.transform.DOScale(1f, 0);
             ctrlGO.transform.DOLocalMove(new Vector3(0f, 0.05f, 0f), 0f);
             ctrlGO.transform.localRotation = Quaternion.Euler(0, 85, 0);
             Material Sensitivity = ctrlGO.transform.Find("Root/PM").GetComponent<MeshRenderer>().material;
@@ -337,14 +335,16 @@ public class Thermometry : BehaveBase
             //显示
             ctrlGO.transform.DOLocalMove(new Vector3(-0.28f, 0.2f, -0.28f), 1f).OnComplete(() =>
             {
-                DOVirtual.DelayedCall(useTime, () =>
+                float waitTime = useTime;
+                if (SpeechManager.Instance.SpeechMode && SpeechManager.Instance.audioSource != null && SpeechManager.Instance.audioSource.clip != null)
                 {
-                    ctrlGO.transform.localRotation = Quaternion.Euler(0, 90, 0);
-                    ctrlGO.transform.DOScale(0.4f, 1);
-                    ctrlGO.transform.DOLocalMove(new Vector3(-0.184f, 0.234f, -0.329f), 1f).OnComplete(() =>
-                    {
-                        callback?.Invoke();
-                    });
+                    float audioLength = SpeechManager.Instance.audioSource.clip.length - SpeechManager.Instance.audioSource.time + 1;
+                    waitTime = Mathf.Max(useTime, audioLength);
+                }
+                DOVirtual.DelayedCall(waitTime, () =>
+                {
+                    ctrlGO.SetActive(false);
+                    callback.Invoke();
                 });
             });
         }

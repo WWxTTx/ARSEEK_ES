@@ -68,7 +68,12 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
 
         for (int i = currentStepIndex; i < msgUI.stepIndex && i < steps.Count; i++)
         {
-            ExecuteButtonEvent(steps[i]);
+            if (TryToNext(steps[i]))
+            {
+                // 发送广播消息给其他用户（包含操作对象ID）
+                ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationLcu, (int)status, currentStepIndex), true);
+                ButenEvent(steps[i]);
+            }
         }
 
         await UniTask.Yield();
@@ -105,6 +110,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
         Othercallback = callback;
         Othercallback += () =>
         {
+            steps.Clear();
             SetImageRaycast(true);
         };
 
@@ -134,7 +140,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                 }
                 callback = () =>
                 {
-                    ExecuteButtonEvent("空载运行");
+                    ButenEvent("空载运行");
                 };
                 StartFlow();
                 break;
@@ -151,7 +157,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                 }
                 callback = () =>
                 {
-                    ExecuteButtonEvent("断路器断合");
+                    ButenEvent("断路器断合");
                 };
                 StartFlow();
                 break;
@@ -169,7 +175,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                 }
                 callback = () =>
                 {
-                    ExecuteButtonEvent("断路器断开");
+                    ButenEvent("断路器断开");
                 };
                 StartFlow();
                 break;
@@ -187,7 +193,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
                 }
                 callback = () =>
                 {
-                    ExecuteButtonEvent("停机");
+                    ButenEvent("停机");
                 };
                 StartFlow();
                 break;
@@ -282,24 +288,18 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
     public GameObject bjjm;
     public GameObject kzjm;
 
-    /// <summary>
-    /// 按钮事件入口 - 本地点击时调用
-    /// </summary>
-    public void ButenEvent(string eventname)
-    {
-        if (TryToNext(eventname))
-        {
-            // 发送广播消息给其他用户（包含操作对象ID）
-            ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationLcu, (int)status, currentStepIndex), true);
-            ExecuteButtonEvent(eventname);
-        }
-    }
 
     /// <summary>
     /// 执行按钮事件的实际逻辑
     /// </summary>
-    public void ExecuteButtonEvent(string eventname)
+    public void ButenEvent(string eventname)
     {
+        if (!TryToNext(eventname) && steps.Count > 0)
+        {
+            if (smallSceneModule != null)
+                smallSceneModule.OnErrorShow();
+            return;
+        }
         switch (eventname)
         {
             case "停机":

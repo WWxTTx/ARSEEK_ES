@@ -99,7 +99,7 @@ namespace UnityFramework.Runtime
             _ignorTimescale = ignorTimescale;
             cachedTime = CurrentTime;
             _flag = string.IsNullOrEmpty(flag) ? GetHashCode().ToString() : flag;//设置辨识标志符
-            if (timers.Exists((v) => { return v._flag == flag; }))
+            if (timers.Exists((v) => { return v._flag == flag && !v._isFinish; }))
             {
                 if (showLog) Log.Warning("【TimerTrigger（容错）】:存在相同的标识符【{0}】！", flag);
             }
@@ -231,7 +231,7 @@ namespace UnityFramework.Runtime
         /// <param name="flag">标志位指定</param>
         public static bool Exist(string flag)
         {
-            return timers.Exists((v) => { return v._flag == flag; });
+            return timers.Exists((v) => { return v._flag == flag && !v._isFinish; });
         }
         /// <summary>
         /// 确认是否存在指定的定时器

@@ -30,15 +30,16 @@ public class OptionPanel : UIPanelBase
 
         ModuleNode = this.FindChildByName("ModuleNode");
         Panel = this.GetComponentByChildName<RectTransform>("Panel");
-        CanvasGroup = Panel.GetComponent<CanvasGroup>();
+        CanvasGroup = Panel?.GetComponent<CanvasGroup>();
 
-        Toast = this.FindChildByName("Toast").gameObject;
-        ToastBackground = Toast.GetComponentInChildren<CanvasGroup>(true);
-        True = this.FindChildByName("True").gameObject;
-        False = this.FindChildByName("False").gameObject;
+        Toast = this.FindChildByName("Toast")?.gameObject;
+        ToastBackground = Toast?.GetComponentInChildren<CanvasGroup>(true);
+        True = this.FindChildByName("True")?.gameObject;
+        False = this.FindChildByName("False")?.gameObject;
         InfoText = this.GetComponentByChildName<Text>("Info");
 
-       var UserInfo = this.GetComponentByChildName<Toggle>("UserInfo");
+        var UserInfo = this.GetComponentByChildName<Toggle>("UserInfo");
+        if (UserInfo != null)
         {
             UserInfo.onValueChanged.AddListener(isOn =>
             {
@@ -53,6 +54,7 @@ public class OptionPanel : UIPanelBase
         }
 
         var General = this.GetComponentByChildName<Toggle>("General");
+        if (General != null)
         {
             General.onValueChanged.AddListener(isOn =>
             {
@@ -64,6 +66,7 @@ public class OptionPanel : UIPanelBase
         }
 
         var Help = this.GetComponentByChildName<Toggle>("Help");
+        if (Help != null)
         {
             Help.onValueChanged.AddListener(isOn =>
             {
@@ -75,6 +78,7 @@ public class OptionPanel : UIPanelBase
         }
 
         var Hotkey = this.GetComponentByChildName<Toggle>("Hotkey");
+        if (Hotkey != null)
         {
             Hotkey.onValueChanged.AddListener(isOn =>
             {
@@ -86,6 +90,7 @@ public class OptionPanel : UIPanelBase
         }
 
         var About = this.GetComponentByChildName<Toggle>("About");
+        if (About != null)
         {
             About.onValueChanged.AddListener(isOn =>
             {
@@ -96,22 +101,18 @@ public class OptionPanel : UIPanelBase
             });
         }
 
-        this.GetComponentByChildName<Button>("Minimize").onClick.AddListener(() =>
+        this.GetComponentByChildName<Button>("Minimize")?.onClick.AddListener(() =>
         {
             WindowCtrl.MinimizeWindow();
             UIManager.Instance.CloseUI<OptionPanel>();
         });
 
-        this.GetComponentByChildName<Button>("Logout").onClick.AddListener(() =>
+        this.GetComponentByChildName<Button>("Logout")?.onClick.AddListener(() =>
         {
             SendMsg(new MsgBase((ushort)OptionPanelEvent.Logout));
-            //Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-            //popupDic.Add("取消", new PopupButtonData(null));
-            //popupDic.Add("确定", new PopupButtonData(Logout, true));
-            //UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("登出提示", "确定要退出登录吗?", popupDic));
         });
 
-        this.GetComponentByChildName<Button>("Quit").onClick.AddListener(() =>
+        this.GetComponentByChildName<Button>("Quit")?.onClick.AddListener(() =>
         {
             var popupDic = new Dictionary<string, PopupButtonData>();
             {
@@ -121,7 +122,7 @@ public class OptionPanel : UIPanelBase
             }
         });
 
-        this.GetComponentByChildName<Button>("Close").onClick.AddListener(() => UIManager.Instance.CloseUI<OptionPanel>());
+        this.GetComponentByChildName<Button>("Close")?.onClick.AddListener(() => UIManager.Instance.CloseUI<OptionPanel>());
 
         GlobalInfo.ShowPopup = true;
         SendMsg(new MsgBool((ushort)CoursePanelEvent.Option, true));
@@ -130,8 +131,6 @@ public class OptionPanel : UIPanelBase
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
         GlobalInfo.ShowPopup = false;
-        if (!GlobalInfo.MultiplePopup)
-            Cursor.lockState = GlobalInfo.CursorLockMode;
         UIManager.Instance.CloseAllModuleUI<ToastPanel>(this);
         SendMsg(new MsgBool((ushort)CoursePanelEvent.Option, false));
         base.Close(uiData, callback);
@@ -139,6 +138,9 @@ public class OptionPanel : UIPanelBase
 
     public void ShowToast(bool result, string info)
     {
+        if (True == null || False == null || InfoText == null || Toast == null || ToastBackground == null)
+            return;
+
         DOTween.Kill("ToastFade");
         True.SetActive(result);
         False.SetActive(!result);
@@ -147,7 +149,7 @@ public class OptionPanel : UIPanelBase
         Toast.SetActive(true);
         DOTween.To(() => ToastBackground.alpha, value => ToastBackground.alpha = value, 0, 1.5f).SetDelay(1f).SetId("ToastFade").onComplete = () =>
         {
-            Toast.SetActive(false);
+            Toast?.SetActive(false);
         };
     }
     #region 动效
@@ -155,6 +157,12 @@ public class OptionPanel : UIPanelBase
 
     public override void JoinAnim(UnityAction callback)
     {
+        if (Panel == null || CanvasGroup == null)
+        {
+            base.JoinAnim(callback);
+            return;
+        }
+
         SoundManager.Instance.PlayEffect("Popup");
         JoinSequence.Join(DOTween.To(() => 0.2f * Vector3.one, (value) => Panel.transform.localScale = value, Vector3.one, JoinAnimePlayTime));
         JoinSequence.Join(DOTween.To(() => 0f, (value) => CanvasGroup.alpha = value, 1f, JoinAnimePlayTime));
@@ -163,6 +171,12 @@ public class OptionPanel : UIPanelBase
 
     public override void ExitAnim(UnityAction callback)
     {
+        if (Panel == null || CanvasGroup == null)
+        {
+            base.ExitAnim(callback);
+            return;
+        }
+
         ExitSequence.Join(DOTween.To(() => Vector3.one, (value) => Panel.transform.localScale = value, 0.8f * Vector3.one, ExitAnimePlayTime));
         ExitSequence.Join(DOTween.To(() => 1f, (value) => CanvasGroup.alpha = value, 0f, ExitAnimePlayTime));
         base.ExitAnim(callback);

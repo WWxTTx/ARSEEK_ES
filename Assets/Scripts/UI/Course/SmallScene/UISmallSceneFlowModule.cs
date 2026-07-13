@@ -55,7 +55,10 @@ public class UISmallSceneFlowModule : UIModuleBase
         });
 
         Background = this.GetComponentByChildName<RectTransform>("Background");
-        this.GetComponentByChildName<Button>("Close").onClick.AddListener(CollapseModule);
+        this.GetComponentByChildName<Button>("Close").onClick.AddListener(() =>
+        {
+            SendMsg(new MsgBase((ushort)OperationListEvent.Hide));
+        });
 
         smallSceneModule = transform.parent.GetComponentInChildren<UISmallSceneModule>();
         smallFlowCtrl = ModelManager.Instance.modelGo.GetComponent<SmallFlowCtrl>();

@@ -133,6 +133,8 @@ public class TreeViewItemData : MonoBehaviour
     /// 记录点击时间
     /// </summary>
     private float timer;
+    private CancellationTokenSource pendingClickCts;
+    private const float DoubleClickWindow = 0.35f;
 
     private string no_breaking_space = "\u00A0";
 
@@ -188,10 +190,9 @@ public class TreeViewItemData : MonoBehaviour
                 ClickBtn.AddTarget(sideItem.SideItemData.HoverImg);
             ClickBtn.onClick.AddListener(() =>
             {
-                //if (IsSelected && !Reselectable)//TODO old待删
-                if (Time.time - timer < 1 && !Reselectable)//双击且可编辑
+                if (Time.time - timer < DoubleClickWindow && !Reselectable)//双击且可编辑
                 {
-                    //if (GlobalInfo.currentCourseInfo.creatorId == GlobalInfo.account.id && !GlobalInfo.IsLiveMode() && !GlobalInfo.IsExamMode())//TODO old待删
+                    pendingClickCts?.Cancel();
                     if (GlobalInfo.account.roleType == 1 && !GlobalInfo.IsLiveMode() && !GlobalInfo.IsExamMode())
                     {
                         prevObjectEditName = Name.text;
@@ -204,7 +205,17 @@ public class TreeViewItemData : MonoBehaviour
                 }
                 else
                 {
-                    FormMsgManager.Instance.SendMsg(new MsgHierarchy((ushort)HierarchyEvent.Click, GlobalInfo.account.id, UUID, item));
+                    pendingClickCts?.Cancel();
+                    pendingClickCts?.Dispose();
+                    pendingClickCts = new CancellationTokenSource();
+                    var ct = pendingClickCts.Token;
+                    var capturedItem = item;
+                    UniTask.Delay((int)(DoubleClickWindow * 1000), DelayType.DeltaTime, cancellationToken: ct)
+                        .ContinueWith(() =>
+                        {
+                            if (!ct.IsCancellationRequested)
+                                FormMsgManager.Instance.SendMsg(new MsgHierarchy((ushort)HierarchyEvent.Click, GlobalInfo.account.id, UUID, capturedItem));
+                        }).Forget();
                 }
                 timer = Time.time;
             });
@@ -221,6 +232,13 @@ public class TreeViewItemData : MonoBehaviour
         LayoutRebuilder.ForceRebuildLayoutImmediate(item.CachedRectTransform);
     }
 
+
+    private void OnDestroy()
+    {
+        pendingClickCts?.Cancel();
+        pendingClickCts?.Dispose();
+        pendingClickCts = null;
+    }
 
     async UniTaskVoid DisableInput(InputField input)
     {

@@ -495,23 +495,30 @@ public class OPLCoursePanel : HoverHintPanel
         UIManager.Instance.OpenUI(data.PanelName);
     }
 
+    /// <summary>
+    /// 跳过破坏性清理（创建房间进入协同时使用）
+    /// </summary>
+    public bool SkipDestructiveCleanup { get; set; }
+
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
         int courseId = GlobalInfo.currentCourseID;
         int duration = (int)(Time.realtimeSinceStartup - timeCourseStart);
 
-        ModelManager.Instance.DestroyScripts();
-        ModelManager.Instance.DestroyModels(true);
-        ResManager.Instance.StopAllDownLoad();
+        if (!SkipDestructiveCleanup)
+        {
+            ModelManager.Instance.DestroyScripts();
+            ModelManager.Instance.DestroyModels(true);
+            ResManager.Instance.StopAllDownLoad();
+            Resources.UnloadUnusedAssets();
+            System.GC.Collect();
+        }
 #if UNITY_ANDROID || UNITY_IOS
         GlobalInfo.isAR = false;
 #endif
         BaikeSelectModule.selectID = 0;
         BaikeSelectModule.CurrentBaikeIndex = 0;
         GlobalInfo.currentCourseID = 0;
-
-        Resources.UnloadUnusedAssets();
-        System.GC.Collect();
 
         if (!transform.name.StartsWith(typeof(OPLCoursePanel).ToString()))
         {

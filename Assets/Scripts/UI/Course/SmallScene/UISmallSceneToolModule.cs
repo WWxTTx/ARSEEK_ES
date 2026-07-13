@@ -776,7 +776,7 @@ public class UISmallSceneToolModule : UIModuleBase
                 break;
             case (ushort)SmallFlowModuleEvent.StartExecute:
             case (ushort)SmallFlowModuleEvent.OperatingRecordInput:
-                //interactable = false;
+                interactable = false;
                 break;
             case (ushort)SmallFlowModuleEvent.ShowUIOperation:
                 //todo 显示UI操作不禁用工具栏(聚焦操作对象自动显示OpUI)

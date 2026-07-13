@@ -26,6 +26,16 @@ namespace UnityFramework.Runtime
             base.Close(uiData, callback);
         }
 
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            if (ParentPanel != null && UIManager.Instance != null)
+            {
+                UIManager.Instance.RemoveModule(this);
+            }
+        }
+
         #region 委托
         public delegate void ModuleDelegate();
         /// <summary>

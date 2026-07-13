@@ -63,6 +63,11 @@ public class NetworkChannel
     private bool _isProcessing = false;
 
     /// <summary>
+    /// 通道已关闭标志，防止退出时竞态
+    /// </summary>
+    private volatile bool _isClosed = false;
+
+    /// <summary>
     /// Constructor
     /// </summary>
     /// <param name="channelType"></param>
@@ -101,6 +106,7 @@ public class NetworkChannel
     /// </summary>
     public void Close()
     {
+        _isClosed = true;
         if (webSocket == null || !webSocket.IsOpen)
         {
             DebugHelper.Debug(channelType, "已关闭WebSocket连接");
@@ -116,8 +122,9 @@ public class NetworkChannel
     /// <param name="message"></param>
     public void Send(string message)
     {
-        if (IsConnect)
-            webSocket.Send(message);
+        if (_isClosed || !IsConnect)
+            return;
+        webSocket.Send(message);
     }
 
     /// <summary>
@@ -159,9 +166,8 @@ public class NetworkChannel
     /// <returns>是否发送成功</returns>
     private async Task<bool> SendAsyncWithTimeout(string message)
     {
-        if (!IsConnect)
+        if (_isClosed || !IsConnect)
         {
-            Log.Warning($"[{channelType}] WebSocket连接已关闭");
             return false;
         }
 
@@ -170,8 +176,15 @@ public class NetworkChannel
         {
             try
             {
+                if (_isClosed)
+                    return false;
                 webSocket.Send(message);
                 return true; // 发送成功
+            }
+            catch (ObjectDisposedException)
+            {
+                // 退出时连接已释放，静默处理
+                return false;
             }
             catch (Exception ex)
             {

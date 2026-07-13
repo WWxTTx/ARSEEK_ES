@@ -464,6 +464,7 @@ public class TrainingPanel : UIPanelBase
     {
         Button UpdateBtn = item.GetComponentByChildName<Button>("Update");
         Transform DownloadTrans = item.FindChildByName("Download");
+        if (UpdateBtn == null || DownloadTrans == null) return;
         Text DownloadText = DownloadTrans.GetComponentInChildren<Text>();
 
         if (result == 0 || GlobalInfo.account.id == roomInfo.creatorId)

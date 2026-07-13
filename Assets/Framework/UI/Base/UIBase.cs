@@ -188,6 +188,7 @@ namespace UnityFramework.Runtime
         {
             JoinSequence.OnComplete(() =>
             {
+                if (this == null) return;
                 callback?.Invoke();
             });
             JoinSequence.Restart();
@@ -201,6 +202,7 @@ namespace UnityFramework.Runtime
         {
             ExitSequence.OnComplete(() =>
             {
+                if (this == null) return;
                 callback?.Invoke();
             });
             ExitSequence.Restart();

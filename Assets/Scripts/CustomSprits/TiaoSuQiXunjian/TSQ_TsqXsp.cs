@@ -7,6 +7,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SocialPlatforms;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
 
@@ -86,7 +87,12 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
         for (int i = currentStepIndex; i < msgUI.stepIndex && i < steps.Count; i++)
         {
-            ExecuteButtonEvent(steps[i]);
+            if (TryToNext(steps[i]))
+            {
+                // 发送广播消息给其他用户（包含操作对象ID）
+                ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, (int)status, currentStepIndex), true);
+                ButenEvent(steps[i]);
+            }
         }
 
         await UniTask.Yield();
@@ -145,6 +151,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         Othercallback = callback;
         Othercallback += () =>
         {
+            steps.Clear();
             SetImageRaycast(true);
             ClousAllTip();
         };
@@ -165,6 +172,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     /// </summary>
     public void DealEvent(AvailableStatus status)
     {
+        Debug.Log("执行" + status.ToString());
         switch (status)
         {
             case AvailableStatus.巡检:
@@ -370,6 +378,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 DOVirtual.DelayedCall(2, () =>
                 {
                     ChangeFouces(true);
+                    Monitor(true);
                     jsq.DOLocalMove(new Vector3(-0.28f, 0.22f, -0.22f), 0);
                     jsq.gameObject.SetActive(true);
                     DOVirtual.DelayedCall(5, () =>
@@ -1269,24 +1278,19 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     /// </summary>
     /// <param name="btn"></param>
     float kd;
-    /// <summary>
-    /// 按钮事件入口 - 本地点击时调用
-    /// </summary>
-    public void ButenEvent(string eventname)
-    {
-        if (TryToNext(eventname))
-        {
-            // 发送广播消息给其他用户（包含操作对象ID）
-            ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, (int)status, currentStepIndex), true);
-            ExecuteButtonEvent(eventname);
-        }
-    }
 
     /// <summary>
     /// 执行按钮事件的实际逻辑
     /// </summary>
-    private void ExecuteButtonEvent(string eventname)
+    public void ButenEvent(string eventname)
     {
+        if (!TryToNext(eventname) && steps.Count > 0)
+        {
+            if (smallSceneModule != null)
+                smallSceneModule.OnErrorShow();
+            return;
+        }
+
         switch (eventname)
         {
             case "通信状态":
@@ -1304,10 +1308,12 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             case "水头t":
                 smallSceneModule.ShowHint("水头与实际相符", -1);
                 UIButtons[0].gameObject.SetActive(true);
+                UIButtons[1].gameObject.SetActive(false);
                 break;
             case "B机t":
                 smallSceneModule.ShowHint("A、B套除“导叶给定”、“导叶反馈”、“桨叶给定”、“桨叶反馈”略有差异外，其余参数保持一致", -1);
                 UIButtons[0].gameObject.SetActive(false);
+                UIButtons[1].gameObject.SetActive(true);
                 break;
             case "开度给定增加":
                 kd = float.Parse(TextDic["导叶开度"].text);
@@ -1432,11 +1438,13 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 break;
             case "切到A":
                 TextDic["主用"].text = "A机";
+                UIButtons[0].gameObject.SetActive(false);
                 UIButtons[1].gameObject.SetActive(false);
                 UIButtons[2].gameObject.SetActive(true);
                 break;
             case "切到B":
                 TextDic["主用"].text = "B机";
+                UIButtons[0].gameObject.SetActive(false);
                 UIButtons[2].gameObject.SetActive(false);
                 UIButtons[1].gameObject.SetActive(true);
                 break;
@@ -1497,8 +1505,6 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 SetUIPanel("甩负荷试验");
                 break;
         }
-
-
     }
 
     public void SetUIPanel(string name)

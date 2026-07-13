@@ -1797,6 +1797,7 @@
     <None Include="Assets\Packages\Microsoft.Extensions.Logging.Abstractions.8.0.1\LICENSE.TXT" />
     <None Include="Assets\Packages\Microsoft.AspNetCore.SignalR.Protocols.Json.8.0.3\lib\net462\Microsoft.AspNetCore.SignalR.Protocols.Json.xml" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn4.4\cs\cs\System.Text.Json.SourceGeneration.resources.dll" />
+    <None Include="Assets\ArtResources\Font\1000.txt" />
     <None Include="Assets\SDK\Vuplex\WebView\Standalone\LICENSE_Standalone.txt" />
     <None Include="Assets\Packages\Microsoft.Extensions.Logging.Abstractions.8.0.1\THIRD-PARTY-NOTICES.TXT" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn3.11\cs\System.Text.Json.SourceGeneration.dll" />

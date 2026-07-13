@@ -9,16 +9,15 @@ public class SampleEvent : MonoBehaviour, IBaseBehaviour
 {
     bool IBaseBehaviour.UseCallback(int step) => false;
 
-    public UnityEvent FinalEvents;
-    public UnityEvent ExecuteEvents;
+    public UnityEvent Events;
     public Type GetStatusEnumType() => null;
     void IBaseBehaviour.Execute(int step, UnityAction callback)
     {
-        ExecuteEvents?.Invoke();
+        Events?.Invoke();
     }
 
     public void SetFinalState()
     {
-        FinalEvents?.Invoke();
+        Events?.Invoke();
     }
 }

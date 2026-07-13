@@ -307,7 +307,6 @@ public class SmallFlowCtrl : MonoBase
     }
 
     #region 角色对准与导航（自动辅助）
-
     private PlayerController _playerController;
     /// <summary>
     /// 角色控制器（懒加载缓存）。统一从 ModelManager.modelRoot 下查找。
@@ -321,33 +320,32 @@ public class SmallFlowCtrl : MonoBase
             return _playerController;
         }
     }
-
-    /// <summary>
-    /// 非考核模式下，将相机对准当前步骤第一个可操作对象。
+    /// 将相机对准当前步骤第一个可操作对象。
     /// 在每个步骤开头（index_NowStep 设置、初始视角执行完成后）调用。
     /// </summary>
     private void AimCameraAtFirstOp()
     {
-        if (GlobalInfo.isExam)
-            return;
         if (nowFlowStep == null || nowFlowStep.ops == null)
             return;
 
-        SmallOp1 firstOp = nowFlowStep.ops.FirstOrDefault(o => o.operation != null);
-        if (firstOp == null)
-            return;
-
-        PlayerController pc = playerController;
-        if (pc == null)
-            return;
-
-        //所有可操作对象必然有一个射线检测碰撞盒，使用其中心点的世界坐标是最准确的锁定
-        //延迟0.1f是为了避免锁定和设置最终状态在同一帧执行，导致锁定到设置最终状态前的位置
-        DOVirtual.DelayedCall(0.1f, () =>
+        //仅培训和直播有效
+        if (GlobalInfo.courseMode == CourseMode.Training || GlobalInfo.courseMode == CourseMode.Livebroadcast)
         {
-            pc.AimAtTarget(firstOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform.position);
-        });
-      
+            SmallOp1 firstOp = nowFlowStep.ops.FirstOrDefault(o => o.operation != null);
+            if (firstOp == null)
+                return;
+
+            PlayerController pc = playerController;
+            if (pc == null)
+                return;
+
+            //所有可操作对象必然有一个射线检测碰撞盒，使用其中心点的世界坐标是最准确的锁定
+            //延迟0.1f是为了避免锁定和设置最终状态在同一帧执行，导致锁定到设置最终状态前的位置
+            DOVirtual.DelayedCall(0.1f, () =>
+            {
+                pc.AimAtTarget(firstOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform.position);
+            });
+        }
     }
 
     /// <summary>
@@ -1406,9 +1404,6 @@ public class SmallFlowCtrl : MonoBase
 
         var op = opLinkages[index];
 
-        // 步骤级联动：每个联动项播放对应的Tips语音，索引需跳过初始视角弹窗语音
-        SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, nowFlowStep.ops.Count + GetInitStatePopupVoiceCount() + index, TipType.Tips);
-
         // 检查是否有弹窗（非考核）
         bool hasPopup = false;
         BehavePopup popupBehave = null;
@@ -1421,6 +1416,19 @@ public class SmallFlowCtrl : MonoBase
 
         if (hasPopup)
         {
+            // 统计当前联动前有多少个弹窗联动，用于计算语音序号
+            int popupVoiceIndex = 0;
+            for (int i = 0; i < index; i++)
+            {
+                bool prevHasPopup = false;
+                BehavePopup prevPopup = null;
+                bool prevHasGuide = false;
+                BehavePlayerNavigation prevGuide = null;
+                FindBehave(opLinkages[i].operation, opLinkages[i].optionName, ref prevHasPopup, ref prevPopup);
+                if (prevHasPopup) popupVoiceIndex++;
+            }
+            SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, nowFlowStep.ops.Count + GetInitStatePopupVoiceCount() + popupVoiceIndex, TipType.Tips);
+
             // 有弹窗：显示弹窗，等确认后再 SetFinalState 并继续
             popupBehave.Execute(() =>
             {
@@ -2513,6 +2521,10 @@ public class SmallFlowCtrl : MonoBase
 
             // 添加到工具字典
             toolIDs.Add(schematicSprite.name, modelInfo);
+
+            // 切换鼠标到自由点击模式
+            UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true).SwitchToFreeClick();
+
             DOVirtual.DelayedCall(0.3f, () =>
             {
                 onSchematicAdded.Invoke(modelInfo);

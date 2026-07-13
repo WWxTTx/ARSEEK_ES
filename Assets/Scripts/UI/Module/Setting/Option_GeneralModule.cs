@@ -70,6 +70,8 @@ public class Option_GeneralModule : UIModuleBase
             });
         }
 
+        var playerController = ModelManager.Instance.modelRoot?.GetComponentInChildren<PlayerController>();
+
         var MoveSpeed = this.GetComponentByChildName<Slider>("MoveSpeedSlider");
         {
             float moveCoefficient = PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
@@ -81,7 +83,8 @@ public class Option_GeneralModule : UIModuleBase
                 float coefficient = SliderToCoefficient(value);
                 PlayerPrefs.SetFloat(GlobalInfo.moveSpeedCacheKey, coefficient);
                 SliderValue.text = Mathf.Floor(coefficient * 100) + "%";
-                ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().cachedRotateSpeed = coefficient;
+                if (playerController != null)
+                    playerController.cachedMoveSpeed = coefficient;
             });
         }
 
@@ -96,7 +99,8 @@ public class Option_GeneralModule : UIModuleBase
                 float coefficient = SliderToCoefficient(value);
                 PlayerPrefs.SetFloat(GlobalInfo.rotateSpeedCacheKey, coefficient);
                 SliderValue.text = Mathf.Floor(coefficient * 100) + "%";
-                ModelManager.Instance.modelRoot.GetComponentInChildren<PlayerController>().cachedRotateSpeed = coefficient;
+                if (playerController != null)
+                    playerController.cachedRotateSpeed = coefficient;
             });
         }
 
@@ -107,10 +111,14 @@ public class Option_GeneralModule : UIModuleBase
         CourseVoice.onValueChanged.AddListener(index =>
         {
             PlayerPrefs.SetInt(GlobalInfo.courseVoice, index);
+            GlobalInfo.UpdateSpeechMode();
             if(index == 1)
             {
-                //标记初始化语音数据
                 SpeechManager.Instance.LoadData();
+            }
+            else
+            {
+                SpeechManager.Instance.StopSpeech();
             }
         });
 

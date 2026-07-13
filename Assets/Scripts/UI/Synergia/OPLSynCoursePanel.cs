@@ -318,7 +318,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
             //直播房主画面 分享画面
             if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Live && GlobalInfo.IsMainScreen())
                 NetworkManager.Instance.EnableLocalVideo(true);
-            
+
             if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count != 0)
             {
 
@@ -329,9 +329,16 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 else
                 {
                     CourseSideBar.SetBaikePage();
-                    Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
-                    //现在没有房间内百科选择，可以不用全局消息
-                    FormMsgManager.Instance.SendMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id));
+                    if (GlobalInfo.currentWiki != null && ModelManager.Instance.modelGo != null)
+                    {
+                        RestoreEncyclopediaState();
+                    }
+                    else
+                    {
+                        Encyclopedia firstPedia = GlobalInfo.currentWikiList[0];
+                        //现在没有房间内百科选择，可以不用全局消息
+                        FormMsgManager.Instance.SendMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, firstPedia.id));
+                    }
                 }
             }
 
@@ -350,6 +357,52 @@ public class OPLSynCoursePanel : OPLCoursePanel
             NetworkManager.Instance.IsIMSync = true;
             UIManager.Instance.CloseUI<LoadingPanel>();
         });
+    }
+
+    /// <summary>
+    /// 从培训模式进入协同时，复用已加载的模型，跳过AB重载
+    /// </summary>
+    private void RestoreEncyclopediaState()
+    {
+        EncyclopediaModel encyclopediaModel = GlobalInfo.currentWiki as EncyclopediaModel;
+        if (encyclopediaModel == null) return;
+
+        BaikeSelectModule.selectID = encyclopediaModel.id;
+        BaikeSelectModule.CurrentBaikeIndex = GlobalInfo.currentWikiList.FindIndex(wiki => wiki.id == encyclopediaModel.id);
+        GlobalInfo.InSingleMode = false;
+        CourseSideBar.OnBaikeChanged();
+
+        switch (encyclopediaModel.typeId)
+        {
+            case (int)PediaType.Operation:
+                EncyclopediaOperation encyclopediaOperation = encyclopediaModel as EncyclopediaOperation;
+                GlobalInfo.currentBaikeType = BaikeType.SmallScene;
+                if (!encyclopediaOperation.hasRole)
+                    ModelManager.Instance.AddSyncComponent(Camera.main.gameObject);
+                else
+                    GlobalInfo.hasRole = encyclopediaOperation.hasRole;
+                UIModuleBase mdoe = UIManager.Instance.OpenModuleUI<UISmallSceneModule>(this, BaikeModulePoint, new SmallSceneData(encyclopediaOperation.flows));
+                mdoe.transform.SetAsFirstSibling();
+                break;
+            case (int)PediaType.Animation:
+                GlobalInfo.currentBaikeType = BaikeType.Anime;
+                ModelManager.Instance.InitScripts();
+                ModelManager.Instance.AddSyncComponent(Camera.main.gameObject);
+                AnimModule animModule = (AnimModule)UIManager.Instance.OpenModuleUI<AnimModule>(this, BaikeModulePoint);
+                animModule.ChangeBaike(ModelManager.Instance.modelGo);
+                break;
+            case (int)PediaType.Disassemble:
+                GlobalInfo.currentBaikeType = BaikeType.Dismantling;
+                ModelManager.Instance.InitScripts();
+                ModelManager.Instance.AddSyncComponent(Camera.main.gameObject);
+                DismantlingModule dismantlingModule = (DismantlingModule)UIManager.Instance.OpenModuleUI<DismantlingModule>(this, BaikeModulePoint);
+                dismantlingModule.ChangeBaike(ModelManager.Instance.modelGo);
+                break;
+        }
+
+        encyclopediaModelLoaded = true;
+        SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopediaModel.typeId != (int)PediaType.Operation));
+        NetworkManager.Instance.SyncBaikeState();
     }
 
     protected override void InitData(UnityAction callBack)

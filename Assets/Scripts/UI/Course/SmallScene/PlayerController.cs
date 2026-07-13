@@ -48,6 +48,14 @@ public class PlayerController : MonoBase
     /// 镜头缩放系数
     /// </summary>
     public float zoomSensitivity = 2;
+    /// <summary>
+    /// 相机避障检测层（墙体、地板等场景几何体）
+    /// </summary>
+    public LayerMask cameraObstacleMask = -1;
+    /// <summary>
+    /// 检测到遮挡时相机距碰撞面的回退距离
+    /// </summary>
+    public float cameraCollisionOffset = 0.3f;
 
     [HideInInspector]
     public bool isFirstPerson
@@ -95,6 +103,11 @@ public class PlayerController : MonoBase
     private Tweener modelRotateFollow;
     private Tweener modelPositionFollow;
     private CharacterController controller;
+    private bool wasCameraAway;
+    /// <summary>
+    /// 相机交给其他模式时，延迟隐藏模型的时长（让相机先移开，避免角色消失过程暴露在视角中）
+    /// </summary>
+    private float hideModelDelay = 0.3f;
     #endregion
 
     private void Awake()
@@ -343,7 +356,7 @@ public class PlayerController : MonoBase
     private void FirstPerson()
     {
         isFirstPerson = true;
-        model.gameObject.SetActive(false);
+        UpdateModelVisibility();
     }
 
     private void ThirdPerson()
@@ -353,8 +366,15 @@ public class PlayerController : MonoBase
         this.WaitTime(0.1f, () =>
         {
             if (model != null)
-                model.gameObject.SetActive(!isFirstPerson);
+                UpdateModelVisibility();
         });
+    }
+
+    private void UpdateModelVisibility()
+    {
+        if (model == null) return;
+        bool cameraAway = GlobalInfo.SysPopup || ModelManager.Instance.CameraDotween;
+        model.gameObject.SetActive(!isFirstPerson && !cameraAway);
     }
 
     #region 人称切换
@@ -404,6 +424,27 @@ public class PlayerController : MonoBase
     float t;
     private void LateUpdate()
     {
+        //检测相机是否被其他代码调度（DOTween动画/SysPopup），切换时更新模型显隐
+        bool cameraAway = GlobalInfo.SysPopup || ModelManager.Instance.CameraDotween;
+        if (cameraAway != wasCameraAway)
+        {
+            wasCameraAway = cameraAway;
+            if (cameraAway)
+            {
+                // 相机被其他模式接管时，延迟隐藏模型，让相机先移开角色位置
+                this.WaitTime(hideModelDelay, () =>
+                {
+                    if (wasCameraAway && model != null)
+                        UpdateModelVisibility();
+                });
+            }
+            else
+            {
+                // 相机归还时立即显示模型（提前于相机归位）
+                UpdateModelVisibility();
+            }
+        }
+
         //导航的相机跟随不受其他条件影响
         if (isNavigating)
         {
@@ -451,7 +492,15 @@ public class PlayerController : MonoBase
         }
         else
         {
-            mainCamera.position = Vector3.Lerp(mainCamera.position, cameraFollowPoint.position, t);
+            Vector3 desiredPos = cameraFollowPoint.position;
+            Vector3 origin = verticalPoint.position;
+            Vector3 dir = desiredPos - origin;
+            float dist = dir.magnitude;
+            if (dist > 0.01f && Physics.Raycast(origin, dir / dist, out RaycastHit hit, dist, cameraObstacleMask))
+            {
+                desiredPos = hit.point + hit.normal * cameraCollisionOffset;
+            }
+            mainCamera.position = Vector3.Lerp(mainCamera.position, desiredPos, t);
             mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, cameraFollowPoint.rotation, t);
         }
     }

@@ -15,6 +15,12 @@ public class SpeechManager : Singleton<SpeechManager>
 {
     public AudioSource audioSource;
 
+    private void Update()
+    {
+        if (audioSource.isPlaying)
+            audioSource.volume = PlayerPrefs.GetFloat(GlobalInfo.volumeCacheKey, 1f);
+    }
+
     private void Start()
     {
         if (!PlayerPrefs.HasKey(GlobalInfo.courseVoice))
@@ -234,6 +240,7 @@ public class SpeechManager : Singleton<SpeechManager>
         LoadLocalAsset.Instance.LoadAudio(speechData.audioUrl, audioClip =>
         {
             audioSource.clip = audioClip;
+            audioSource.volume = PlayerPrefs.GetFloat(GlobalInfo.volumeCacheKey, 1f);
             audioSource.Play();
 
             _cts = new CancellationTokenSource();
@@ -455,6 +462,17 @@ public class SpeechManager : Singleton<SpeechManager>
             if (speechData != null && speechData.audioUrl != null)
             {
                 DoSpeech(speechData, tipType);
+            }
+            else
+            {
+                string resolvedId = "BK" + GlobalInfo.currentWiki.id + stepId.Substring(6, stepId.Length - 6);
+                int availableCount = 0;
+                if (StepSpeechData != null && StepSpeechData.TryGetValue(resolvedId, out var typeDict))
+                {
+                    if (typeDict.TryGetValue(tipType, out var list))
+                        availableCount = list.Count;
+                }
+                Log.Debug($"语音未播放 stepId={stepId} resolvedId={resolvedId} index={index} tipType={tipType} 可用数量={availableCount} speechData={(speechData == null ? "null" : "hasUrl=" + (speechData.audioUrl != null))}");
             }
         }
 

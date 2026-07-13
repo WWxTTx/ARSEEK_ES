@@ -104,7 +104,7 @@ public class CheckVersionModule : UIModuleBase
                     }
                 }, (code, msg) =>
                 {
-                    Log.Error("新版本获取失败！", msg);
+                    Log.Warning("新版本获取失败！", msg);
                     GotoLogin();
                 });
             }
@@ -181,7 +181,7 @@ public class CheckVersionModule : UIModuleBase
             {
                 if (data == null)
                 {
-                    Log.Error("新版本获取失败，数据为空！");
+                    Log.Warning("新版本获取失败，数据为空！");
                     GotoLogin();
                 }
                 else

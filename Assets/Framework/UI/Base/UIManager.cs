@@ -829,13 +829,13 @@ namespace UnityFramework.Runtime
                 if (list != null)
                 {
                     UIModuleBase ui = null;
-                    for (int i = 0; i < list.Count; i++)
+                    for (int i = list.Count - 1; i >= 0; i--)
                     {
                         ui = list[i];
                         if (ui is T)
                         {
                             ui.Close();
-                            list.Remove(ui);
+                            list.RemoveAt(i);
                         }
                     }
                 }
@@ -890,6 +890,20 @@ namespace UnityFramework.Runtime
 
             allModuleBaseUI.Clear();
         }
+
+        /// <summary>
+        /// 从模块列表中移除指定模块（在模块被外部销毁时调用）
+        /// </summary>
+        public void RemoveModule(UIModuleBase module)
+        {
+            if (module == null || module.ParentPanel == null)
+                return;
+
+            if (allModuleBaseUI.TryGetValue(module.ParentPanel, out var list))
+            {
+                list.Remove(module);
+            }
+        }
         #endregion
 
         #region 常用操作
@@ -907,7 +921,7 @@ namespace UnityFramework.Runtime
                 return true;
             }
 
-            if (allModuleBaseUI.SelectMany(moduleBaseUI => moduleBaseUI.Value).Any(value => value.name == name))
+            if (allModuleBaseUI.SelectMany(moduleBaseUI => moduleBaseUI.Value).Any(value => value != null && value.name == name))
             {
                 return true;
             }
