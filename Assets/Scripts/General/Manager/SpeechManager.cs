@@ -15,6 +15,24 @@ public class SpeechManager : Singleton<SpeechManager>
 {
     public AudioSource audioSource;
 
+    private string currentStepId;
+    private TipType currentTipType;
+
+    /// <summary>
+    /// 当前播放的提示语音剩余时间（仅当播放的是StepName/StepComplete时有效，Tips返回0）
+    /// </summary>
+    public float PromptVoiceRemainingTime
+    {
+        get
+        {
+            if (!SpeechMode || audioSource == null || audioSource.clip == null || !audioSource.isPlaying)
+                return 0;
+            if (currentTipType == TipType.Tips)
+                return 0;
+            return audioSource.clip.length - audioSource.time + 1;
+        }
+    }
+
     private void Update()
     {
         if (audioSource.isPlaying)
@@ -411,6 +429,8 @@ public class SpeechManager : Singleton<SpeechManager>
 
     public void StopSpeech()
     {
+        currentStepId = null;
+        currentTipType = TipType.StepName;
         nextCts?.Cancel();
         nextCts?.Dispose();
         nextCts = null;
@@ -456,6 +476,9 @@ public class SpeechManager : Singleton<SpeechManager>
         {
             // 停止当前播放（无论什么类型）
             StopSpeech();
+
+            currentStepId = stepId;
+            currentTipType = tipType;
 
             // 直接播放，跳过所有 TipType 检查
             SpeechData speechData = GetSpeechData(stepId, index, tipType);

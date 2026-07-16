@@ -11,7 +11,11 @@ using static UnityFramework.Runtime.ServiceRequestData;
 public enum CourseMode
 {
     /// <summary>
-    /// 培训模式（默认）
+    /// 菜单模式（默认），不进入任何课程
+    /// </summary>
+    Menu = -1,
+    /// <summary>
+    /// 培训模式
     /// </summary>
     Training = 0,
     /// <summary>
@@ -110,7 +114,7 @@ public class GlobalInfo
     /// <summary>
     /// 当前课程模式
     /// </summary>
-    public static CourseMode courseMode = CourseMode.Training;
+    public static CourseMode courseMode = CourseMode.Menu;
 
     /// <summary>
     /// 判断是否是考核模式（Exam 或 OnlineExam）

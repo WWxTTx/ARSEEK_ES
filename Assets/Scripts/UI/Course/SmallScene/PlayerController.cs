@@ -299,6 +299,7 @@ public class PlayerController : MonoBase
 
     private float mVertical;
     private float mHorizontal;
+    private int debugMoveFrame;
     /// <summary>
     /// 控制移动
     /// </summary>
@@ -306,28 +307,35 @@ public class PlayerController : MonoBase
     {
 #if UNITY_ANDROID || UNITY_IOS
         if (moveJoystick.Vertical == 0 && moveJoystick.Horizontal == 0)
+        {
+            if (agent.isOnNavMesh)
+                agent.velocity = Vector3.zero;
             return;
+        }
+        Vector3 desiredVelocity = (moveJoystick.Vertical * transform.forward + moveJoystick.Horizontal * transform.right) * GlobalInfo.baseMoveSpeed * cachedMoveSpeed;
         if (agent.isOnNavMesh)
-        {
-            agent.Move(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * GlobalInfo.baseMoveSpeed * Time.deltaTime * cachedMoveSpeed);
-        }
+            agent.velocity = desiredVelocity;
         else
-        {
-            controller.SimpleMove(((moveJoystick.Vertical * transform.forward) + (moveJoystick.Horizontal * transform.right)) * GlobalInfo.baseMoveSpeed * Time.deltaTime * cachedMoveSpeed);
-        }
+            controller.SimpleMove(desiredVelocity * Time.deltaTime);
 #else
         mVertical = Input.GetAxis("Vertical");
         mHorizontal = Input.GetAxis("Horizontal");
         if (mVertical == 0 && mHorizontal == 0)
+        {
+            if (agent.isOnNavMesh)
+                agent.velocity = Vector3.zero;
             return;
+        }
+        debugMoveFrame++;
+        if (debugMoveFrame % 60 == 0)
+        {
+            Debug.LogWarning($"[PlayerController] Move input — V={mVertical:F3} H={mHorizontal:F3}, agentOnNavMesh={agent.isOnNavMesh}, isNavigating={isNavigating}, agentVel={agent.velocity.magnitude:F3}, hasPath={agent.hasPath}, remainingDist={agent.remainingDistance:F3}, dest={agent.destination}");
+        }
+        Vector3 desiredVelocity2 = (mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * cachedMoveSpeed;
         if (agent.isOnNavMesh)
-        {
-            agent.Move((mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * Time.deltaTime * cachedMoveSpeed);
-        }
+            agent.velocity = desiredVelocity2;
         else
-        {
-            controller.Move((mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * Time.deltaTime * cachedMoveSpeed);
-        }
+            controller.Move(desiredVelocity2 * Time.deltaTime);
 #endif
     }
     /// <summary>
@@ -422,8 +430,12 @@ public class PlayerController : MonoBase
     }
 
     float t;
+    private int debugLateFrame;
     private void LateUpdate()
     {
+        debugLateFrame++;
+
+        //检测相机是否被其他代码调度（DOTween动画/SysPopup），切换时更新模型显隐
         //检测相机是否被其他代码调度（DOTween动画/SysPopup），切换时更新模型显隐
         bool cameraAway = GlobalInfo.SysPopup || ModelManager.Instance.CameraDotween;
         if (cameraAway != wasCameraAway)
@@ -457,8 +469,11 @@ public class PlayerController : MonoBase
 
         //CameraDotween: 观察/聚焦等行为由DOTween控制相机位置，不可跟随
         if (GlobalInfo.SysPopup || ModelManager.Instance.CameraDotween)
+        {
             return;
+        }
 
+#if !UNITY_ANDROID && !UNITY_IOS
         //弹窗但非系统弹窗：光标解锁，阻断输入但相机仍需跟随角色到新位置
         if (Cursor.lockState != CursorLockMode.Locked)
         {
@@ -466,9 +481,12 @@ public class PlayerController : MonoBase
                 CameraFollow();
             return;
         }
+#endif
 #if UNITY_ANDROID || UNITY_IOS
         if (rotateJoystick == null)
+        {
             return;
+        }
 #endif
 
         if (!isNavigating)
@@ -520,7 +538,11 @@ public class PlayerController : MonoBase
     private void InitNavigation()
     {
         agent = transform.AutoComponent<NavMeshAgent>();
-        agent.stoppingDistance = 1f;
+        agent.updateRotation = false;
+        agent.stoppingDistance = 0.5f;
+        agent.radius = 0.3f;
+        agent.avoidancePriority = 50;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         if (!agent.isOnNavMesh)
         {
             agent.enabled = false;
@@ -541,18 +563,12 @@ public class PlayerController : MonoBase
     /// 姿态标记点传 true；仅靠近可操作对象时传 false（不贴到物体上）</param>
     public void StartNavigation(Transform target, bool snapToTarget)
     {
-        //GetComponent<NavMeshAgent>().enabled = true;
-
         if (agent.SetDestination(target.position))
         {
             targetPoint = target;
             navSnapToTarget = snapToTarget;
             isNavigating = true;
         }
-        //else
-        //{
-        //    GetComponent<NavMeshAgent>().enabled = false;
-        //}
     }
     public void EndNavigation(Transform target = null, float duration = 0.5f)
     {
@@ -564,6 +580,7 @@ public class PlayerController : MonoBase
         if (isNavigating && agent.enabled)
         {
             agent.ResetPath();
+            agent.velocity = Vector3.zero;
             verticalPoint.localEulerAngles = new Vector3(verticalPoint.localEulerAngles.x, 0, 0);
         }
 
@@ -574,7 +591,11 @@ public class PlayerController : MonoBase
             float moveOverTime = 0.5f / agent.speed;
             duration = moveOverTime > duration ? moveOverTime : duration;
 
-            transform.DOMove(target.position, duration);
+            transform.DOMove(target.position, duration).OnUpdate(() =>
+            {
+                if (agent.enabled && agent.isOnNavMesh)
+                    agent.Warp(transform.position);
+            });
             verticalPoint.DOLocalRotate(Vector3.zero, duration);
 
             transform.DORotate(target.eulerAngles, duration).OnComplete(() =>

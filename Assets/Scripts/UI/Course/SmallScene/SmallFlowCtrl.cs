@@ -88,6 +88,10 @@ public class SmallFlowCtrl : MonoBase
     /// 图纸添加事件：参数-添加的图纸ModelInfo
     /// </summary>
     public UnityEvent<ModelInfo> onSchematicAdded = new UnityEvent<ModelInfo>();
+    /// <summary>
+    /// 弹窗状态变化事件：参数-true=弹窗显示，false=弹窗关闭
+    /// </summary>
+    public UnityEvent<bool> onPopupStateChanged = new UnityEvent<bool>();
 
     /// <summary>
     /// 任务集合
@@ -290,11 +294,13 @@ public class SmallFlowCtrl : MonoBase
             int currentPopupIndex = popupIndex + 1; // 当前是第几个弹窗（从1开始）
             UnityAction onclick = () =>
             {
+                onPopupStateChanged.Invoke(false);
                 // 弹窗确认后，设置最终状态，然后执行下一个操作
                 SetFinalState(state.operation, state.optionName, false, true);
-                ExecuteInitStateSequentially(initStates, currentStep, index + 1, currentPopupIndex, onComplete); 
+                ExecuteInitStateSequentially(initStates, currentStep, index + 1, currentPopupIndex, onComplete);
                 ToolManager.SendBroadcastMsg(new MsgBool((ushort)SmallFlowModuleEvent.ClousePop, true));
             };
+            onPopupStateChanged.Invoke(true);
             popupBehave.Execute(onclick);
             SpeechManager.Instance.PlayImmediate(currentStep.ID, currentStep.ops.Count + currentPopupIndex - 1, TipType.Tips);
         }
@@ -331,6 +337,18 @@ public class SmallFlowCtrl : MonoBase
         //仅培训和直播有效
         if (GlobalInfo.courseMode == CourseMode.Training || GlobalInfo.courseMode == CourseMode.Livebroadcast)
         {
+            //检测步骤是否需要道具（含永久工具：图纸、上位机等），需要则自动释放光标
+            bool needTool = nowFlowStep.ops.Any(o => o.prop != null);
+            if (needTool)
+            {
+                var module = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
+                if (module != null)
+                {
+                    module.MarkStepAutoFree();
+                    module.RequestCursorFree();
+                }
+            }
+
             SmallOp1 firstOp = nowFlowStep.ops.FirstOrDefault(o => o.operation != null);
             if (firstOp == null)
                 return;
@@ -1198,7 +1216,7 @@ public class SmallFlowCtrl : MonoBase
         GlobalInfo.WaitUiOq = false;
         NetworkManager.Instance.IsIMSync = false;
         ignoreMove = dummy;
-        if (!dummy)
+        if (!dummy && !IsCameraStationaryOperation(data.operation, data.optionName))
             ModelManager.Instance.CameraDotween = true;
 
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
@@ -1268,6 +1286,29 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 操作是否为不移动相机类型（开关/弹窗），此时不应隐藏角色模型
+    /// </summary>
+    private bool IsCameraStationaryOperation(ModelOperation operation, string optionName)
+    {
+        if (operation == null) return false;
+
+        ModelInfo modelInfo = operation.GetComponent<ModelInfo>();
+        if (modelInfo?.InfoData?.InteractMode == InteractMode.Switch)
+            return true;
+
+        OperationBase op = operation.operations?.Find(o => o.name.Equals(optionName));
+        if (op?.behaveBases != null)
+        {
+            foreach (var behave in op.behaveBases)
+            {
+                if (behave is BehavePopup)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
     /// 执行操作
     /// </summary>
     /// <param name="data"></param>
@@ -1281,7 +1322,7 @@ public class SmallFlowCtrl : MonoBase
         GlobalInfo.WaitUiOq = false;
         ignoreMove = dummy;
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
-        if (!dummy)
+        if (!dummy && !IsCameraStationaryOperation(data.operation, data.optionName))
             ModelManager.Instance.CameraDotween = true;
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
 
@@ -1430,8 +1471,10 @@ public class SmallFlowCtrl : MonoBase
             SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, nowFlowStep.ops.Count + GetInitStatePopupVoiceCount() + popupVoiceIndex, TipType.Tips);
 
             // 有弹窗：显示弹窗，等确认后再 SetFinalState 并继续
+            onPopupStateChanged.Invoke(true);
             popupBehave.Execute(() =>
             {
+                onPopupStateChanged.Invoke(false);
                 ToolManager.SendBroadcastMsg(new MsgBool((ushort)SmallFlowModuleEvent.ClousePop, true));
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
             });

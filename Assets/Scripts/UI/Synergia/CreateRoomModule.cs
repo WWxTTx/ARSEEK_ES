@@ -612,8 +612,8 @@ public class CreateRoomModule : ResourcesModule
     protected virtual void JoinRoomCallback()
     {
         //记录当前房间信息
-        GlobalInfo.SetCourseMode(CourseMode.Collaboration);
         GlobalInfo.roomInfo = thisRoomInfo;
+        GlobalInfo.SetCourseMode(CourseMode.Collaboration);
         PlayerPrefs.SetString(GlobalInfo.CachedRoom, GlobalInfo.roomInfo.Uuid);
         if (ParentPanel is TrainingPanel)
         {

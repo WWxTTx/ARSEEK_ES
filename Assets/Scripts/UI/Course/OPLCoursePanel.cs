@@ -502,6 +502,7 @@ public class OPLCoursePanel : HoverHintPanel
 
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
+        GlobalInfo.SetCourseMode(CourseMode.Menu);
         int courseId = GlobalInfo.currentCourseID;
         int duration = (int)(Time.realtimeSinceStartup - timeCourseStart);
 

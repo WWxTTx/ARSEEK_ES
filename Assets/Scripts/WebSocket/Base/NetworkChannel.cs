@@ -84,6 +84,7 @@ public class NetworkChannel
     /// </summary>
     public void Connect(string url, string roomUuid)
     {
+        _isClosed = false;
         webSocket = new WebSocket(new Uri(url));
         webSocket.StartPingThread = false;
         //建立连接header
@@ -114,6 +115,7 @@ public class NetworkChannel
         }
         DebugHelper.Debug(channelType, "关闭WebSocket连接");
         webSocket.Close();
+        webSocket = null;
     }
 
     /// <summary>
@@ -257,14 +259,24 @@ public class NetworkChannel
 
     private void OnError(WebSocket ws, Exception ex)
     {
-        DebugHelper.Error(channelType, $"OnError {ex?.Message}");
+        //退出房间时的连接中断是预期行为，降级为警告
+        if (NetworkManager.Instance.IsLeavingRoom)
+            DebugHelper.Warning(channelType, $"OnError (leaving) {ex?.Message}");
+        else
+            DebugHelper.Error(channelType, $"OnError {ex?.Message}");
+
         string errorMsg = string.Empty;
 #if !UNITY_WEBGL || UNITY_EDITOR
         if (ws.InternalRequest.Response != null)
             errorMsg = string.Format("Status Code from Server: {0} and Message: {1}", ws.InternalRequest.Response.StatusCode, ws.InternalRequest.Response.Message);
 #endif
         if (!string.IsNullOrEmpty(errorMsg))
-            DebugHelper.Error(channelType, errorMsg);
+        {
+            if (NetworkManager.Instance.IsLeavingRoom)
+                DebugHelper.Warning(channelType, errorMsg);
+            else
+                DebugHelper.Error(channelType, errorMsg);
+        }
 
         Close();
         AntiInit();

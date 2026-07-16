@@ -78,10 +78,12 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// <param name="roomInfo"></param>
     public void JoinRoom(RoomInfoModel roomInfo)
     {
+        CancelForceQuit();
+        lockQuit = false;
         attemptCount = 0;
         lastRoomUuid = roomInfo.Uuid;
         lastRoomPassword = roomInfo.Password;
-        
+
         IsLeavingRoom = false;
 
         mRoomChannelAgent.Connect(this, ServiceApiData.rtm_url, roomInfo.Uuid);

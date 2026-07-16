@@ -293,7 +293,8 @@ public class ARPanel : UIPanelBase
                                  if (result == 0)
                                  {
                                      GlobalInfo.isAR = true;
-                                     UIManager.Instance.CloseUI<ARPanel>();
+                                     GlobalInfo.SetCourseMode(CourseMode.Training);
+                                    UIManager.Instance.CloseUI<ARPanel>();
                                      ABPanelInfo data = new ABPanelInfo(courseID, typeof(ARPanel).ToString());
                                      UIManager.Instance.OpenUI<OPLCoursePanel>(UILevel.Normal, data);
                                  }
@@ -309,6 +310,7 @@ public class ARPanel : UIPanelBase
                         {
                             GlobalInfo.isAR = true;
                             UIManager.Instance.CloseUI<ARPanel>();
+                            GlobalInfo.SetCourseMode(CourseMode.Training);
                             ABPanelInfo data = new ABPanelInfo(courseID, typeof(ARPanel).ToString());
                             UIManager.Instance.OpenUI<OPLCoursePanel>(UILevel.Normal, data);
                         }

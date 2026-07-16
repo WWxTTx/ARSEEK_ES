@@ -659,7 +659,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
 
     public override void Close(UIData uiData = null, UnityAction callback = null)
     {
-        GlobalInfo.SetCourseMode(CourseMode.Training);
+        GlobalInfo.SetCourseMode(CourseMode.Menu);
         UIManager.Instance.CloseUI<PopupPanel>();
         UIManager.Instance.CloseUI<PopupPanel_AutoConfirm>();
         //ModelManager.Instance.ControlGlobalVolume();

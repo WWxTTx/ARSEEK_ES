@@ -43,9 +43,11 @@ public class ExamPanel : HoverHintPanel
     private DateTime examEndTime;
 
     /// <summary>
-    /// 已正常退出的成员ID集合（收到Quit通知的成员）
+    /// <summary>
+    /// 异常退出成员集合（离开时未提交考核）
+    /// 所有离开的成员都加入此表，提交后自动清除。表空 + UI空 = 可自动结束考核
     /// </summary>
-    private HashSet<int> normalQuitMembers = new HashSet<int>();
+    private HashSet<int> abnormalQuitMembers = new HashSet<int>();
 
     /// <summary>
     /// 当前考核Id
@@ -344,6 +346,8 @@ public class ExamPanel : HoverHintPanel
             case (ushort)ExamPanelEvent.Submit:
                 MsgBrodcastOperate submitData = msg as MsgBrodcastOperate;
                 {
+                    // 已提交则从异常退出表中移除
+                    abnormalQuitMembers.Remove(submitData.senderId);
                     SetMemberItemState(Content.FindChildByName(submitData.senderId.ToString()), (int)State.Submit);
                     ExamUtility.Instance.UpdateSubmitCache(submitData.senderId);
                     //全提交或小组考核有人提交了（小组模式一人提交全员提交）
@@ -361,8 +365,8 @@ public class ExamPanel : HoverHintPanel
                 MsgBrodcastOperate quitData = msg as MsgBrodcastOperate;
                 {
                     int quitMemberId = quitData.senderId;
-                    normalQuitMembers.Add(quitMemberId);
-                    // 移除成员
+                    if (!GlobalInfo.waitExam && !ExamUtility.Instance.HasSubmitted(quitMemberId))
+                        abnormalQuitMembers.Add(quitMemberId);
                     RemoveMember(quitMemberId);
                 }
                 break;
@@ -479,7 +483,7 @@ public class ExamPanel : HoverHintPanel
     /// </summary>
     private void OnExamStart()
     {
-        normalQuitMembers.Clear();
+        abnormalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(false);
         this.FindChildByName("InExam").gameObject.SetActive(true);
         foreach (Transform item in Content)
@@ -496,7 +500,7 @@ public class ExamPanel : HoverHintPanel
         GlobalInfo.waitExam = true;
         countdownCts?.Cancel();
         this.GetComponentByChildName<Text>("Time").gameObject.SetActive(false);
-        normalQuitMembers.Clear();
+        abnormalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(true);
         this.FindChildByName("InExam").gameObject.SetActive(false);
         foreach (Transform item in Content)
@@ -738,6 +742,12 @@ public class ExamPanel : HoverHintPanel
 
         var nonHostMembers = members.Where(member => member.Id != GlobalInfo.account.id).ToList();
 
+        //过滤异常退出成员，防止服务器回包重入
+        if (abnormalQuitMembers.Count > 0)
+            nonHostMembers = nonHostMembers.Where(m =>
+                !abnormalQuitMembers.Contains(m.Id)
+            ).ToList();
+
         if (GlobalInfo.waitExam)
         {
             allMemberItem.Clear();
@@ -772,12 +782,9 @@ public class ExamPanel : HoverHintPanel
         SetTeacher(Bottom, members.Find(member => member.Id == GlobalInfo.account.id));
         WaitHint.SetActive(allMemberItem.Count == 0);
 
-        //非房主成员为0，如果正在考核中且未重置，触发重置
-        if (allMemberItem.Count == 0 && !GlobalInfo.waitExam)
-        {
-            Log.Debug("成员列表为空，自动结束考核");
+        // 所有成员离开且无人待提交 → 自动结束考核
+        if (!GlobalInfo.waitExam && allMemberItem.Count == 0 && abnormalQuitMembers.Count == 0)
             StopExam((ushort)ExamPanelEvent.Stop);
-        }
     }
     private void SetTeacher(Transform tf, Member info)
     {
@@ -989,6 +996,8 @@ public class ExamPanel : HoverHintPanel
         if (GlobalInfo.account.id == newJoinedId)
             return;
 
+        abnormalQuitMembers.Remove(newJoinedId);
+
         if (GlobalInfo.IsGroupMode())
             NetworkManager.Instance.SetUserColor(newJoinedId);
 
@@ -1006,13 +1015,12 @@ public class ExamPanel : HoverHintPanel
     /// </summary>
     /// <param name="leavedUserId"></param>
     /// <param name="leavedUserName"></param>
-    /// <param name="isDisconnect">是否为异常断连</param>
+    /// <param name="isDisconnect">是否为异常断连（已弃用，改用双表判断）</param>
     private void OnOtherLeave(int leavedUserId, string leavedUserName, bool isDisconnect)
     {
-        // 断连且考核中：保留成员（可能重连）
-        // 其他情况（正常退出 或 考核结束后断连）：移除成员
-        if (isDisconnect && !GlobalInfo.waitExam)
-            return;
+        // 仅在考核中跟踪异常退出
+        if (!GlobalInfo.waitExam && !ExamUtility.Instance.HasSubmitted(leavedUserId))
+            abnormalQuitMembers.Add(leavedUserId);
 
         RemoveMember(leavedUserId);
     }
@@ -1041,12 +1049,9 @@ public class ExamPanel : HoverHintPanel
         }
         WaitHint.SetActive(allMemberItem.Count == 0);
 
-        //检查是否所有考生都已离开，如果是则自动结束考核
-        if (!GlobalInfo.waitExam && allMemberItem.Count == 0)
-        {
-            Log.Debug("所有考生已离开，自动结束考核");
+        // 所有成员离开且无人待提交 → 自动结束考核
+        if (!GlobalInfo.waitExam && allMemberItem.Count == 0 && abnormalQuitMembers.Count == 0)
             StopExam((ushort)ExamPanelEvent.Stop);
-        }
     }
 
     /// <summary>
@@ -1083,7 +1088,7 @@ public class ExamPanel : HoverHintPanel
         countdownCts?.Cancel();
         Timer.DelTimer(name);
         base.Close(uiData, callback);
-        GlobalInfo.SetCourseMode(CourseMode.Training);
+        GlobalInfo.SetCourseMode(CourseMode.Menu);
         GlobalInfo.canEditUserInfo = true;
     }
 

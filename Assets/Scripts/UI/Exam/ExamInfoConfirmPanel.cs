@@ -21,7 +21,7 @@ public class ExamInfoConfirmPanel : UIPanelBase
     private InputField changeUserOrg;
     private Text MaskUserOrg;
 
-    //private Button closeBtn;
+    private Button closeBtn;
     private Button confirmBtn;
 
     CanvasGroup BackGround;
@@ -215,12 +215,11 @@ public class ExamInfoConfirmPanel : UIPanelBase
         });
         #endregion
 
-        //旧版是退出房间时选择是否解散
-        //closeBtn = transform.GetComponentByChildName<Button>("CloseBtn");
-        //closeBtn.onClick.AddListener(() =>
-        //{
-        //    UIManager.Instance.CloseUI<ExamInfoConfirmPanel>();
-        //});
+        closeBtn = transform.GetComponentByChildName<Button>("CloseBtn");
+        closeBtn.onClick.AddListener(() =>
+        {
+            UIManager.Instance.CloseUI<ExamInfoConfirmPanel>();
+        });
 
         confirmBtn = transform.GetComponentByChildName<Button>("ConfirmBtn");
         confirmBtn.onClick.AddListener(() =>

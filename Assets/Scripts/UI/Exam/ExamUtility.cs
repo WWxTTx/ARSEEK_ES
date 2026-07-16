@@ -107,6 +107,14 @@ public class ExamUtility : Singleton<ExamUtility>
     }
 
     /// <summary>
+    /// 检查指定用户是否已提交考核
+    /// </summary>
+    public bool HasSubmitted(int userId)
+    {
+        return submitCache.TryGetValue(userId, out bool submitted) && submitted;
+    }
+
+    /// <summary>
     /// 是否全员提交
     /// 房间内无其他成员视为全员提交
     /// </summary>

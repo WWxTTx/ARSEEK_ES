@@ -45,7 +45,7 @@ namespace UnityFramework.Runtime
         public static void GoToLogin()
         {
             UIManager.Instance.CloseAllUI();
-            GlobalInfo.SetCourseMode(CourseMode.Training);
+            GlobalInfo.SetCourseMode(CourseMode.Menu);
             GlobalInfo.isOffLine = false;
             GlobalInfo.courseDicExists.Clear();
             UIManager.Instance.OpenUI<LoginPanel>();

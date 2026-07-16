@@ -291,7 +291,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     {
         base.Close(uiData, callback);
 
-        GlobalInfo.SetCourseMode(CourseMode.Training);
+        GlobalInfo.SetCourseMode(CourseMode.Menu);
         GlobalInfo.canEditUserInfo = true;
 
         Resources.UnloadUnusedAssets();
@@ -1387,7 +1387,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
             case (ushort)RoomChannelEvent.LeaveRoom:
                 if (GlobalInfo.roomInfo == null) break;
                 ExamScreenRecording.Instance.StopRecordMovie();
-                ClearExamCache();
+                if (!GlobalInfo.waitExam)
+                    Submit(null, false);
+                else
+                    ClearExamCache();
                 NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
                 DoQuit();
                 break;

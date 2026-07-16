@@ -210,7 +210,7 @@ public class ExamTrainingPanel : UIPanelBase
                     searchKeyword = string.Empty;
                     UIManager.Instance.CloseUI<ExamTrainingPanel>();
                     UIManager.Instance.OpenUI<HomePagePanel>();
-                    GlobalInfo.SetCourseMode(CourseMode.Training);
+                    GlobalInfo.SetCourseMode(CourseMode.Menu);
                 }, true));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "离开会中断资源下载，确认要离开吗？", popupDic, null, false));
             }
@@ -220,7 +220,7 @@ public class ExamTrainingPanel : UIPanelBase
             searchKeyword = string.Empty;
             UIManager.Instance.CloseUI<ExamTrainingPanel>();
             UIManager.Instance.OpenUI<HomePagePanel>();
-            GlobalInfo.SetCourseMode(CourseMode.Training);
+            GlobalInfo.SetCourseMode(CourseMode.Menu);
         }
     }
 

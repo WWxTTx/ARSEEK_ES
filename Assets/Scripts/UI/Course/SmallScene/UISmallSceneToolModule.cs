@@ -69,6 +69,10 @@ public class UISmallSceneToolModule : UIModuleBase
     /// 工具模式高亮动画
     /// </summary>
     private Sequence toolModeHighlight;
+    /// <summary>
+    /// 当前激活的常驻工具数量（联系/记录/图纸Toggle ON时+1，OFF时-1），用于光标释放引用计数
+    /// </summary>
+    private int _permanentToolCount;
     private Toggle contactTog;
     private Toggle inputHistoryTog;
 
@@ -229,7 +233,14 @@ public class UISmallSceneToolModule : UIModuleBase
         contactTog.onValueChanged.AddListener(isOn =>
         {
             if (isOn)
+            {
                 CloseBackpack();
+                if (_permanentToolCount++ == 0) smallSceneModule.RequestCursorFree();
+            }
+            else
+            {
+                if (--_permanentToolCount == 0) smallSceneModule.ReleaseCursorFree();
+            }
             text.color = isOn ? textSelectColor : Color.white;
             SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.SelectContact, isOn));
             RefreshTip();
@@ -249,7 +260,14 @@ public class UISmallSceneToolModule : UIModuleBase
         inputHistoryTog.onValueChanged.AddListener(isOn =>
         {
             if (isOn)
+            {
                 CloseBackpack();
+                if (_permanentToolCount++ == 0) smallSceneModule.RequestCursorFree();
+            }
+            else
+            {
+                if (--_permanentToolCount == 0) smallSceneModule.ReleaseCursorFree();
+            }
             text.color = isOn ? textSelectColor : Color.white;
             SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.SelectInput, smallSceneModule.FocusModelDescrption, isOn));
             RefreshTip();
@@ -283,10 +301,13 @@ public class UISmallSceneToolModule : UIModuleBase
                 SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, null));
                 RefreshTip();
                 SchematicPanel.ShowView();
+                smallSceneModule.TryConsumeStepAutoFree();
+                if (_permanentToolCount++ == 0) smallSceneModule.RequestCursorFree();
             }
             else
             {
                 SchematicPanel.HideView();
+                if (--_permanentToolCount == 0) smallSceneModule.ReleaseCursorFree();
             }
             if (!drawingToggle.group.AnyTogglesOn())
             {
@@ -396,7 +417,14 @@ public class UISmallSceneToolModule : UIModuleBase
         {
             backpack.gameObject.SetActive(isOn);
             if (isOn)
+            {
                 PermanentTogglesOff();
+                smallSceneModule.RequestCursorFree();
+            }
+            else
+            {
+                smallSceneModule.ReleaseCursorFree();
+            }
             RefreshTip();
         });
         backpackTog.transform.SetAsLastSibling();
@@ -469,6 +497,7 @@ public class UISmallSceneToolModule : UIModuleBase
                     {
                         SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, info.ID));
                         prop = info.ID;
+                        smallSceneModule.TryConsumeStepAutoFree();
 
                         this.GetComponentByChildName<Toggle>(info.GetComponent<ModelOperation>()?.currentState)?.SetIsOnWithoutNotify(true);
                         RefreshTip();
@@ -624,6 +653,19 @@ public class UISmallSceneToolModule : UIModuleBase
     }
 
     /// <summary>
+    /// 清除当前道具选中（双端通用），取消所有背包道具Toggle并清除prop引用
+    /// </summary>
+    public void ClearPropSelection()
+    {
+        prop = null;
+        foreach (var item in items)
+        {
+            if (item.Value.transform.parent == GridContent)
+                item.Value.SetIsOnWithoutNotify(false);
+        }
+    }
+
+    /// <summary>
     /// 取消选中图纸按钮
     /// </summary>
     public void CancelDrawingToggle()
@@ -771,7 +813,7 @@ public class UISmallSceneToolModule : UIModuleBase
             case (ushort)SmallFlowModuleEvent.SelectStep:
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
             case (ushort)SmallFlowModuleEvent.CompleteStep:
-                interactable = true; 
+                interactable = true;
                 RefreshTip();
                 break;
             case (ushort)SmallFlowModuleEvent.StartExecute:

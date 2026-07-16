@@ -300,13 +300,17 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     private bool isAlt;
     /// <summary>
-    /// 打开设置界面前的鼠标模式
+    /// 光标释放引用计数：任何UI打开时+1，关闭时-1，归零时恢复锁定
     /// </summary>
-    private bool preOptionIsAlt;
+    private int _cursorFreeRefCount;
     /// <summary>
-    /// 打开设置界面前的鼠标锁定状态
+    /// 当前步骤的自动释放光标是否已被道具选中消耗
     /// </summary>
-    private CursorLockMode preOptionCursorLockMode;
+    private bool _stepAutoFreeConsumed;
+    /// <summary>
+    /// 弹窗是否正在显示
+    /// </summary>
+    private bool _isPopupActive;
     /// <summary>
     /// 是否打开大地图
     /// </summary>
@@ -369,7 +373,10 @@ public class UISmallSceneModule : UIModuleBase
             {
                 case ModelState.Unselect:
                     modelOperation_Highlight = modelOperation_Focused = modelOperation_Select = null;
-                    EnableCameraControl(true);
+                    if (_cursorFreeRefCount == 0)
+                    {
+                        EnableCameraControl(true);
+                    }
                     SetSelect(false);
                     ModelManager.Instance.AdaptModelRestrict();
                     break;
@@ -737,6 +744,15 @@ public class UISmallSceneModule : UIModuleBase
 
         //打开流程列表模块,根据课程和考核分别设置左侧显示按钮
         SendMsg(new MsgBase((ushort)CoursePanelEvent.OperationListBtn));
+
+        smallFlowCtrl.onPopupStateChanged.AddListener((shown) =>
+        {
+            _isPopupActive = shown;
+            if (shown)
+                RequestCursorFree();
+            else
+                ReleaseCursorFree();
+        });
     }
 
     void Update()
@@ -789,7 +805,7 @@ public class UISmallSceneModule : UIModuleBase
                     if (isMouseDown && Input.GetMouseButtonUp(0))
                     {
                         isMouseDown = false;
-                        if (IsOperatableState && Vector3.Distance(lastMousePosition, Input.mousePosition) < dragThreshold)
+                        if (!_isPopupActive && IsOperatableState && Vector3.Distance(lastMousePosition, Input.mousePosition) < dragThreshold)
                         {
                             OnModelClicked(modelOperation_Highlight);
                         }
@@ -828,7 +844,7 @@ public class UISmallSceneModule : UIModuleBase
                     if (isMouseDown && Input.GetMouseButtonUp(0))
                     {
                         isMouseDown = false;
-                        if (IsOperatableState && Vector3.Distance(lastMousePosition, Input.mousePosition) < dragThreshold)
+                        if (!_isPopupActive && IsOperatableState && Vector3.Distance(lastMousePosition, Input.mousePosition) < dragThreshold)
                         {
                             OnModelClicked(modelOperation_Highlight);
                         }
@@ -853,8 +869,14 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     void RaySelect()
     {
+        if (hitInfo.transform == null)
+            return;
+
         var boxEvent = hitInfo.transform.GetComponent<CollisionBoxMouseEvent>();
         var rayResult = boxEvent != null && boxEvent.Target != null ? boxEvent.Target : hitInfo.transform.GetComponentInParent<ModelOperation>();
+
+        if (rayResult == null)
+            return;
 
         if (rayResult == modelOperation_Focused)
         {
@@ -874,23 +896,22 @@ public class UISmallSceneModule : UIModuleBase
             Focus.transform.GetChild(0).gameObject.SetActive(true);
 
             var hitModelInfo = hitInfo.transform.GetComponentInParent<ModelInfo>();
-            string modelName = hitModelInfo.Name;
-            //if (modelName.Length > nameMax)
-            //    modelName = modelName.Substring(0, nameMax - 1) + "...";
+            string modelName = hitModelInfo?.Name;
+            string modelCode = hitModelInfo != null ? hitModelInfo.Code : string.Empty;
 
             if (!SmallFlowCtrl.maskOperation.Contains(modelOperation_Highlight.currentState))
             {
-                if (string.IsNullOrEmpty(hitModelInfo.Code))
+                if (string.IsNullOrEmpty(modelCode))
                     Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
                 else
-                    Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>编号：</color>{hitModelInfo.Code}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
+                    Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>编号：</color>{modelCode}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
             }
             else
             {
-                if (string.IsNullOrEmpty(hitModelInfo.Code))
+                if (string.IsNullOrEmpty(modelCode))
                     Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}";
                 else
-                    Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>编号：</color>{hitModelInfo.Code}";
+                    Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>编号：</color>{modelCode}";
             }
         }
     }
@@ -1375,7 +1396,7 @@ public class UISmallSceneModule : UIModuleBase
             }
             else
             {
-                if (!GlobalInfo.ShowPopup && !GlobalInfo.InPaintMode)
+                if (!GlobalInfo.ShowPopup && !GlobalInfo.InPaintMode && _cursorFreeRefCount == 0)
                     Cursor.lockState = CursorLockMode.Locked;
             }
             if (!GlobalInfo.ShowPopup || isSelect)
@@ -1388,18 +1409,25 @@ public class UISmallSceneModule : UIModuleBase
     {
         if (enabled && GlobalInfo.InPaintMode)
             return;
+        if (enabled && _cursorFreeRefCount > 0)
+            return;
         CameraMove.enabled = enabled;
         CameraRotate.enabled = enabled;
         CameraZoom.enabled = enabled;
     }
 
     /// <summary>
-    /// 切换到自由点击模式（解锁光标，禁用相机控制）
+    /// 切换到自由点击模式（解锁光标，禁用相机控制），双端公用
     /// </summary>
     public void SwitchToFreeClick()
     {
+#if UNITY_STANDALONE || UNITY_EDITOR
+        MarkStepAutoFree();
+        RequestCursorFree();
+#else
         SetSelect(true);
         EnableCameraControl(false);
+#endif
     }
 
     public override void ProcessEvent(MsgBase msg)
@@ -1534,8 +1562,10 @@ public class UISmallSceneModule : UIModuleBase
                 ReleaseOperatePermission();
                 ModelState = ModelState.Unselect;
                 RefreshHighlight();
+                ResetCursorFree();
                 WaitSelect(false);
                 OnPropChanged(string.Empty);
+                toolModule.ClearPropSelection();
                 toolModule.CloseBackpack();
                 toolModule.CancelDrawingToggle();
                 toolModule.ShowTool(true);
@@ -1546,9 +1576,9 @@ public class UISmallSceneModule : UIModuleBase
                 ModelState = ModelState.Unselect;
                 RefreshHighlight();
 
-                //进行下一步时直接取消手中道具
-                WaitSelect(false);
+                //进行下一步时直接取消手中道具（不重置光标状态，由引用计数系统管理）
                 OnPropChanged(string.Empty);
+                toolModule.ClearPropSelection();
                 toolModule.CloseBackpack();
                 toolModule.CancelDrawingToggle();  // 关闭图纸面板
                 toolModule.ShowTool(true);  // 显示工具栏
@@ -1656,33 +1686,15 @@ public class UISmallSceneModule : UIModuleBase
                             EnableCameraControl(isAlt);
                             SetSelect(!isAlt);
                         }
-                    },
-                    {
-                        ShortcutManager.OpenOption, ()=>
-                        {
-                            if (!UIManager.Instance.IsOpen<OptionPanel>())
-                            {
-                                preOptionIsAlt = isAlt;
-                                preOptionCursorLockMode = Cursor.lockState;
-                                if (!isAlt)
-                                {
-                                    EnableCameraControl(false);
-                                    SetSelect(true);
-                                }
-                            }
-                        }
                     }
                 });
                 break;
 #endif
             case (ushort)CoursePanelEvent.Option:
-                if (!((MsgBool)msg).arg1)
-                {
-                    SetSelect(preOptionIsAlt);
-                    EnableCameraControl(!preOptionIsAlt);
-                    if (!GlobalInfo.MultiplePopup)
-                        Cursor.lockState = preOptionCursorLockMode;
-                }
+                if (((MsgBool)msg).arg1)
+                    RequestCursorFree();
+                else
+                    ReleaseCursorFree();
                 break;
             case (ushort)SmallFlowModuleEvent.MaxMap:
                 inMap = ((MsgBool)msg).arg1;
@@ -1782,13 +1794,97 @@ public class UISmallSceneModule : UIModuleBase
     /// <summary>
     /// 等待初始视角导航结束，恢复相机控制、操作
     /// </summary>
-    /// <param name="ison"></param>
-    /// <param name="time"></param>
-    /// <returns></returns>
     private void WaitSelect(bool ison, float time = 0.3f)
     {
         EnableCameraControl(!ison);
         SetSelect(ison);
+    }
+
+    /// <summary>
+    /// 请求释放光标（UI打开时调用），PC专属：引用计数+1，首次调用时解锁光标并禁用相机控制
+    /// </summary>
+    public void RequestCursorFree()
+    {
+        if (GlobalInfo.courseMode != CourseMode.Training &&
+            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
+            GlobalInfo.courseMode != CourseMode.Collaboration)
+            return;
+#if UNITY_STANDALONE || UNITY_EDITOR
+        if (_cursorFreeRefCount++ == 0)
+        {
+            SetSelect(true);
+            EnableCameraControl(false);
+        }
+#endif
+    }
+
+    /// <summary>
+    /// 释放光标引用（UI关闭时调用），PC专属：引用计数-1，归零时恢复光标锁定和相机控制
+    /// </summary>
+    public void ReleaseCursorFree()
+    {
+        if (GlobalInfo.courseMode != CourseMode.Training &&
+            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
+            GlobalInfo.courseMode != CourseMode.Collaboration)
+            return;
+#if UNITY_STANDALONE || UNITY_EDITOR
+        if (_cursorFreeRefCount <= 0) return;
+        if (--_cursorFreeRefCount == 0)
+        {
+            SetSelect(false);
+            EnableCameraControl(true);
+        }
+#endif
+    }
+
+    /// <summary>
+    /// 消耗当前步骤的自动释放光标计数（道具被选中时调用），PC专属
+    /// </summary>
+    public void TryConsumeStepAutoFree()
+    {
+        if (GlobalInfo.courseMode != CourseMode.Training &&
+            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
+            GlobalInfo.courseMode != CourseMode.Collaboration)
+            return;
+#if UNITY_STANDALONE || UNITY_EDITOR
+        if (!_stepAutoFreeConsumed)
+        {
+            _stepAutoFreeConsumed = true;
+            ReleaseCursorFree();
+        }
+#endif
+    }
+
+    /// <summary>
+    /// 设置步骤自动释放光标标记（AimCameraAtFirstOp调用），PC专属
+    /// </summary>
+    public void MarkStepAutoFree()
+    {
+        if (GlobalInfo.courseMode != CourseMode.Training &&
+            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
+            GlobalInfo.courseMode != CourseMode.Collaboration)
+            return;
+#if UNITY_STANDALONE || UNITY_EDITOR
+        _stepAutoFreeConsumed = false;
+#endif
+    }
+
+    /// <summary>
+    /// 强制重置光标引用计数并恢复锁定（CompleteStep/CompleteExecute时使用），PC专属
+    /// 注意：相机控制恢复的双端逻辑仍由 WaitSelect(false) 保证
+    /// </summary>
+    private void ResetCursorFree()
+    {
+        if (GlobalInfo.courseMode != CourseMode.Training &&
+            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
+            GlobalInfo.courseMode != CourseMode.Collaboration)
+            return;
+#if UNITY_STANDALONE || UNITY_EDITOR
+        _cursorFreeRefCount = 0;
+        _stepAutoFreeConsumed = false;
+        SetSelect(false);
+        EnableCameraControl(true);
+#endif
     }
 
     #region 协同操作权限处理

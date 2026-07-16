@@ -1,4 +1,3 @@
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
@@ -60,13 +59,18 @@ public class GazeIndicator : MonoBase
     private Animator modelAnimator;
     private float baseHeight;
     /// <summary>
-    /// 角色模型跟随动画
+    /// 角色模型导航相关
     /// </summary>
-    private Tweener modelRotateFollow;
-    private Tweener modelPositionFollow;
-    private Vector3 offset = new Vector3(0, 2.1f, 0);
+    private NavMeshAgent agent;
+    private float moveCoefficient;
+    private float destinationThreshold = 0.5f;
+    private Vector3 lastNavTarget;
     private Vector3 targetPosition;
     private Vector3 targetEuler;
+    private float lastAppliedEulerY;
+    private float rotationDeadzone = 10f;
+    private bool wasMoving;
+    private int debugFrameCount;
 
     /// <summary>
     /// 模型根节点
@@ -175,43 +179,111 @@ public class GazeIndicator : MonoBase
     /// </summary>
     private void SetPlayer()
     {
-        InfoPanel.anchoredPosition3D = Vector3.zero;
-        InfoPanel.eulerAngles = 180f * Vector3.up;
-        InfoPanel.localScale = 0.001f * Vector3.one;
-
         model = Instantiate(PlayerPrefab, start);
-        model.transform.localPosition = -offset;
+        model.transform.localPosition = Vector3.zero;
         modelAnimator = model.GetComponent<Animator>();
 
         baseHeight = ModelManager.Instance.GetCameraSyncHeight();
 
+        InfoPanel.anchoredPosition3D = new Vector3(0, 2.1f, 0);
+        InfoPanel.eulerAngles = 180f * Vector3.up;
+        InfoPanel.localScale = 0.001f * Vector3.one;
+
         MapIcon.color = color;
         MapIcon.gameObject.SetActive(true);
 
-        modelRotateFollow = start.DORotate(Vector3.up * Vector3.SignedAngle(Vector3.back, start.position - targetPosition, Vector3.up), 0.25f).SetLoops(-1).SetAutoKill(false);
-        modelPositionFollow = start.DOMove(targetPosition, 0.25f).SetLoops(-1).SetEase(Ease.Linear).SetAutoKill(false).OnUpdate(() =>
+        // NavMeshAgent 导航配置 — 速度对齐 PlayerController 的 baseMoveSpeed * 设置系数
+        moveCoefficient = PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+        float moveSpeed = GlobalInfo.baseMoveSpeed * moveCoefficient;
+        float rotateCoefficient = PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+        agent = start.gameObject.AutoComponent<NavMeshAgent>();
+        agent.speed = moveSpeed;
+        agent.angularSpeed = GlobalInfo.baseRotateSpeed * rotateCoefficient;
+        agent.acceleration = GlobalInfo.baseMoveSpeed * moveCoefficient;
+        agent.stoppingDistance = 0.1f;
+        agent.radius = 0.3f;
+        agent.height = 1.8f;
+        agent.avoidancePriority = 50;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+
+        lastNavTarget = start.position;
+    }
+
+    private void Update()
+    {
+        if (!ShowPlayer || modelAnimator == null)
+            return;
+
+        debugFrameCount++;
+        bool logThisFrame = debugFrameCount % 60 == 0;
+
+        if (agent != null && agent.isOnNavMesh && agent.enabled)
         {
-            if (Vector3.Distance(targetPosition, start.position) > 0.01f)
+            float speed = agent.velocity.magnitude;
+            bool isMoving = wasMoving ? speed > 0.1f : speed > 0.5f;
+            wasMoving = isMoving;
+            modelAnimator.SetBool("isMove", isMoving);
+
+            if (isMoving)
             {
+                Vector3 moveDir = agent.velocity / speed;
+                Quaternion targetRot = Quaternion.LookRotation(moveDir);
+                start.rotation = Quaternion.Slerp(start.rotation, targetRot, Time.deltaTime * 10f);
+                lastAppliedEulerY = start.rotation.eulerAngles.y;
+            }
+            else
+            {
+                float targetY = targetEuler.y;
+                float delta = Mathf.DeltaAngle(lastAppliedEulerY, targetY);
+                if (Mathf.Abs(delta) > rotationDeadzone)
+                {
+                    lastAppliedEulerY = Mathf.MoveTowardsAngle(lastAppliedEulerY, targetY, Mathf.Abs(delta) * Time.deltaTime * 8f);
+                    start.rotation = Quaternion.Euler(0, lastAppliedEulerY, 0);
+                }
+                else if (agent.remainingDistance <= agent.stoppingDistance || (!agent.hasPath && !agent.pathPending))
+                {
+                    // 角度差在死区内，直接设为精确目标值收尾
+                    if (Mathf.Abs(delta) > 0.1f)
+                    {
+                        lastAppliedEulerY = targetY;
+                        start.rotation = Quaternion.Euler(0, lastAppliedEulerY, 0);
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Fallback: 非 NavMesh 时直线移动
+            Vector3 toTarget = targetPosition - start.position;
+            float dist = toTarget.magnitude;
+            if (dist > 0.01f)
+            {
+                float step = GlobalInfo.baseMoveSpeed * moveCoefficient * Time.deltaTime;
+                if (step > dist) step = dist;
+                start.position += toTarget / dist * step;
                 modelAnimator.SetBool("isMove", true);
-                modelRotateFollow.ChangeEndValue(Vector3.up * Vector3.SignedAngle(Vector3.back, start.position - targetPosition, Vector3.up), 0.25f, true);
+
+                Quaternion targetRot = Quaternion.LookRotation(toTarget.normalized);
+                start.rotation = Quaternion.Slerp(start.rotation, targetRot, Time.deltaTime * 10f);
+                lastAppliedEulerY = start.rotation.eulerAngles.y;
             }
             else
             {
                 modelAnimator.SetBool("isMove", false);
-                modelRotateFollow.ChangeEndValue(targetEuler, 0.25f, true);
+                float targetY = targetEuler.y;
+                float delta = Mathf.DeltaAngle(lastAppliedEulerY, targetY);
+                if (Mathf.Abs(delta) > rotationDeadzone)
+                {
+                    lastAppliedEulerY = Mathf.MoveTowardsAngle(lastAppliedEulerY, targetY, Mathf.Abs(delta) * Time.deltaTime * 8f);
+                    start.rotation = Quaternion.Euler(0, lastAppliedEulerY, 0);
+                }
             }
-            modelPositionFollow.ChangeEndValue(targetPosition, 0.25f, true);
-        });
 
-        // TODO 互相推挤
-        //var navObstacle = model.AutoComponent<NavMeshObstacle>();
-        //navObstacle.radius = 0.2f;
-        //navObstacle.height = 1.8f;
-        //navObstacle.carving = true;
-        //navObstacle.carveOnlyStationary = true;
-        //navObstacle.carvingTimeToStationary = 0.5f;
-        //navObstacle.carvingMoveThreshold = 0.1f;
+            if (logThisFrame)
+            {
+                Debug.LogWarning($"[GazeIndicator:{userId}] Update FALLBACK — startPos={start.position:F2}, targetPosition={targetPosition:F2}, dist={dist:F3}");
+            }
+        }
     }
 
     /// <summary>
@@ -242,13 +314,22 @@ public class GazeIndicator : MonoBase
     /// <param name="rotation"></param>
     private void SetPlayerPose(Vector3 startPoint, Quaternion rotation)
     {
-        //targetPosition = startPoint + offset;
-        //targetEuler = rotation.eulerAngles;
         targetPosition = startPoint;
-        //todo 0519
-        //targetPosition.y = baseHeight + offset.y;//临时处理VR
-        targetPosition.y += offset.y;
         targetEuler = rotation.eulerAngles.y * Vector3.up;
+
+        if (agent != null && agent.isOnNavMesh && agent.enabled)
+        {
+            Vector3 navTarget = startPoint;
+            bool hasArrived = !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance;
+            bool targetChanged = Vector3.Distance(navTarget, lastNavTarget) > 0.1f;
+            bool jumpedFar = Vector3.Distance(navTarget, agent.destination) > destinationThreshold;
+
+            if (targetChanged && (hasArrived || jumpedFar))
+            {
+                agent.SetDestination(navTarget);
+                lastNavTarget = navTarget;
+            }
+        }
     }
 
     /// <summary>

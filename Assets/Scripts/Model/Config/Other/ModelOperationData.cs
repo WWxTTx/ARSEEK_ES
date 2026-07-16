@@ -1686,11 +1686,7 @@ public class BehaveObserve : BehaveDotween
         {
             //将等待时间和语音播放关联起来
             float waitTime = stayTime * GlobalInfo.playTimeRatio;
-            float audioLength = 0;
-            if (SpeechManager.Instance.SpeechMode && SpeechManager.Instance.audioSource != null && SpeechManager.Instance.audioSource.clip != null)
-            {
-                audioLength = SpeechManager.Instance.audioSource.clip.length - SpeechManager.Instance.audioSource.time + 1;
-            }
+            float audioLength = SpeechManager.Instance.PromptVoiceRemainingTime;
             waitTime = Mathf.Max(stayTime, audioLength);
             sequence.AppendInterval(waitTime);
             Log.Debug("等待时间" + waitTime);
