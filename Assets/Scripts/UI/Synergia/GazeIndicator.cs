@@ -324,10 +324,56 @@ public class GazeIndicator : MonoBase
             bool targetChanged = Vector3.Distance(navTarget, lastNavTarget) > 0.1f;
             bool jumpedFar = Vector3.Distance(navTarget, agent.destination) > destinationThreshold;
 
-            if (targetChanged && (hasArrived || jumpedFar))
+            // 第一次设置位置，或目标距离当前位置 > 阈值时，直接 Warp
+            if (Vector3.Distance(agent.transform.position, navTarget) > 3f)  // 跨楼层距离
             {
-                agent.SetDestination(navTarget);
-                lastNavTarget = navTarget;
+                if (NavMesh.SamplePosition(navTarget, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+                {
+                    agent.Warp(hit.position);  // 直接放到目标楼层的 NavMesh 上
+                    lastNavTarget = hit.position;
+
+                    // Warp后检查是否与其他agent重叠，若重叠则偏移分离
+                    SeparateFromNearbyAgents(hit.position);
+                }
+            }
+            else
+            {
+                if (targetChanged && (hasArrived || jumpedFar))
+                {
+                    agent.SetDestination(navTarget);
+                    lastNavTarget = navTarget;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Warp后检测是否与其他NavMeshAgent重叠，若重叠沿远离方向偏移
+    /// </summary>
+    private void SeparateFromNearbyAgents(Vector3 warpPosition)
+    {
+        NavMeshAgent[] allAgents = FindObjectsOfType<NavMeshAgent>();
+        float separationDist = agent.radius * 2f;
+
+        foreach (var other in allAgents)
+        {
+            if (other == agent || !other.isOnNavMesh || !other.enabled)
+                continue;
+
+            if (Vector3.Distance(agent.transform.position, other.transform.position) < separationDist)
+            {
+                Vector3 dir = (agent.transform.position - other.transform.position).normalized;
+                if (dir.sqrMagnitude < 0.01f)
+                    dir = Random.insideUnitSphere;
+                dir.y = 0;
+                dir.Normalize();
+
+                Vector3 offset = warpPosition + dir * separationDist;
+                if (NavMesh.SamplePosition(offset, out NavMeshHit offsetHit, 1f, NavMesh.AllAreas))
+                {
+                    agent.Warp(offsetHit.position);
+                }
+                break;
             }
         }
     }

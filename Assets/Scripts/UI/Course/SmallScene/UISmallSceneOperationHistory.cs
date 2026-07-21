@@ -705,6 +705,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
                     msgTupleString.arg.Item3, -1,
                     msgTupleString.arg.Item1, msgTupleString.arg.Item2, OpType.Input));
+                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
             }
         }
     }
@@ -747,6 +748,7 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 SendMsg(new MsgOperatingRecord((ushort)SmallFlowModuleEvent.OperatingRecordInput,
                     msgTupleString.arg.Item3,  -1,
                     msgTupleString.arg.Item1, msgTupleString.arg.Item2, OpType.Contact));
+                FormMsgManager.Instance.SendMsg(new MsgString((ushort)SmallFlowModuleEvent.CompleteExecute, string.Empty));
             }
         }
     }

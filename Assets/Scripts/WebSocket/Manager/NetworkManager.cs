@@ -132,7 +132,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
         mIMChannelAgent.Clear(true);
 
-        if (GlobalInfo.IsHomeowner())
+        if (GlobalInfo.IsHomeowner() && GlobalInfo.courseMode != CourseMode.Training)
         {
             if (deleteRoom)
             {

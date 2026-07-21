@@ -386,7 +386,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     {
         string url = ServiceApiData.NewRoom + $"/{roomUuid}";
 
-        requestBase.TryRequest_List("删除预约考核房间", RequestType.DELETE, url, string.Empty, (result, message) =>
+        requestBase.TryRequest_List("删除房间", RequestType.DELETE, url, string.Empty, (result, message) =>
         {
             GetRequest(result, message, successCallBack, failureCallBack);
         }, isLoadingOn);

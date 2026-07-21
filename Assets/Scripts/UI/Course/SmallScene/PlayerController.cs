@@ -76,16 +76,6 @@ public class PlayerController : MonoBase
     public Tweener ModelRotateTween => modelRotateFollow;
     public Tweener ModelFollowTween => modelPositionFollow;
 
-    /// <summary>
-    /// 将相机归位到跟随点，追加到外部 Sequence
-    /// </summary>
-    public void AppendCameraReturn(Sequence seq, float duration, Ease ease)
-    {
-        Transform fp = CameraFollowPoint;
-        seq.Append(mainCamera.DOMove(fp.position, duration).SetEase(ease));
-        seq.Join(mainCamera.DORotate(fp.eulerAngles, duration).SetEase(ease));
-    }
-
     #region Private
     private Transform mainCamera;
     private float tempFloat;
@@ -435,7 +425,6 @@ public class PlayerController : MonoBase
     {
         debugLateFrame++;
 
-        //检测相机是否被其他代码调度（DOTween动画/SysPopup），切换时更新模型显隐
         //检测相机是否被其他代码调度（DOTween动画/SysPopup），切换时更新模型显隐
         bool cameraAway = GlobalInfo.SysPopup || ModelManager.Instance.CameraDotween;
         if (cameraAway != wasCameraAway)

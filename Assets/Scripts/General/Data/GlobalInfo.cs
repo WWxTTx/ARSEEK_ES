@@ -144,11 +144,12 @@ public class GlobalInfo
     }
 
     /// <summary>
-    /// 清除缓存房间标记
+    /// 清除缓存房间标记及本地状态数据
     /// </summary>
     public static void ClearCachedRoom()
     {
         PlayerPrefs.DeleteKey(CachedRoom);
+        PlayerPrefs.DeleteKey("RestoreCachedPacket");
     }
 
     /// <summary>

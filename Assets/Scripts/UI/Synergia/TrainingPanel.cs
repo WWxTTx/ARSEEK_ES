@@ -236,10 +236,24 @@ public class TrainingPanel : UIPanelBase
     /// </summary>
     private void LastRoomCheck()
     {
+        bool foundCached = false;
         foreach (var item in roomInfos.Values)
         {
             if (item.RoomType > 0 && GlobalInfo.IsCachedRoom(item.Uuid))
             {
+                foundCached = true;
+
+                // 非房主时检查房间是否仍然有效
+                if (item.creatorId != GlobalInfo.account.id)
+                {
+                    // 直播/协同房间：Status == 0 表示房主不在房间内，房间已失效
+                    if (item.Status == 0)
+                    {
+                        GlobalInfo.ClearCachedRoom();
+                        continue;
+                    }
+                }
+
                 string hint = "检测到您上次异常退出，是否要进入房间？";
                 if (item.creatorId == GlobalInfo.account.id)
                     hint += "\n（若不进入，房间将被删除）";
@@ -263,6 +277,12 @@ public class TrainingPanel : UIPanelBase
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", hint, popupDic, null, false));
                 return;
             }
+        }
+
+        // 缓存房间已不在列表中（被删除等），清除残留缓存
+        if (!foundCached && PlayerPrefs.HasKey(GlobalInfo.CachedRoom))
+        {
+            GlobalInfo.ClearCachedRoom();
         }
     }
 

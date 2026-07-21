@@ -44,8 +44,7 @@ public class ExamPanel : HoverHintPanel
 
     /// <summary>
     /// <summary>
-    /// 异常退出成员集合（离开时未提交考核）
-    /// 所有离开的成员都加入此表，提交后自动清除。表空 + UI空 = 可自动结束考核
+    /// 待完成考生集合（考核开始时加入全部考生，提交或踢出时移除。表空 = 可自动结束考核）
     /// </summary>
     private HashSet<int> abnormalQuitMembers = new HashSet<int>();
 
@@ -206,11 +205,14 @@ public class ExamPanel : HoverHintPanel
         {
             ExamUtility.Instance.InitSubmitCache(activeExamId, () =>
             {
-                //考核已被其他流程结束（如UpdateMemberList检测到空成员列表）
+                //考核已被其他流程结束
                 if (activeExamId == -1) return;
 
-                //所有考生已提交，直接结束考核（处理房主断线期间考生提交的情况）
-                if (ExamUtility.Instance.AllSubmit())
+                // 初始化待完成考生集合（所有考生加入，已提交的不加入）
+                abnormalQuitMembers.Clear();
+
+                //待完成考生为空 → 结束考核
+                if (abnormalQuitMembers.Count == 0)
                 {
                     StopExam((ushort)ExamPanelEvent.Stop);
                     return;
@@ -219,15 +221,6 @@ public class ExamPanel : HoverHintPanel
                 // Status==2表示考核进行中
                 if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.Status == 2)
                 {
-                    //房间内无考生，结束考核（处理所有考生都已退出的情况）
-                    var currentMembers = NetworkManager.Instance.GetRoomMemberList();
-                    var nonHostCount = currentMembers != null ? currentMembers.Count(m => m.Id != GlobalInfo.account.id) : 0;
-                    if (nonHostCount == 0)
-                    {
-                        StopExam((ushort)ExamPanelEvent.Stop);
-                        return;
-                    }
-
                     GlobalInfo.waitExam = false;
                     // 恢复考核倒计时
                     var cachedEndTime = ExamUtility.Instance.GetHostExamEndTime(GlobalInfo.roomInfo.Uuid);
@@ -346,12 +339,12 @@ public class ExamPanel : HoverHintPanel
             case (ushort)ExamPanelEvent.Submit:
                 MsgBrodcastOperate submitData = msg as MsgBrodcastOperate;
                 {
-                    // 已提交则从异常退出表中移除
+                    // 已提交则从待完成集合中移除
                     abnormalQuitMembers.Remove(submitData.senderId);
                     SetMemberItemState(Content.FindChildByName(submitData.senderId.ToString()), (int)State.Submit);
                     ExamUtility.Instance.UpdateSubmitCache(submitData.senderId);
-                    //全提交或小组考核有人提交了（小组模式一人提交全员提交）
-                    if (GlobalInfo.courseMode == CourseMode.OnlineExam || ExamUtility.Instance.AllSubmit() || GlobalInfo.IsGroupMode())
+                    //待完成集合为空 或 小组模式 → 结束考核
+                    if (abnormalQuitMembers.Count == 0 || GlobalInfo.IsGroupMode())
                     {
                         StopExam();
                         foreach (Transform item in Content)
@@ -364,10 +357,7 @@ public class ExamPanel : HoverHintPanel
             case (ushort)ExamPanelEvent.Quit:
                 MsgBrodcastOperate quitData = msg as MsgBrodcastOperate;
                 {
-                    int quitMemberId = quitData.senderId;
-                    if (!GlobalInfo.waitExam && !ExamUtility.Instance.HasSubmitted(quitMemberId))
-                        abnormalQuitMembers.Add(quitMemberId);
-                    RemoveMember(quitMemberId);
+                    RemoveMember(quitData.senderId);
                 }
                 break;
             case (ushort)ExamPanelEvent.Resume:
@@ -742,12 +732,6 @@ public class ExamPanel : HoverHintPanel
 
         var nonHostMembers = members.Where(member => member.Id != GlobalInfo.account.id).ToList();
 
-        //过滤异常退出成员，防止服务器回包重入
-        if (abnormalQuitMembers.Count > 0)
-            nonHostMembers = nonHostMembers.Where(m =>
-                !abnormalQuitMembers.Contains(m.Id)
-            ).ToList();
-
         if (GlobalInfo.waitExam)
         {
             allMemberItem.Clear();
@@ -782,8 +766,8 @@ public class ExamPanel : HoverHintPanel
         SetTeacher(Bottom, members.Find(member => member.Id == GlobalInfo.account.id));
         WaitHint.SetActive(allMemberItem.Count == 0);
 
-        // 所有成员离开且无人待提交 → 自动结束考核
-        if (!GlobalInfo.waitExam && allMemberItem.Count == 0 && abnormalQuitMembers.Count == 0)
+        // 待完成考生集合为空 → 自动结束考核
+        if (!GlobalInfo.waitExam && abnormalQuitMembers.Count == 0)
             StopExam((ushort)ExamPanelEvent.Stop);
     }
     private void SetTeacher(Transform tf, Member info)
@@ -881,7 +865,8 @@ public class ExamPanel : HoverHintPanel
                 popupDic.Add("移出", new PopupButtonData(() =>
                 {
                     NetworkManager.Instance.KickOutUser(info.Id);
-                    OnOtherLeave(info.Id, info.Nickname, false);
+                    abnormalQuitMembers.Remove(info.Id);
+                    RemoveMember(info.Id);
                 }, true));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", $"将<color=#F6533F>{info.Nickname}</color>移出考核?", popupDic));
             });
@@ -996,8 +981,6 @@ public class ExamPanel : HoverHintPanel
         if (GlobalInfo.account.id == newJoinedId)
             return;
 
-        abnormalQuitMembers.Remove(newJoinedId);
-
         if (GlobalInfo.IsGroupMode())
             NetworkManager.Instance.SetUserColor(newJoinedId);
 
@@ -1018,10 +1001,6 @@ public class ExamPanel : HoverHintPanel
     /// <param name="isDisconnect">是否为异常断连（已弃用，改用双表判断）</param>
     private void OnOtherLeave(int leavedUserId, string leavedUserName, bool isDisconnect)
     {
-        // 仅在考核中跟踪异常退出
-        if (!GlobalInfo.waitExam && !ExamUtility.Instance.HasSubmitted(leavedUserId))
-            abnormalQuitMembers.Add(leavedUserId);
-
         RemoveMember(leavedUserId);
     }
     /// <summary>
@@ -1049,8 +1028,8 @@ public class ExamPanel : HoverHintPanel
         }
         WaitHint.SetActive(allMemberItem.Count == 0);
 
-        // 所有成员离开且无人待提交 → 自动结束考核
-        if (!GlobalInfo.waitExam && allMemberItem.Count == 0 && abnormalQuitMembers.Count == 0)
+        // 待完成考生集合为空 → 自动结束考核
+        if (!GlobalInfo.waitExam && abnormalQuitMembers.Count == 0)
             StopExam((ushort)ExamPanelEvent.Stop);
     }
 

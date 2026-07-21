@@ -217,6 +217,11 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         return mRoomChannelAgent.onlineUsers.ContainsKey(id);
     }
 
+    public Dictionary<int, Member> GetOnlineUsers()
+    {
+        return mRoomChannelAgent.onlineUsers;
+    }
+
     public bool IsUserChat(int id)
     {
         if (GlobalInfo.roomInfo == null || !IsUserOnline(id))
@@ -367,6 +372,9 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                 timeOut += 0.1f;
             }
             if(GlobalInfo.GetOtherCach)
+                currentState = LoadCachedPacket();
+            // 多人同时异常退出时，无法从他人获取缓存，回退到本地缓存
+            else if (GlobalInfo.UseLoadCachedPacket)
                 currentState = LoadCachedPacket();
         }
         else

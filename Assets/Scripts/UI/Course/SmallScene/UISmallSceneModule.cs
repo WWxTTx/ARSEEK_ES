@@ -383,7 +383,7 @@ public class UISmallSceneModule : UIModuleBase
                 case ModelState.Focusing:
                     modelOperation_Select = null;
                     EnableCameraControl(false);
-                    SetSelect(false);
+                    SetSelect(true);
                     break;
                 case ModelState.Focused:
                     if (focusHint && modelOperation_Focused != null)
@@ -536,6 +536,7 @@ public class UISmallSceneModule : UIModuleBase
                 playerController.gameObject.layer = LayerMask.NameToLayer("Player");
                 Instantiate(ScenePrefab, modelRoot);
             }
+
             ModelManager.Instance.AddSyncComponent(playerController.gameObject);
         }
 
@@ -590,16 +591,12 @@ public class UISmallSceneModule : UIModuleBase
             if (playerController == null)
                 return;
 
-            if (Cursor.lockState != CursorLockMode.None)
-            {
-                EnableCameraControl(false);
-                SetSelect(true);
-            }
-            else if (isAlt && ModelState != ModelState.Operating)
-            {
-                EnableCameraControl(true);
-                SetSelect(false);
-            }
+            if (ModelState == ModelState.Operating || GlobalInfo.InPaintMode || GlobalInfo.SysPopup || inMap
+                || GlobalInfo.ShowPopup || _cursorFreeRefCount > 0 || _isPopupActive)
+                return;
+
+            EnableCameraControl(isAlt);
+            SetSelect(!isAlt);
         });
 
         modelLayerMask = LayerMask.GetMask("Default") | LayerMask.GetMask("Model");
@@ -1383,25 +1380,33 @@ public class UISmallSceneModule : UIModuleBase
     /// <param name="isSelect">true-显示操作列表，false-重置为默认显示</param>
     protected void SetSelect(bool isSelect)
     {
-        isAlt = isSelect;
         if (playerController)
         {
             Focus.transform.GetChild(0).gameObject.SetActive(isSelect ? false : modelOperation_Highlight != null);
 #if UNITY_ANDROID || UNITY_IOS
             fakeCursorLocked = !isSelect;
+            isAlt = isSelect;
 #else
             if (isSelect)
             {
                 Cursor.lockState = CursorLockMode.None;
+                isAlt = true;
             }
             else
             {
-                if (!GlobalInfo.ShowPopup && !GlobalInfo.InPaintMode && _cursorFreeRefCount == 0)
+                if (!GlobalInfo.ShowPopup && !GlobalInfo.InPaintMode && !GlobalInfo.SysPopup && _cursorFreeRefCount == 0)
+                {
                     Cursor.lockState = CursorLockMode.Locked;
+                    isAlt = false;
+                }
             }
             if (!GlobalInfo.ShowPopup || isSelect)
                 GlobalInfo.CursorLockMode = isSelect ? CursorLockMode.None : CursorLockMode.Locked;
 #endif
+        }
+        else
+        {
+            isAlt = isSelect;
         }
     }
 
@@ -1515,12 +1520,18 @@ public class UISmallSceneModule : UIModuleBase
                 if (!GlobalInfo.SysPopup)
                     UIManager.Instance.CloseUI<PopupPanel>();
 
+                SmallFlowCtrl.ignoreMove = false;
                 // 接收任务进度跳转消息，执行流程和步骤的切换
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
                 smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item1, msgStringTuple.arg2.Item2, !GlobalInfo.isExam);
 
                 Log.Debug("执行跳步骤 任务选中" + msgStringTuple.arg2.Item1 + "步骤选中" + msgStringTuple.arg2.Item2);
                 OnStepChanged();
+                OnPropChanged(string.Empty);
+                toolModule.ClearPropSelection();
+                toolModule.CloseBackpack();
+                toolModule.CancelDrawingToggle();
+                toolModule.ShowTool(true);
                 break;
             //case (ushort)SmallFlowModuleEvent.Guide:
             //    ModelState = ModelState.Unselect;
@@ -1553,6 +1564,7 @@ public class UISmallSceneModule : UIModuleBase
                     //用于同步过程中，又有新操作导致的错误 恢复
                     if (receivedFlow != smallFlowCtrl.index_NowFlow || receivedStep != smallFlowCtrl.index_NowStep)
                     {
+                        SmallFlowCtrl.ignoreMove = true;
                         smallFlowCtrl.SelectStep(receivedFlow, receivedStep, !GlobalInfo.isExam);
                         Log.Debug("执行跳步骤 任务选中" + receivedFlow + "步骤选中" + receivedStep);
                         toolModule.SchematicPanel.HideView();
@@ -1623,42 +1635,25 @@ public class UISmallSceneModule : UIModuleBase
                 int userIdOp = ((MsgBrodcastOperate)msg).senderId;
                 MsgOperation msgOp = ((MsgBrodcastOperate)msg).GetData<MsgOperation>();
                 {
-                    Log.Debug($"状态调试 Operate收到消息 - senderId:{userIdOp}, modelOperation:{msgOp.modelOperation}, operationName:{msgOp.operationName}, 当前用户:{GlobalInfo.account.id}");
-
                     SmallOp1 data = new SmallOp1();
                     data.operation = smallFlowCtrl.GetModelOperation(msgOp.modelOperation);
                     data.prop = smallFlowCtrl.GetModelInfo(msgOp.propId);
                     data.optionName = msgOp.operationName;
 
-                    // 记录他人操作对象，避免操作冲突
-                    if (data.operation != null && data.operation == modelOperation_Select && userIdOp != GlobalInfo.account.id)
-                    {
-                        ModelState = ModelState.Unselect;
-                    }
+
                     AcquireOperatePermission(userIdOp, data.operation);
 
                     //协同、考核是否为用户本人操作
                     bool self = ((MsgBrodcastOperate)msg).senderId == GlobalInfo.account.id;
                     ModelState = self ? ModelState.Operating : ModelState.OtherOperating;
 
-                    //记录执行操作前的道具状态
-                    string oldState = data.operation.currentState;
-
                     if(GlobalInfo.isExam)
                     {
-                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, !self);
+                        smallFlowCtrl.TryExecuteFreeOperation(data, msgOp.userNo, msgOp.userName, self);
                     }
                     else
                     {
-                        smallFlowCtrl.TryExecuteOperation(data, msgOp.correctOp, msgOp.userNo, msgOp.userName, (isOn) =>
-                        {
-                            if (self)
-                            {
-                                RetakeBackpackModel(true);
-                                if(!isOn)
-                                    smallFlowCtrl.RestoreState(data.operation, oldState);
-                            }
-                        }, !self);
+                        smallFlowCtrl.TryExecuteOperation(data, msgOp.correctOp, msgOp.userNo, msgOp.userName, self);
                     }
                 }
                 break;
@@ -1679,7 +1674,8 @@ public class UISmallSceneModule : UIModuleBase
                     {
                         ShortcutManager.SmallScene_SwitchCursor, ()=>
                         {
-                            if (ModelState == ModelState.Operating || GlobalInfo.InPaintMode || GlobalInfo.SysPopup || inMap)
+                            if (ModelState == ModelState.Operating || GlobalInfo.InPaintMode || GlobalInfo.SysPopup || inMap
+                                || GlobalInfo.ShowPopup || _cursorFreeRefCount > 0 || _isPopupActive)
                                 return;
                             if(playerController == null)
                                 return;
@@ -1805,9 +1801,7 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     public void RequestCursorFree()
     {
-        if (GlobalInfo.courseMode != CourseMode.Training &&
-            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
-            GlobalInfo.courseMode != CourseMode.Collaboration)
+        if (GlobalInfo.IsExamMode())
             return;
 #if UNITY_STANDALONE || UNITY_EDITOR
         if (_cursorFreeRefCount++ == 0)
@@ -1823,9 +1817,7 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     public void ReleaseCursorFree()
     {
-        if (GlobalInfo.courseMode != CourseMode.Training &&
-            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
-            GlobalInfo.courseMode != CourseMode.Collaboration)
+        if (GlobalInfo.IsExamMode())
             return;
 #if UNITY_STANDALONE || UNITY_EDITOR
         if (_cursorFreeRefCount <= 0) return;

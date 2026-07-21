@@ -502,6 +502,21 @@ public class UISmallSceneToolModule : UIModuleBase
                         this.GetComponentByChildName<Toggle>(info.GetComponent<ModelOperation>()?.currentState)?.SetIsOnWithoutNotify(true);
                         RefreshTip();
 
+                        // 培训模式PC端：选中正确道具后自动关闭工具箱
+                        #if UNITY_STANDALONE || UNITY_EDITORGlobalInfo
+                        if (!GlobalInfo.IsExamMode() && smallFlowCtrl.nowFlowStep != null)
+                        {
+                            foreach (var op in smallFlowCtrl.nowFlowStep.ops)
+                            {
+                                if (!smallFlowCtrl.IsOpCompleted(op) && op.prop != null && op.prop.ID == info.ID)
+                                {
+                                    ShowTool(false);
+                                    break;
+                                }
+                            }
+                        }
+                        #endif
+
                         SetModeSelected(item, info);
 
                         Transform Modes = transform.FindChildByName("ExternalModes"); //item.FindChildByName("Modes");

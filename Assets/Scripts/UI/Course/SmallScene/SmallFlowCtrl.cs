@@ -334,21 +334,9 @@ public class SmallFlowCtrl : MonoBase
         if (nowFlowStep == null || nowFlowStep.ops == null)
             return;
 
-        //仅培训和直播有效
-        if (GlobalInfo.courseMode == CourseMode.Training || GlobalInfo.courseMode == CourseMode.Livebroadcast)
+        //仅培训和直播有效；协同模式下非本人操作跳过
+        if (!GlobalInfo.IsExamMode() && (!GlobalInfo.isCooperation || IsCurrentOperationExecutor))
         {
-            //检测步骤是否需要道具（含永久工具：图纸、上位机等），需要则自动释放光标
-            bool needTool = nowFlowStep.ops.Any(o => o.prop != null);
-            if (needTool)
-            {
-                var module = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
-                if (module != null)
-                {
-                    module.MarkStepAutoFree();
-                    module.RequestCursorFree();
-                }
-            }
-
             SmallOp1 firstOp = nowFlowStep.ops.FirstOrDefault(o => o.operation != null);
             if (firstOp == null)
                 return;
@@ -508,6 +496,11 @@ public class SmallFlowCtrl : MonoBase
     /// 标记弹窗关闭是否 跳过导航本地表现
     /// </summary>
     public static bool ignoreMove = false;
+
+    /// <summary>
+    /// 当前操作的实际执行者（非协同同步方）。联动弹窗等场景用此判断是否执行完整行为。
+    /// </summary>
+    public bool IsCurrentOperationExecutor { get; private set; } = true;
 
     private Func<bool> audioNotPlayingPredicate;
 
@@ -1184,9 +1177,13 @@ public class SmallFlowCtrl : MonoBase
 
     /// <summary>
     /// 直接执行位置相关的行为（Pose或PlayerNavigation），绕过 ignoreMove 检查
+    /// 但协同模式下非操作者被CompleteStep同步时跳过，仅显式跳步骤(SelectStep)时应用位置
     /// </summary>
     private void ExecutePositionBehaviors(ModelOperation operation, string optionName)
     {
+        if (ignoreMove)
+            return;
+
         OperationBase op = operation.operations?.Find(o => o.name.Equals(optionName));
         if (op?.behaveBases == null)
         {
@@ -1210,13 +1207,14 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="userNo">操作人工号</param>
     /// <param name="userName">操作人姓名</param>
     /// <param name="callback"></param>
-    /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
-    public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, bool dummy = false)
+    /// <param name="self">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
+    public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, bool self)
     {
         GlobalInfo.WaitUiOq = false;
         NetworkManager.Instance.IsIMSync = false;
-        ignoreMove = dummy;
-        if (!dummy && !IsCameraStationaryOperation(data.operation, data.optionName))
+        ignoreMove = self;
+        IsCurrentOperationExecutor = self;
+        if (self && IsCameraStationaryOperation(data.operation))
             ModelManager.Instance.CameraDotween = true;
 
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
@@ -1225,7 +1223,7 @@ public class SmallFlowCtrl : MonoBase
         string effectiveOptionName = stepOp?.optionName ?? data.optionName;
 
         Log.Debug("调试 当前需要执行:" + nowFlowStep.ID + " 执行结果： " + isOnOperation);
-        FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
+        FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, self));
 
         ExecuteOperation(data.operation, effectiveOptionName, data.prop, (op) =>
         {
@@ -1237,10 +1235,10 @@ public class SmallFlowCtrl : MonoBase
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
                     Log.Debug("联动操作 操作对象的联动执行完成");
-                    if (!string.IsNullOrEmpty(op.hint_success) && !dummy)
+                    if (!string.IsNullOrEmpty(op.hint_success) && IsCurrentOperationExecutor)
                     {
-                        // 仅本人操作才发送分数上传消息（dummy=true 表示非本人操作）
-                        SendOperatingRecordMsg(stepOp ?? data, op, userNo, userName, isOnOperation && !dummy);
+                        // 仅本人操作才发送分数上传消息
+                        SendOperatingRecordMsg(stepOp ?? data, op, userNo, userName, isOnOperation && IsCurrentOperationExecutor);
                     }
                     // 全部并列操作完成后，执行步骤级联动再进入下一步
                     if (isOnOperation && MarkOpCompleted(stepOp ?? data))
@@ -1251,61 +1249,49 @@ public class SmallFlowCtrl : MonoBase
                             ExecuteFlowLinkOperation(opLinkages, () =>
                             {
                                 Log.Debug("联动操作 流程的联动执行完成");
-                                Next(dummy);
-                            }, 0, true);
+                                Next();
+                            }, 0);
                         }
                         else
-                            Next(dummy);
+                            Next();
                     }
                     else
-                        Over(dummy);
-                }, 0, dummy);
+                        Over();
+                }, 0);
             }
             else
             {
                 Log.Warning("执行了TryExecuteOperation未处理的分支");
             }
-        }, dummy);
+        });
     }
 
-    void Over(bool dummy)
+    void Over()
     {
         OnStepAdvanced?.Invoke(index_NowFlow, index_NowStep);
-        ModelManager.Instance.CameraDotween = false;
-
-        // 步骤未结束时，瞄准下一个需点击的操作目标
-        if (!dummy)
-            AimCameraAtNextOp();
-
-        //发送步骤操作结束消息
-        if (!dummy)
-            DOVirtual.DelayedCall(0.1f, () =>
+        if (IsCurrentOperationExecutor)
             {
-                ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
-            });
+                // 步骤未结束时，瞄准下一个需点击的操作目标
+                AimCameraAtNextOp();
+                //发送步骤操作结束消息
+                DOVirtual.DelayedCall(0.1f, () =>
+                {
+                    ModelManager.Instance.CameraDotween = false;
+                    ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
+                });
+            }
     }
 
     /// <summary>
-    /// 操作是否为不移动相机类型（开关/弹窗），此时不应隐藏角色模型
+    /// 开关门并不隐藏模型
     /// </summary>
-    private bool IsCameraStationaryOperation(ModelOperation operation, string optionName)
+    private bool IsCameraStationaryOperation(ModelOperation operation)
     {
-        if (operation == null) return false;
-
         ModelInfo modelInfo = operation.GetComponent<ModelInfo>();
-        if (modelInfo?.InfoData?.InteractMode == InteractMode.Switch)
-            return true;
+        if (modelInfo?.InfoData?.InteractMode == InteractMode.Switch && modelInfo.Name.Contains("门"))
+            return false;
 
-        OperationBase op = operation.operations?.Find(o => o.name.Equals(optionName));
-        if (op?.behaveBases != null)
-        {
-            foreach (var behave in op.behaveBases)
-            {
-                if (behave is BehavePopup)
-                    return true;
-            }
-        }
-        return false;
+        return true;
     }
 
     /// <summary>
@@ -1316,15 +1302,16 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="userNo">操作人工号</param>
     /// <param name="userName">操作人姓名</param>
     /// <param name="callback"></param>
-    /// <param name="dummy">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
-    public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, Action<bool> callback = null, bool dummy = false)
+    /// <param name="self">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
+    public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, bool self)
     {
         GlobalInfo.WaitUiOq = false;
-        ignoreMove = dummy;
+        ignoreMove = self;
+        IsCurrentOperationExecutor = self;
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
-        if (!dummy && !IsCameraStationaryOperation(data.operation, data.optionName))
+        if (self && IsCameraStationaryOperation(data.operation))
             ModelManager.Instance.CameraDotween = true;
-        FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, dummy));
+        FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, self));
 
         // 并列操作序号，用于匹配对应语音
         int opIndex = nowFlowStep.ops.FindIndex(o => o.operation == data.operation && o.optionName == data.optionName);
@@ -1338,7 +1325,7 @@ public class SmallFlowCtrl : MonoBase
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
-                    if (!dummy)
+                    if (!self)
                         SendOperatingRecordMsg(data, op, userNo, userName, correctOp);
                     WaitUadioToNext(() =>
                     {
@@ -1346,7 +1333,6 @@ public class SmallFlowCtrl : MonoBase
                         if (stepOpIndex < 0) stepOpIndex = 0;
                         SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, stepOpIndex, TipType.StepComplete);
 
-                        callback?.Invoke(true);
                         // 全部并列操作完成后，执行步骤级联动再进入下一步
                         if (MarkOpCompleted(data))
                         {
@@ -1355,22 +1341,22 @@ public class SmallFlowCtrl : MonoBase
                             {
                                 ExecuteFlowLinkOperation(opLinkages, () =>
                                 {
-                                    Next(dummy);
-                                }, 0, dummy);
+                                    Next();
+                                }, 0);
                             }
                             else
-                                Next(dummy);
+                                Next();
                         }
                         else
-                            Over(dummy);
+                            Over();
                     }).Forget();
-                }, 0, dummy);
+                }, 0);
             }
             else
             {
                 Log.Warning("执行了TryExecuteOperation未处理的分支");
             }
-        }, dummy);
+        });
     }
 
 
@@ -1427,8 +1413,7 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="opLinkages">联动操作列表</param>
     /// <param name="callback">完成回调</param>
     /// <param name="index">当前执行索引</param>
-    /// <param name="dummy">是否为非本人操作（跳过相机和移动表现）</param>
-    private void ExecuteFlowLinkOperation(List<OpLinkage> opLinkages, Action callback, int index = 0, bool dummy = false)
+    private void ExecuteFlowLinkOperation(List<OpLinkage> opLinkages, Action callback, int index = 0)
     {
         if (opLinkages.Count == index)
         {
@@ -1436,10 +1421,12 @@ public class SmallFlowCtrl : MonoBase
             return;
         }
 
-        // dummy 模式下跳过相机和移动相关操作
+        bool dummy = !IsCurrentOperationExecutor;
+
+        // 非执行者跳过相机和移动相关操作
         if (dummy && IsDummySkipOperation(opLinkages[index].operation, opLinkages[index].optionName, true))
         {
-            ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+            ExecuteFlowLinkOperation(opLinkages, callback, ++index);
             return;
         }
 
@@ -1470,13 +1457,13 @@ public class SmallFlowCtrl : MonoBase
             }
             SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, nowFlowStep.ops.Count + GetInitStatePopupVoiceCount() + popupVoiceIndex, TipType.Tips);
 
-            // 有弹窗：显示弹窗，等确认后再 SetFinalState 并继续
+            // 有弹窗：显示弹窗，等确认后再继续（不再依赖闭包捕获的dummy，由IsCurrentOperationExecutor判断）
             onPopupStateChanged.Invoke(true);
             popupBehave.Execute(() =>
             {
                 onPopupStateChanged.Invoke(false);
                 ToolManager.SendBroadcastMsg(new MsgBool((ushort)SmallFlowModuleEvent.ClousePop, true));
-                ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+                ExecuteFlowLinkOperation(opLinkages, callback, ++index);
             });
         }
         else if (hasguide)
@@ -1486,13 +1473,13 @@ public class SmallFlowCtrl : MonoBase
                 guideBehave.Execute(() =>
                 {
                     //培训模式需要走到下一个位置才能开始下一步语音
-                    ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+                    ExecuteFlowLinkOperation(opLinkages, callback, ++index);
                 });
             }
             else
             {
                 guideBehave.Execute();
-                ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+                ExecuteFlowLinkOperation(opLinkages, callback, ++index);
             }
         }
         else
@@ -1519,17 +1506,17 @@ public class SmallFlowCtrl : MonoBase
                     // 通过ExecuteFlowLinkOperation处理联动，这样导航行为会走过去而不是瞬移
                     ExecuteFlowLinkOperation(linkedActions, () =>
                     {
-                        ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
-                    }, 0, dummy);
+                        ExecuteFlowLinkOperation(opLinkages, callback, ++index);
+                    }, 0);
                 }
                 else
                 {
-                    ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+                    ExecuteFlowLinkOperation(opLinkages, callback, ++index);
                 }
             }
             else
             {
-                ExecuteFlowLinkOperation(opLinkages, callback, ++index, dummy);
+                ExecuteFlowLinkOperation(opLinkages, callback, ++index);
             }
         }
     }
@@ -1538,7 +1525,7 @@ public class SmallFlowCtrl : MonoBase
     /// 完成联系/输入等UI操作：标记完成 + 执行步骤级联动 + 进入下一步
     /// 解决 OnContact/OnInput 直接调 GotoNextStep → Next 而跳过联动和 MarkOpCompleted 的问题
     /// </summary>
-    public void CompleteUIOperation(string optionName, bool dummy = false)
+    public void CompleteUIOperation(string optionName)
     {
         SmallOp1 data = nowFlowStep?.ops?.Find(value => value.optionName.Equals(optionName));
         if (data == null) return;
@@ -1550,14 +1537,14 @@ public class SmallFlowCtrl : MonoBase
             {
                 ExecuteFlowLinkOperation(opLinkages, () =>
                 {
-                    Next(dummy);
-                }, 0, dummy);
+                    Next();
+                }, 0);
             }
             else
-                Next(dummy);
+                Next();
         }
         else
-            Over(dummy);
+            Over();
     }
 
     /// <summary>
@@ -1640,7 +1627,7 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="prop"></param>
     /// <param name="callback"></param>
     /// <param name="dummy">为true时不执行操作表现，用于协同/考核时跳过非本人操作的相机表现</param> 
-    public void ExecuteOperation(ModelOperation operation, string optionName, ModelInfo prop = null, Action<OperationBase> callback = null, bool dummy = false)
+    public void ExecuteOperation(ModelOperation operation, string optionName, ModelInfo prop = null, Action<OperationBase> callback = null)
     {
         for (int i = 0; i < operation.operations.Count; i++)
         {
@@ -1702,7 +1689,7 @@ public class SmallFlowCtrl : MonoBase
                         CheckKeywords(operation, optionName, false);
                         callback?.Invoke(op);
                     }
-                }, dummy);
+                });
                 return;
             }
         }
@@ -1775,16 +1762,16 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="max"></param>
     /// <param name="onComplete"></param>
     /// <param name="dummy">为true时跳过相机和移动相关行为，用于协同/考核时避免B端同步执行A端的相机和移动操作</param>
-    public void Execute(List<BehaveBase> behaveBases, int index, int max, UnityAction onComplete, bool dummy = false)
+    public void Execute(List<BehaveBase> behaveBases, int index, int max, UnityAction onComplete)
     {
         if (index < max)
         {
             var currentBehave = behaveBases[index];
 
-            // dummy 模式下跳过相机和移动相关行为
-            if (dummy && IsDummySkipBehavior(currentBehave.behaveType, false))
+            // 跳过相机和移动相关行为
+            if (!IsCurrentOperationExecutor && IsDummySkipBehavior(currentBehave.behaveType, false))
             {
-                Execute(behaveBases, ++index, max, onComplete, dummy);
+                Execute(behaveBases, ++index, max, onComplete);
                 return;
             }
 
@@ -1797,13 +1784,13 @@ public class SmallFlowCtrl : MonoBase
             {
                 currentBehave.Execute(() =>
                 {
-                    Execute(behaveBases, ++index, max, onComplete, dummy);
+                    Execute(behaveBases, ++index, max, onComplete);
                 });
             }
             else
             {
                 currentBehave.Execute(null);
-                Execute(behaveBases, ++index, max, onComplete, dummy);
+                Execute(behaveBases, ++index, max, onComplete);
             }
         }
         else
@@ -1813,7 +1800,7 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 执行联动操作
     /// </summary>
-    public void RunAction(List<OpLinkage> actions, Action callBack = null, int index = 0, bool dummy = false)
+    public void RunAction(List<OpLinkage> actions, Action callBack = null, int index = 0)
     {
         if (index >= actions.Count)
         {
@@ -1821,10 +1808,10 @@ public class SmallFlowCtrl : MonoBase
             return;
         }
 
-        // dummy 模式下跳过相机和移动相关操作
-        if (dummy && IsDummySkipOperation(actions[index].operation, actions[index].optionName, false))
+        //  非自身操作跳过相机和移动相关操作
+        if (!IsCurrentOperationExecutor && IsDummySkipOperation(actions[index].operation, actions[index].optionName, false))
         {
-            RunAction(actions, callBack, ++index, dummy);
+            RunAction(actions, callBack, ++index);
             return;
         }
 
@@ -1833,15 +1820,15 @@ public class SmallFlowCtrl : MonoBase
             ExecuteOperation(actions[index].operation, actions[index].optionName, null, isOn =>
             {
                 if (isOn != null)
-                    RunAction(actions[index].operation.operations.Find(value => value.name.Equals(actions[index].optionName)).actions.FindAll(a => a.operation != null), () => RunAction(actions, callBack, ++index, dummy), 0, dummy);
+                    RunAction(actions[index].operation.operations.Find(value => value.name.Equals(actions[index].optionName)).actions.FindAll(a => a.operation != null), () => RunAction(actions, callBack, ++index), 0);
                 else
-                    RunAction(actions, callBack, ++index, dummy);
-            }, dummy);
+                    RunAction(actions, callBack, ++index);
+            });
         }
         else
         {
-            ExecuteAction(actions[index], dummy).Forget();
-            RunAction(actions, callBack, ++index, dummy);
+            ExecuteAction(actions[index]).Forget();
+            RunAction(actions, callBack, ++index);
         }
     }
 
@@ -1849,18 +1836,17 @@ public class SmallFlowCtrl : MonoBase
     /// 确保不等待执行完毕的联动操作正常执行
     /// </summary>
     /// <param name="action"></param>
-    /// <param name="dummy"></param>
     /// <returns></returns>
-    private async UniTaskVoid ExecuteAction(OpLinkage action, bool dummy)
+    private async UniTaskVoid ExecuteAction(OpLinkage action)
     {
         await UniTask.Yield();
         ExecuteOperation(action.operation, action.optionName, null, isOn =>
         {
             if (isOn != null)
             {
-                RunAction(action.operation.operations.Find(value => value.name.Equals(action.optionName)).actions.FindAll(a => a.operation != null), null, 0, dummy);
+                RunAction(action.operation.operations.Find(value => value.name.Equals(action.optionName)).actions.FindAll(a => a.operation != null), null, 0);
             }
-        }, dummy);
+        });
     }
 
     /// <summary>
@@ -2287,12 +2273,10 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 下一步
     /// </summary>
-    public void Next(bool dummy)
+    public void Next()
     {
         if (GlobalInfo.WaitUiOq)
             return;
-
-        ignoreMove = dummy;
 
         if (index_NowFlow <= flows.Length - 1)
         {
@@ -2315,10 +2299,10 @@ public class SmallFlowCtrl : MonoBase
         }
 
         //发送步骤完成消息
-        if (!dummy)
+        if (IsCurrentOperationExecutor)
         {
             ToolManager.SendBroadcastMsg(new MsgIntInt((ushort)SmallFlowModuleEvent.CompleteStep, index_NowFlow, index_NowStep));
-            Over(false);
+            Over();
         }
     }
 

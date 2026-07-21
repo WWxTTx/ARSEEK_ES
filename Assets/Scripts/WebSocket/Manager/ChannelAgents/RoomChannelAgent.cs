@@ -231,9 +231,12 @@ public class RoomChannelAgent : NetworkChannelAgentBase
 
         SendMsg(new MsgIntString((ushort)RoomChannelEvent.OtherJoin, newJoinedId, newJoinedName));
 
-        //更新成员列表时，房主会提示谁退出了房间
-        if (newJoinedId != GlobalInfo.account.id && GlobalInfo.account.id == GlobalInfo.roomInfo.creatorId)
-            UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo($"（{newJoinedName}）加入房间"));
+        //统一提示成员加入房间
+        if (newJoinedId != GlobalInfo.account.id)
+        {
+            string tag = newJoinedId == GlobalInfo.roomInfo.creatorId ? "（房主）" : "";
+            UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo($"{tag}（{newJoinedName}）加入房间"));
+        }
 
         // 新成员加入时，发送缓存的状态数据供恢复
         if (GlobalInfo.account.id != newJoinedId)
@@ -290,9 +293,12 @@ public class RoomChannelAgent : NetworkChannelAgentBase
             networkManager.ClearUserIMState(memberId);
         }
 
-        //更新成员列表时，房主会提示谁退出了房间
-        if (memberId != GlobalInfo.account.id && GlobalInfo.account.id == GlobalInfo.roomInfo.creatorId)
-            UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo($"（{memberNickName}）离开房间"));
+        //统一提示成员离开房间
+        if (memberId != GlobalInfo.account.id)
+        {
+            string tag = memberId == GlobalInfo.roomInfo.creatorId ? "（房主）" : "";
+            UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo($"{tag}（{memberNickName}）离开房间"));
+        }
 
         SendMsg(new MsgIntStringBool((ushort)RoomChannelEvent.OtherDisconnect, memberId, memberNickName, isEvict));
     }

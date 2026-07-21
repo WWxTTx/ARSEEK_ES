@@ -229,11 +229,21 @@ public class ExamTrainingPanel : UIPanelBase
     /// </summary>
     private void LastRoomCheck()
     {
+        bool foundCached = false;
         //检测到用户之前参与的考核房间存在 尝试加入
         foreach (var item in roomInfos.Values)
         {
             if(item.ExamType != 0 && GlobalInfo.IsCachedRoom(item.Uuid))
             {
+                foundCached = true;
+
+                // 考核已结束，不显示重连弹窗
+                if (item.Status == 3)
+                {
+                    GlobalInfo.ClearCachedRoom();
+                    continue;
+                }
+
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("是", new PopupButtonData(() =>
                 {
@@ -248,6 +258,12 @@ public class ExamTrainingPanel : UIPanelBase
                 }));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？", popupDic, null, false));
             }
+        }
+
+        // 缓存房间已不在列表中（被删除等），清除残留缓存
+        if (!foundCached && PlayerPrefs.HasKey(GlobalInfo.CachedRoom))
+        {
+            GlobalInfo.ClearCachedRoom();
         }
     }
 

@@ -724,7 +724,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         {
             smallSceneModule.smallFlowCtrl.SelectStep(flow, step, false, savedAnswer);
             //历史是已完成的，需要操作的是下一步
-            smallSceneModule.smallFlowCtrl.Next(true);
+            smallSceneModule.smallFlowCtrl.Next();
 
             // 恢复新步骤中部分完成的操作（Next会触发ClearCompletedOps，所以在此之后恢复）
             if (partialCompletedOps.Count > 0)
