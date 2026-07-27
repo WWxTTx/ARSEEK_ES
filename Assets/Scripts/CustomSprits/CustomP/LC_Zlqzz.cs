@@ -724,6 +724,7 @@ public class LC_Zlqzz : MonoBase, IBaseBehaviour
     public Transform _tip;
     void SetGuideTip(int[] node)
     {
+        if (GlobalInfo.isExam) return;
         int last = selectNode.Count - 1;
 
         // 检查前面所有层级的选择是否正确

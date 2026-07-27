@@ -101,6 +101,7 @@ public class TrainingPanel : UIPanelBase
     public override void Open(UIData uiData = null)
     {
         Cursor.lockState = CursorLockMode.None;
+        GlobalInfo.SetCourseMode(CourseMode.Training);
         GlobalInfo.CursorLockMode = CursorLockMode.None;
 
         base.Open(uiData);
@@ -219,6 +220,7 @@ public class TrainingPanel : UIPanelBase
                     searchKeyword = string.Empty;
                     UIManager.Instance.CloseUI<TrainingPanel>();
                     UIManager.Instance.OpenUI<HomePagePanel>();
+                    GlobalInfo.SetCourseMode(CourseMode.Menu);
                 }, true));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "离开会中断资源下载，确认要离开吗？", popupDic, null, false));
             }
@@ -228,6 +230,7 @@ public class TrainingPanel : UIPanelBase
             searchKeyword = string.Empty;
             UIManager.Instance.CloseUI<TrainingPanel>();
             UIManager.Instance.OpenUI<HomePagePanel>();
+            GlobalInfo.SetCourseMode(CourseMode.Menu);
         }
     }
 

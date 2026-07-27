@@ -294,11 +294,16 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
     /// </summary>
     public void ButenEvent(string eventname)
     {
-        if (!TryToNext(eventname) && steps.Count > 0)
+        //没有触发对应流程时直接返回不执行
+        if (steps.Count > 0)
         {
-            if (smallSceneModule != null)
-                smallSceneModule.OnErrorShow();
-            return;
+            //存在流程时执行错误 且不是考核给提示
+            if (!TryToNext(eventname))
+            {
+                if (!GlobalInfo.isExam && currentStepIndex < steps.Count) 
+                    smallSceneModule?.OnErrorShow();
+                return;
+            }
         }
         switch (eventname)
         {
@@ -360,6 +365,7 @@ public class LCU_mlfsjs : MonoBase, IBaseBehaviour
 
     void SetTip()
     {
+        if (GlobalInfo.isExam) return;
         foreach (var item in UIButtons)
         {
             if (item.transform.Find("tip") != null)

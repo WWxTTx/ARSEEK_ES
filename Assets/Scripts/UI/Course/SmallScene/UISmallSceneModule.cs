@@ -304,10 +304,6 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     private int _cursorFreeRefCount;
     /// <summary>
-    /// 当前步骤的自动释放光标是否已被道具选中消耗
-    /// </summary>
-    private bool _stepAutoFreeConsumed;
-    /// <summary>
     /// 弹窗是否正在显示
     /// </summary>
     private bool _isPopupActive;
@@ -1427,7 +1423,6 @@ public class UISmallSceneModule : UIModuleBase
     public void SwitchToFreeClick()
     {
 #if UNITY_STANDALONE || UNITY_EDITOR
-        MarkStepAutoFree();
         RequestCursorFree();
 #else
         SetSelect(true);
@@ -1830,38 +1825,6 @@ public class UISmallSceneModule : UIModuleBase
     }
 
     /// <summary>
-    /// 消耗当前步骤的自动释放光标计数（道具被选中时调用），PC专属
-    /// </summary>
-    public void TryConsumeStepAutoFree()
-    {
-        if (GlobalInfo.courseMode != CourseMode.Training &&
-            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
-            GlobalInfo.courseMode != CourseMode.Collaboration)
-            return;
-#if UNITY_STANDALONE || UNITY_EDITOR
-        if (!_stepAutoFreeConsumed)
-        {
-            _stepAutoFreeConsumed = true;
-            ReleaseCursorFree();
-        }
-#endif
-    }
-
-    /// <summary>
-    /// 设置步骤自动释放光标标记（AimCameraAtFirstOp调用），PC专属
-    /// </summary>
-    public void MarkStepAutoFree()
-    {
-        if (GlobalInfo.courseMode != CourseMode.Training &&
-            GlobalInfo.courseMode != CourseMode.Livebroadcast &&
-            GlobalInfo.courseMode != CourseMode.Collaboration)
-            return;
-#if UNITY_STANDALONE || UNITY_EDITOR
-        _stepAutoFreeConsumed = false;
-#endif
-    }
-
-    /// <summary>
     /// 强制重置光标引用计数并恢复锁定（CompleteStep/CompleteExecute时使用），PC专属
     /// 注意：相机控制恢复的双端逻辑仍由 WaitSelect(false) 保证
     /// </summary>
@@ -1873,7 +1836,6 @@ public class UISmallSceneModule : UIModuleBase
             return;
 #if UNITY_STANDALONE || UNITY_EDITOR
         _cursorFreeRefCount = 0;
-        _stepAutoFreeConsumed = false;
         SetSelect(false);
         EnableCameraControl(true);
 #endif
@@ -1961,7 +1923,7 @@ public class UISmallSceneModule : UIModuleBase
     /// <param name="opIndex"></param>
     public void ShowHint(string stepHint, int opIndex)
     {
-        if (stepHint == "")
+        if (stepHint == ""|| GlobalInfo.isExam)
             return;
 
         //语音模式使用语音提示，非语音模式设置弹窗

@@ -133,6 +133,7 @@ public class OPLCoursePanel : HoverHintPanel
 
     public override void Open(UIData uiData = null)
     {
+        GlobalInfo.SetCourseMode(CourseMode.Training);
         base.Open(uiData);
 
         AddMsg(new ushort[]{

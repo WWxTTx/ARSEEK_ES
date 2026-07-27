@@ -363,7 +363,7 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
 
         UIManager.Instance.OpenUI<LoadingPanel>();
 
-        if (memberCount > 1 && GlobalInfo.courseMode != CourseMode.Exam)
+        if (memberCount > 1 && GlobalInfo.courseMode != CourseMode.Exam && !GlobalInfo.IsLiveMode())
         {
             // 多人房间：等待他人缓存数据
             while (!GlobalInfo.GetOtherCach && timeOut < 3f)
@@ -683,6 +683,27 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     public void RemoveUserAudio(int userId)
     {
         mAudioChannelAgent.RemoveMicDecoder(userId);
+    }
+
+    /// <summary>
+    /// 将已转为11025Hz mono Int16的外部音频数据喂入本地麦克风编码器，与麦克风采集数据混合发送
+    /// TTS音频不依赖麦克风硬件，直接写入AudioBytes队列，由SenderCOR定时编码发送
+    /// </summary>
+    public void FeedTtsAudio(byte[] audioData)
+    {
+        if (mAudioChannelAgent == null || mAudioChannelAgent.localMicEncoder == null)
+        {
+            Debug.LogError("[TTS语音] FeedTtsAudio失败: AudioChannelAgent或localMicEncoder为null");
+            return;
+        }
+
+        Debug.Log($"[TTS语音] 发送端 数据量={audioData.Length}字节");
+
+        // 仅启动SenderCOR发送TTS数据，不启动麦克风采集（否则CaptureMic持续填充队列导致无法自动停止）
+        mAudioChannelAgent.localMicEncoder.StartCapture(false);
+
+        // 直接写入AudioBytes队列，等待SenderCOR→EncodeBytes发送
+        mAudioChannelAgent.localMicEncoder.FeedExternalAudio(audioData);
     }
     #endregion
 

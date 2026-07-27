@@ -301,7 +301,6 @@ public class UISmallSceneToolModule : UIModuleBase
                 SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, null));
                 RefreshTip();
                 SchematicPanel.ShowView();
-                smallSceneModule.TryConsumeStepAutoFree();
                 if (_permanentToolCount++ == 0) smallSceneModule.RequestCursorFree();
             }
             else
@@ -497,7 +496,6 @@ public class UISmallSceneToolModule : UIModuleBase
                     {
                         SendMsg(new MsgString((ushort)SmallFlowModuleEvent.SelectTool, info.ID));
                         prop = info.ID;
-                        smallSceneModule.TryConsumeStepAutoFree();
 
                         this.GetComponentByChildName<Toggle>(info.GetComponent<ModelOperation>()?.currentState)?.SetIsOnWithoutNotify(true);
                         RefreshTip();

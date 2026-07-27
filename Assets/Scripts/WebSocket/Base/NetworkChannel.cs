@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityFramework.Runtime;
 using BestHTTP.WebSocket;
@@ -86,7 +86,7 @@ public class NetworkChannel
     {
         _isClosed = false;
         webSocket = new WebSocket(new Uri(url));
-        webSocket.StartPingThread = false;
+        webSocket.StartPingThread = true;
         //建立连接header
         webSocket.InternalRequest.AddHeader("Authorization", $"Bearer {ApiData.AccessToken}");
         webSocket.InternalRequest.AddHeader("RoomUUID", roomUuid);

@@ -1156,7 +1156,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         side.interactable = true;
 #endif
 
-        //仅单人考核走 RecoveryExam（服务器记录定进度+补状态）；多人考核重连由 SyncBaikeState 缓存路径恢复，避免两条路都调 SelectStep 竞态
+        //仅单人考核走 RecoveryExam（服务器记录定进度+补状态）；多人考核重连由 SyncBaikeState 缓存路径恢复
         if (NetworkManager.Instance.IsIMSyncState && GlobalInfo.courseMode == CourseMode.Exam)
             RefreshExamOpHistoryAsync(answerOp =>{
                 // 网络请求成功，从 answersDic 提取模型状态并恢复进度 主要目的是为了恢复正确流程的初始视角和联动步骤

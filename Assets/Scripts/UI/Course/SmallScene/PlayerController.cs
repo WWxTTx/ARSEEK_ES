@@ -87,6 +87,7 @@ public class PlayerController : MonoBase
     private Transform verticalPoint;
     private Transform cameraFollowPoint;
     private Transform firstCameraFollowPoint;
+    private Transform cameraYawPivot;
 
     private Transform model;
     private Animator animator;
@@ -123,6 +124,14 @@ public class PlayerController : MonoBase
         firstCameraFollowPoint.parent = verticalPoint;
         firstCameraFollowPoint.localPosition = Vector3.zero;
         firstCameraFollowPoint.localEulerAngles = Vector3.zero;
+
+        cameraYawPivot = new GameObject("CameraYawPivot").transform;
+        cameraYawPivot.parent = transform;
+        cameraYawPivot.localPosition = Vector3.zero;
+        cameraYawPivot.localEulerAngles = Vector3.zero;
+        verticalPoint.parent = cameraYawPivot;
+        if (cameraFollowPoint != null && cameraFollowPoint.parent == transform)
+            cameraFollowPoint.parent = cameraYawPivot;
 
         model = this.FindChildByName("Model");
         {
@@ -175,8 +184,8 @@ public class PlayerController : MonoBase
         {
             hasTapTarget = false;
 
-            //横向轴
-            transform.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
+            //横向轴（仅旋转相机偏航，角色朝向由移动方向驱动）
+            cameraYawPivot.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
 
             // 计算新的旋转角度
             tempFloat = verticalPoint.localEulerAngles.x - rotateJoystick.Vertical * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
@@ -194,8 +203,8 @@ public class PlayerController : MonoBase
             verticalPoint.localEulerAngles = new Vector3(clampedAngle, 0f, 0f);
         }
 #else
-        //横向轴
-        transform.localEulerAngles += Vector3.up * Input.GetAxis("Mouse X") * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
+        //横向轴（仅旋转相机偏航，角色朝向由移动方向驱动）
+        cameraYawPivot.localEulerAngles += Vector3.up * Input.GetAxis("Mouse X") * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
 
         //纵向轴
         {
@@ -223,13 +232,13 @@ public class PlayerController : MonoBase
         if (flatDir.sqrMagnitude > 0.001f)
         {
             float targetY = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
-            float deltaY = Mathf.DeltaAngle(transform.localEulerAngles.y, targetY);
+            float deltaY = Mathf.DeltaAngle(cameraYawPivot.eulerAngles.y, targetY);
             if (Mathf.Abs(deltaY) > 0.01f)
             {
                 float step = Mathf.Sign(deltaY) * rotSpeed;
                 if (Mathf.Abs(step) >= Mathf.Abs(deltaY))
                     step = deltaY;
-                transform.localEulerAngles += Vector3.up * step;
+                cameraYawPivot.localEulerAngles += Vector3.up * step;
             }
         }
 
@@ -269,11 +278,12 @@ public class PlayerController : MonoBase
         // 取消点击屏幕锁定视角
         VariableJoystick.tapRotationTriggered = false;
 
-            // 机身水平偏航(Y)
+            // 水平偏航(Y)：相机视角和角色机身都朝向目标
         Vector3 flatDir = new Vector3(targetPos.x - transform.position.x, 0f, targetPos.z - transform.position.z);
         if (flatDir.sqrMagnitude > 0.0001f)
         {
             float targetY = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
+            cameraYawPivot.DOLocalRotate(Vector3.zero, duration);
             transform.DORotate(new Vector3(0f, targetY, 0f), duration);
         }
 
@@ -295,6 +305,10 @@ public class PlayerController : MonoBase
     /// </summary>
     private void Move()
     {
+        // 移动方向基于相机朝向（投影到水平面）
+        Vector3 camForward = Vector3.ProjectOnPlane(cameraYawPivot.forward, Vector3.up).normalized;
+        Vector3 camRight = Vector3.ProjectOnPlane(cameraYawPivot.right, Vector3.up).normalized;
+
 #if UNITY_ANDROID || UNITY_IOS
         if (moveJoystick.Vertical == 0 && moveJoystick.Horizontal == 0)
         {
@@ -302,11 +316,21 @@ public class PlayerController : MonoBase
                 agent.velocity = Vector3.zero;
             return;
         }
-        Vector3 desiredVelocity = (moveJoystick.Vertical * transform.forward + moveJoystick.Horizontal * transform.right) * GlobalInfo.baseMoveSpeed * cachedMoveSpeed;
+        Vector3 moveDir = (moveJoystick.Vertical * camForward + moveJoystick.Horizontal * camRight).normalized;
+        Vector3 desiredVelocity = moveDir * GlobalInfo.baseMoveSpeed * cachedMoveSpeed;
         if (agent.isOnNavMesh)
             agent.velocity = desiredVelocity;
         else
             controller.SimpleMove(desiredVelocity * Time.deltaTime);
+
+        // 角色朝向移动方向（保持相机世界朝向不变）
+        if (moveDir.sqrMagnitude > 0.01f)
+        {
+            float camWorldYaw = cameraYawPivot.eulerAngles.y;
+            Quaternion targetBodyRot = Quaternion.LookRotation(moveDir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetBodyRot, Time.deltaTime * 10f);
+            cameraYawPivot.localEulerAngles -= Vector3.up * (cameraYawPivot.eulerAngles.y - camWorldYaw);
+        }
 #else
         mVertical = Input.GetAxis("Vertical");
         mHorizontal = Input.GetAxis("Horizontal");
@@ -321,11 +345,21 @@ public class PlayerController : MonoBase
         {
             Debug.LogWarning($"[PlayerController] Move input — V={mVertical:F3} H={mHorizontal:F3}, agentOnNavMesh={agent.isOnNavMesh}, isNavigating={isNavigating}, agentVel={agent.velocity.magnitude:F3}, hasPath={agent.hasPath}, remainingDist={agent.remainingDistance:F3}, dest={agent.destination}");
         }
-        Vector3 desiredVelocity2 = (mVertical * transform.forward + mHorizontal * transform.right) * GlobalInfo.baseMoveSpeed * cachedMoveSpeed;
+        Vector3 moveDir2 = (mVertical * camForward + mHorizontal * camRight).normalized;
+        Vector3 desiredVelocity2 = moveDir2 * GlobalInfo.baseMoveSpeed * cachedMoveSpeed;
         if (agent.isOnNavMesh)
             agent.velocity = desiredVelocity2;
         else
             controller.Move(desiredVelocity2 * Time.deltaTime);
+
+        // 角色朝向移动方向（保持相机世界朝向不变）
+        if (moveDir2.sqrMagnitude > 0.01f)
+        {
+            float camWorldYaw = cameraYawPivot.eulerAngles.y;
+            Quaternion targetBodyRot = Quaternion.LookRotation(moveDir2);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetBodyRot, Time.deltaTime * 10f);
+            cameraYawPivot.localEulerAngles -= Vector3.up * (cameraYawPivot.eulerAngles.y - camWorldYaw);
+        }
 #endif
     }
     /// <summary>
@@ -450,6 +484,12 @@ public class PlayerController : MonoBase
         if (isNavigating)
         {
             CameraFollow();
+            // 导航时角色转向移动方向
+            if (agent.velocity.sqrMagnitude > 0.01f)
+            {
+                Quaternion targetBodyRot = Quaternion.LookRotation(agent.velocity.normalized);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetBodyRot, Time.deltaTime * 10f);
+            }
             if (!agent.pathPending && agent.remainingDistance < agent.stoppingDistance)
             {
                 EndNavigation(navSnapToTarget ? targetPoint : null);
@@ -528,6 +568,8 @@ public class PlayerController : MonoBase
     {
         agent = transform.AutoComponent<NavMeshAgent>();
         agent.updateRotation = false;
+        agent.autoBraking = false;
+        agent.acceleration = 100f;
         agent.stoppingDistance = 0.5f;
         agent.radius = 0.3f;
         agent.avoidancePriority = 50;
@@ -535,7 +577,6 @@ public class PlayerController : MonoBase
         if (!agent.isOnNavMesh)
         {
             agent.enabled = false;
-            //moveSensitivity = 4f;
             controller.enabled = true;
         }
     }
@@ -586,6 +627,7 @@ public class PlayerController : MonoBase
                     agent.Warp(transform.position);
             });
             verticalPoint.DOLocalRotate(Vector3.zero, duration);
+            cameraYawPivot.DOLocalRotate(Vector3.zero, duration);
 
             transform.DORotate(target.eulerAngles, duration).OnComplete(() =>
             {

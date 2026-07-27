@@ -445,11 +445,17 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 当前步骤是否有操作执行错误（含未使用道具、使用错道具），用于并列操作整步不给分
+    /// </summary>
+    private bool _stepHasIncorrectOp;
+
+    /// <summary>
     /// 清空当前步骤完成记录
     /// </summary>
     public void ClearCompletedOps()
     {
         completedOpIds.Clear();
+        _stepHasIncorrectOp = false;
     }
 
     /// <summary>
@@ -1238,7 +1244,7 @@ public class SmallFlowCtrl : MonoBase
                     if (!string.IsNullOrEmpty(op.hint_success) && IsCurrentOperationExecutor)
                     {
                         // 仅本人操作才发送分数上传消息
-                        SendOperatingRecordMsg(stepOp ?? data, op, userNo, userName, isOnOperation && IsCurrentOperationExecutor);
+                        SendOperatingRecordMsg(stepOp ?? data, op, userNo, userName, isOnOperation && IsCurrentOperationExecutor, data.prop);
                     }
                     // 全部并列操作完成后，执行步骤级联动再进入下一步
                     if (isOnOperation && MarkOpCompleted(stepOp ?? data))
@@ -1325,8 +1331,10 @@ public class SmallFlowCtrl : MonoBase
 
                 RunAction(op.actions.FindAll(a => a.operation != null), () =>
                 {
-                    if (!self)
-                        SendOperatingRecordMsg(data, op, userNo, userName, correctOp);
+                    if (!string.IsNullOrEmpty(op.hint_success) && IsCurrentOperationExecutor)
+                    {
+                        SendOperatingRecordMsg(data, op, userNo, userName, correctOp, data.prop);
+                    }
                     WaitUadioToNext(() =>
                     {
                         int stepOpIndex = nowFlowStep.ops.FindIndex(o => o.operation == data.operation && o.optionName == data.optionName);
@@ -2377,7 +2385,8 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="userNo">操作人工号</param>
     /// <param name="userName">操作人姓名</param>
     /// <param name="isCorrect">是否正确操作</param>
-    private void SendOperatingRecordMsg(SmallOp1 data, OperationBase op, string userNo, string userName, bool isCorrect = false)
+    /// <param name="actualProp">实际使用的道具</param>
+    private void SendOperatingRecordMsg(SmallOp1 data, OperationBase op, string userNo, string userName, bool isCorrect = false, ModelInfo actualProp = null)
     {
         //操作成功的文本提示
         string stepHint = flows[index_NowFlow].steps[index_NowStep].hint_success;
@@ -2389,8 +2398,15 @@ public class SmallFlowCtrl : MonoBase
             hint = op.hint_success;
         }
 
-        //获取当前步骤在网页上配置的分数
-        float score = GetStepScore(isCorrect);
+        // 道具使用记录
+        if (actualProp != null)
+            hint = $"使用了{actualProp.Name}，" + hint;
+
+        // 并列操作中任意一个错误（含未使用道具、使用错道具），整步不给分
+        if (!isCorrect)
+            _stepHasIncorrectOp = true;
+        float score = GetStepScore(isCorrect && !_stepHasIncorrectOp);
+
         MsgOperatingRecord msg = new MsgOperatingRecord(
             (ushort)SmallFlowModuleEvent.OperatingRecord,
             hint,

@@ -177,7 +177,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
         {
             case AvailableStatus.巡检:
 
-                string[] flow0 = { "通信状态", "频率t", "桨叶开度t", "导叶开度t", "水头t", "B机t" };
+                string[] flow0 = { "通信状态", "频率t", "桨叶开度t", "导叶开度t", "水头t", };
                 steps = flow0.ToList();
                 StartFlow();
                 callback = () =>
@@ -1169,6 +1169,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
     void Settip(Text t, bool b)
     {
+        if (GlobalInfo.isExam) return;
         t.transform.Find("tip").gameObject.SetActive(b);
     }
 
@@ -1284,36 +1285,36 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     /// </summary>
     public void ButenEvent(string eventname)
     {
-        if (!TryToNext(eventname) && steps.Count > 0)
+        //没有触发对应流程时直接返回不执行
+        if (steps.Count > 0)
         {
-            if (smallSceneModule != null)
-                smallSceneModule.OnErrorShow();
-            return;
+            //存在流程时执行错误 且不是考核给提示
+            if (!TryToNext(eventname))
+            {
+                if (!GlobalInfo.isExam && currentStepIndex < steps.Count)
+                    smallSceneModule?.OnErrorShow();
+                return;
+            }
         }
 
         switch (eventname)
         {
             case "通信状态":
-                smallSceneModule.ShowHint("“通信状态”方框为绿色，其余方框为白色，无红色故障指示", -1);
+                smallSceneModule.ShowHint("“通信状态”方框为绿色，其余方框为白色，无红色故障指示", 1);
                 break;
             case "频率t":
-                smallSceneModule.ShowHint("机组频率和系统频率保持一致", -1);
+                smallSceneModule.ShowHint("机组频率和系统频率保持一致", 2);
                 break;
             case "桨叶开度t":
-                smallSceneModule.ShowHint("桨叶开度值与目标值相近", -1);
+                smallSceneModule.ShowHint("桨叶开度值与目标值相近", 3);
                 break;
             case "导叶开度t":
-                smallSceneModule.ShowHint("导叶开度值与目标值相近", -1);
+                smallSceneModule.ShowHint("导叶开度值与目标值相近", 4);
                 break;
             case "水头t":
-                smallSceneModule.ShowHint("水头与实际相符", -1);
+                smallSceneModule.ShowHint("水头与实际相符，A、B套除“导叶给定”、“导叶反馈”、“桨叶给定”、“桨叶反馈”略有差异外，其余参数保持一致", 5);
                 UIButtons[0].gameObject.SetActive(true);
                 UIButtons[1].gameObject.SetActive(false);
-                break;
-            case "B机t":
-                smallSceneModule.ShowHint("A、B套除“导叶给定”、“导叶反馈”、“桨叶给定”、“桨叶反馈”略有差异外，其余参数保持一致", -1);
-                UIButtons[0].gameObject.SetActive(false);
-                UIButtons[1].gameObject.SetActive(true);
                 break;
             case "开度给定增加":
                 kd = float.Parse(TextDic["导叶开度"].text);
@@ -1547,6 +1548,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
 
     void SetTip()
     {
+        if (GlobalInfo.isExam) return;
         foreach (var item in UIButtons)
         {
             if (item.transform.Find("tip") != null)

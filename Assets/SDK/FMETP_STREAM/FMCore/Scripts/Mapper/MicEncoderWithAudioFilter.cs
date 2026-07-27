@@ -57,6 +57,10 @@ public class MicEncoderWithAudioFilter : MonoBehaviour
 
     private int emptyPacket = 32;
 
+    private int emptyFrameCount = 0; // TTS连续空帧计数，超时自动停止SenderCOR
+    private bool ttsActive = false; // TTS是否有数据正在发送中（与麦克风完全独立）
+    private int ttsBytesPending = 0; // TTS待发送字节计数，喂入+，消费-，归零时触发自动停止
+
     public float threshold;
     public float clipPeek;
 
@@ -161,26 +165,28 @@ public class MicEncoderWithAudioFilter : MonoBehaviour
         OutputChannels = AudioMic.clip.channels;
     }
 
-    public void StartCapture()
+    public void StartCapture(bool startMic = true)
     {
-        if (!micStartSuccess)
-            FormMsgManager.Instance.SendMsg(new MsgBase((ushort)MediaChannelEvent.MicError));
-
-        if (stop && micStartSuccess)
+        if (stop)
         {
             stop = false;
-            audioFilterReadForwarder.Streaming = true;
+            emptyFrameCount = 0;
+            if (audioFilterReadForwarder != null)
+                audioFilterReadForwarder.Streaming = true;
 
             ReAllocateCache();
 
             StartCoroutine(SenderCOR());
-            StartCoroutine(CaptureMic());
+            if (micStartSuccess && startMic)
+                StartCoroutine(CaptureMic());
         }
     }
 
     public void StopCapture()
     {
         stop = true;
+        ttsActive = false;
+        ttsBytesPending = 0;
         if (audioFilterReadForwarder)
             audioFilterReadForwarder.Streaming = false;
 
@@ -351,9 +357,10 @@ public class MicEncoderWithAudioFilter : MonoBehaviour
 
     IEnumerator SenderCOR()
     {
+        Debug.Log("[TTS语音] 发送");
         while (!stop)
         {
-            if (micStartSuccess && Time.realtimeSinceStartup > next)
+            if (Time.realtimeSinceStartup > next)
             {
                 interval = 1f / StreamFPS;
                 next = Time.realtimeSinceStartup + interval;
@@ -361,6 +368,8 @@ public class MicEncoderWithAudioFilter : MonoBehaviour
             }
             yield return null;
         }
+
+        Debug.Log("[TTS语音] 停止");
     }
 
     void EncodeBytes()
@@ -383,9 +392,16 @@ public class MicEncoderWithAudioFilter : MonoBehaviour
             cachedLength = cacheDataByte.Count;
         }
 
+        // 每次EncodeBytes只取一帧大小的数据，确保解码器流式缓冲不会溢出
+        // 正常麦克风采集天然每50ms产生~1102字节；TTS一次性灌入大量数据时需拆分
+        int maxFrameBytes = OutputSampleRate * OutputChannels * 2 / Mathf.Max(StreamFPS, 1);
+
         lock (_asyncLockAudio)
         {
-            dataByte = new byte[cacheDataByte.Count + AudioBytes.Count + _samplerateByte.Length + _channelsByte.Length + _streamFPSByte.Length];
+            byte[] allAudio = AudioBytes.ToArray();
+            int takeBytes = Mathf.Min(allAudio.Length, maxFrameBytes);
+
+            dataByte = new byte[cacheDataByte.Count + takeBytes + _samplerateByte.Length + _channelsByte.Length + _streamFPSByte.Length];
 
             Buffer.BlockCopy(_samplerateByte, 0, dataByte, 0, _samplerateByte.Length);
             Buffer.BlockCopy(_channelsByte, 0, dataByte, 4, _channelsByte.Length);
@@ -400,8 +416,15 @@ public class MicEncoderWithAudioFilter : MonoBehaviour
                 }
             }
 
-            Buffer.BlockCopy(AudioBytes.ToArray(), 0, dataByte, 12 + cacheDataByte.Count, AudioBytes.Count);
+            Buffer.BlockCopy(allAudio, 0, dataByte, 12 + cacheDataByte.Count, takeBytes);
+
+            // 递减TTS待发送计数（AudioBytes中的字节先入先出，扣除已消费的部分）
+            ttsBytesPending = Mathf.Max(0, ttsBytesPending - takeBytes);
+
+            // 保留未消费的字节，供后续帧发送
             AudioBytes.Clear();
+            for (int i = takeBytes; i < allAudio.Length; i++)
+                AudioBytes.Enqueue(allAudio[i]);
         }
 
 
@@ -409,6 +432,22 @@ public class MicEncoderWithAudioFilter : MonoBehaviour
         //==================getting byte data==================
 
         dataLength = dataByte.Length;
+
+        // TTS自动停止计时：只关心自己的数据是否发完，不看共享队列状态（与麦克风完全解耦）
+        if (ttsActive && ttsBytesPending <= 0)
+        {
+            emptyFrameCount++;
+            if (emptyFrameCount > StreamFPS * 2)
+            {
+                ttsActive = false;
+                StopCapture();
+            }
+        }
+        else
+        {
+            emptyFrameCount = 0;
+        }
+
         if (dataLength < emptyPacket)
             return;
 
@@ -442,6 +481,20 @@ public class MicEncoderWithAudioFilter : MonoBehaviour
 
         dataID++;
         if (dataID > maxID) dataID = 0;
+    }
+
+    /// <summary>
+    /// 将外部音频数据(已转为11025Hz mono Int16)直接写入采集队列，与麦克风数据混合发送
+    /// </summary>
+    public void FeedExternalAudio(byte[] audioData)
+    {
+        lock (_asyncLockAudio)
+        {
+            foreach (byte b in audioData)
+                AudioBytes.Enqueue(b);
+            ttsActive = true;
+            ttsBytesPending += audioData.Length;
+        }
     }
 
     public void ReleaseMic()

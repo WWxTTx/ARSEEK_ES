@@ -221,11 +221,8 @@ public class GlobalInfo
         {
             SpeechManager.Instance.SpeechMode = true;
         }
-        //非培训模式无语音提示
-        if (courseMode != CourseMode.Training)
-        {
-            SpeechManager.Instance.SpeechMode = false;
-        }
+        //考核模式无语音提示
+        SpeechManager.Instance.SpeechMode = !isExam;
     }
     #endregion
 

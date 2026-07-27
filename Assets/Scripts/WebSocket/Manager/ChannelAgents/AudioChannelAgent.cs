@@ -9,9 +9,6 @@ using Newtonsoft.Json.Linq;
 /// </summary>
 public class AudioChannelAgent : NetworkChannelAgentBase
 {
-    // [Header("本地采集")]
-    // public MicEncoder localMicEncoder;
-
     /// <summary>
     /// 支持录音时录音笔发送的变声处理
     /// </summary>
@@ -37,14 +34,19 @@ public class AudioChannelAgent : NetworkChannelAgentBase
             if (!IsChannelConnected())
                 return;
 
+            JObject payload = new JObject
+            {
+                [NetworkManager.LABEL] = localMicEncoder.label,
+                [NetworkManager.DATA] = byteData
+            };
+            // 直播模式下标记广播，确保服务端将音频转发给所有观众（与视频帧行为一致）
+            if (GlobalInfo.IsLiveMode())
+                payload["broadcast"] = true;
+
             JObject jObject = new JObject()
             {
                 [NetworkManager.TYPE] = NetworkManager.AUDIO,
-                [NetworkManager.PAYLOAD] = new JObject
-                {
-                    [NetworkManager.LABEL] = localMicEncoder.label,
-                    [NetworkManager.DATA] = byteData
-                }
+                [NetworkManager.PAYLOAD] = payload
             };
             networkChannel.SendAsync(jObject.ToString());
         });
@@ -84,13 +86,18 @@ public class AudioChannelAgent : NetworkChannelAgentBase
         string label = jObject[NetworkManager.PAYLOAD][NetworkManager.LABEL].ToString();
         int userId = int.Parse(label.ToString().Substring(3));
 
-        // 过滤非房主成员发送的音频帧
+        // 不处理自己的音频（TTS语音和麦克风均已本地播放，回传会造成回声）
+        if (userId == GlobalInfo.account.id)
+            return;
+
+        // 过滤非房主成员发送的音频帧（仅考试模式）
         if (GlobalInfo.IsExamMode() && !GlobalInfo.IsHomeowner() && userId != GlobalInfo.roomInfo?.creatorId)
             return;
 
-        // 如果接收到的房主或该用户未开启音频帧
-        if (!networkManager.IsUserChat(userId))
+        // IsUserChat客户端侧过滤：直播模式下跳过（服务端已做权限控制，客户端重复校验会误伤TTS语音）
+        if (!GlobalInfo.IsLiveMode() && !networkManager.IsUserChat(userId))
             return;
+        Debug.Log($"[TTS语音] 接收端: userId={userId} 数据已收到");
 
         // 确认为用户创建了音频解码器
         if (!clientMicDecoders.ContainsKey(label))
