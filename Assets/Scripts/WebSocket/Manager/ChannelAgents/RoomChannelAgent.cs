@@ -254,6 +254,10 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     /// <param name="isEvict">是否被踢出（正常退出）</param>
     private void OtherLeaveRoom(int memberId, string memberNickName, bool isEvict)
     {
+        //立即从在线用户列表移除，阻止残留位置消息创建模型
+        //不修改roomMembers，保持其作为服务器权威来源（仅由MEMBER_LIST更新）
+        onlineUsers.Remove(memberId);
+
         //本地玩家被踢出：立即阻止重连，显示弹窗后离开
         if (isEvict && memberId == GlobalInfo.account.id)
         {

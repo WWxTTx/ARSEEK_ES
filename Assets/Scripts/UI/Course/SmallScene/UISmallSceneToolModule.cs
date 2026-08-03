@@ -332,6 +332,8 @@ public class UISmallSceneToolModule : UIModuleBase
     /// </summary>
     private void OnSchematicAdded(ModelInfo schematicInfo)
     {
+        // 切换鼠标到自由点击模式
+        smallSceneModule.SwitchToFreeClick();
         // 新增：事件添加图纸时自动显示完成按钮
         SchematicPanel.Over.gameObject.SetActive(true);
         RefreshDrawingToggle();

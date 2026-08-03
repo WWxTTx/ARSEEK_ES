@@ -190,6 +190,7 @@ public class SmallFlowCtrl : MonoBase
         {
             _index_NowStep = value;
             ClearCompletedOps();
+            ignoreMove = false;
             // 自动播放：使用 DelayStart
             if (nowFlowStep != null && nowFlowStep.initState != null && nowFlowStep.initState.Count > 0)
             {
@@ -384,6 +385,7 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     private async UniTaskVoid NavigateNearTargetAsync(PlayerController pc, Transform target, Action proceed)
     {
+        pc.KillCameraTweens();
         pc.Model.GetComponent<Animator>().SetBool("isMove", true);
         pc.StartNavigation(target, false);
         await UniTask.WaitUntil(() => !pc || pc.NavEnd);
@@ -1070,11 +1072,11 @@ public class SmallFlowCtrl : MonoBase
 
         // 6. 考核模式：用联机考核记录覆盖初始视角状态（考核记录优先级最高）
         // 必须在 index_NowStep 之后执行，确保分层：默认状态 → initState → 考核操作记录
-        if (!ResetByFlow)
+        if (GlobalInfo.isExam && !ResetByFlow)
         {
             if (answerOp != null)
                 SetExamModelStateData(answerOp);
-            else
+            else if (NetworkManager.Instance.IsIMSyncState)
                 FindObjectOfType<ExamCoursePanel>().GetComponent<ExamCoursePanel>().RefreshExamOpHistoryAsync(SetExamModelStateData);
         }
     }
@@ -1310,6 +1312,32 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="callback"></param>
     /// <param name="self">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, bool self)
+    {
+        // 非考核模式：距离检查，太远先导航再执行
+        if (!GlobalInfo.isExam && self && data.operation != null)
+        {
+            PlayerController pc = playerController;
+            if (pc != null)
+            {
+                var restrict = data.operation.GetComponent<ModelRestrict>();
+                Transform target = (restrict != null && restrict.modelHighlight?.highlightNodes?.Count > 0)
+                    ? restrict.modelHighlight.highlightNodes[0].transform
+                    : data.operation.transform;
+                if (target != null && Vector3.Distance(pc.transform.position, target.position) > 0.5f)
+                {
+                    NavigateNearTargetAsync(pc, target, () =>
+                    {
+                        ExecuteOperationCore(data, correctOp, userNo, userName, self);
+                    }).Forget();
+                    return;
+                }
+            }
+        }
+
+        ExecuteOperationCore(data, correctOp, userNo, userName, self);
+    }
+
+    private void ExecuteOperationCore(SmallOp1 data, bool correctOp, string userNo, string userName, bool self)
     {
         GlobalInfo.WaitUiOq = false;
         ignoreMove = self;
@@ -2400,7 +2428,7 @@ public class SmallFlowCtrl : MonoBase
 
         // 道具使用记录
         if (actualProp != null)
-            hint = $"使用了{actualProp.Name}，" + hint;
+            hint = $"已使用{actualProp.Name}，" + hint;
 
         // 并列操作中任意一个错误（含未使用道具、使用错道具），整步不给分
         if (!isCorrect)
@@ -2565,8 +2593,6 @@ public class SmallFlowCtrl : MonoBase
             // 添加到工具字典
             toolIDs.Add(schematicSprite.name, modelInfo);
 
-            // 切换鼠标到自由点击模式
-            UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true).SwitchToFreeClick();
 
             DOVirtual.DelayedCall(0.3f, () =>
             {

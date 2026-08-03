@@ -28,11 +28,6 @@ public class PlayerManager : MonoBase
     /// </summary>
     private Dictionary<int, GazeIndicator> userIndicators = new Dictionary<int, GazeIndicator>();
 
-    /// <summary>
-    /// 已移除的成员ID集合，防止位置消息到达时重新创建
-    /// </summary>
-    private HashSet<int> removedUsers = new HashSet<int>();
-
 
     protected override void InitComponents()
     {
@@ -42,12 +37,9 @@ public class PlayerManager : MonoBase
             (ushort)CoursePanelEvent.SwitchResource,
             (ushort)BaikeSelectModuleEvent.BaikeSelect,
             (ushort)GazeEvent.UserPose,
-            (ushort)RoomChannelEvent.OtherJoin,
-            (ushort)RoomChannelEvent.OtherLeave,
-            (ushort)RoomChannelEvent.OtherDisconnect,
-            (ushort)RoomChannelEvent.UpdateControl,
             (ushort)RoomChannelEvent.LeaveRoom,
-            (ushort)StateEvent.PreSyncVersion
+            (ushort)StateEvent.PreSyncVersion,
+            (ushort)RoomChannelEvent.UpdateMemberList
         });
     }
 
@@ -72,20 +64,20 @@ public class PlayerManager : MonoBase
                 //更新成员位置
                 SyncUser(msgIntVector.arg, msgIntVector.v3, msgIntVector.v4);
                 break;
-            case (ushort)RoomChannelEvent.OtherJoin:
-                removedUsers.Remove(((MsgIntString)msg).arg1);
-                break;
-            case (ushort)RoomChannelEvent.OtherLeave:
-            case (ushort)RoomChannelEvent.OtherDisconnect:
-                //移除离线成员
-                RemoveUser(((MsgIntStringBool)msg).arg1);
-                break;
-            case (ushort)RoomChannelEvent.UpdateControl:
-                MsgIntBool msgIntBool = (MsgIntBool)msg;
-                //移除无权限成员
-                if (!msgIntBool.arg2)
+            case (ushort)RoomChannelEvent.UpdateMemberList:
+                //清理已在服务器成员列表中不存在的用户模型
+                //模型创建由SyncUser在首次收到位置数据时懒加载，避免场景未就绪时空创建
+                List<Member> currentMembers = NetworkManager.Instance.GetRoomMemberList();
+                if (currentMembers != null)
                 {
-                    RemoveUser(msgIntBool.arg1);
+                    List<int> toRemove = new List<int>();
+                    foreach (int uid in userIndicators.Keys)
+                    {
+                        if (!currentMembers.Exists(m => m.Id == uid))
+                            toRemove.Add(uid);
+                    }
+                    foreach (int uid in toRemove)
+                        RemoveUser(uid);
                 }
                 break;
         }
@@ -102,16 +94,23 @@ public class PlayerManager : MonoBase
         if (GlobalInfo.account.id == id)
             return;
 
-        // 确保指示器存在
-        if (!userIndicators.ContainsKey(id))
+        if (!NetworkManager.Instance.IsUserOnline(id))
         {
-            TryAddNewUser(id);
+            RemoveUser(id);
+            return;
         }
 
-        if (userIndicators.ContainsKey(id))
+        if (!userIndicators.ContainsKey(id))
         {
-            userIndicators[id].UpdatePose(vector3, vector4);
+            // 保底：位移时发现模型缺失，检查是否仍在成员列表中再创建
+            var members = NetworkManager.Instance.GetRoomMemberList();
+            if (members != null && members.Exists(m => m.Id == id))
+                TryAddNewUser(id);
+            if (!userIndicators.ContainsKey(id))
+                return;
         }
+
+        userIndicators[id].UpdatePose(vector3, vector4);
     }
 
     /// <summary>
@@ -120,7 +119,12 @@ public class PlayerManager : MonoBase
     /// <param name="id"></param>
     private void TryAddNewUser(int id)
     {
-        if (removedUsers.Contains(id))
+        //检查用户是否在线，不在线不创建（onlineUsers由OtherLeaveRoom立即更新+MEMBER_LIST重建）
+        if (!NetworkManager.Instance.IsUserOnline(id))
+            return;
+
+        //等待考核时不创建模型
+        if (GlobalInfo.waitExam)
             return;
 
         //限制 非自身 多人考核非房主 协同
@@ -145,7 +149,6 @@ public class PlayerManager : MonoBase
                 Destroy(userIndicators[id].gameObject);
             userIndicators.Remove(id);
         }
-        removedUsers.Add(id);
     }
 
     /// <summary>
@@ -193,6 +196,21 @@ public class PlayerManager : MonoBase
             Destroy(indicators[i]);
 
         userIndicators.Clear();
-        removedUsers.Clear();
+    }
+
+    /// <summary>
+    /// 考核开始时调用，刷新所有在线成员的角色模型
+    /// </summary>
+    public void RefreshAllUsers()
+    {
+        List<Member> currentMembers = NetworkManager.Instance.GetRoomMemberList();
+        if (currentMembers == null)
+            return;
+
+        foreach (Member m in currentMembers)
+        {
+            if (!userIndicators.ContainsKey(m.Id))
+                TryAddNewUser(m.Id);
+        }
     }
 }

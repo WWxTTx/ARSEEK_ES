@@ -43,12 +43,6 @@ public class ExamPanel : HoverHintPanel
     private DateTime examEndTime;
 
     /// <summary>
-    /// <summary>
-    /// 待完成考生集合（考核开始时加入全部考生，提交或踢出时移除。表空 = 可自动结束考核）
-    /// </summary>
-    private HashSet<int> abnormalQuitMembers = new HashSet<int>();
-
-    /// <summary>
     /// 当前考核Id
     /// </summary>
     private int activeExamId = -1;
@@ -64,6 +58,17 @@ public class ExamPanel : HoverHintPanel
 
         GlobalInfo.waitExam = true;
         activeExamId = ExamUtility.Instance.GetHostExamCache(GlobalInfo.roomInfo.Uuid);
+        // 清理过期或无效缓存：考核结束时间已过 或 房间不在考核状态
+        if (activeExamId != -1)
+        {
+            var cachedEndTime = ExamUtility.Instance.GetHostExamEndTime(GlobalInfo.roomInfo.Uuid);
+            if (!cachedEndTime.HasValue || cachedEndTime.Value <= GlobalInfo.ServerTime || GlobalInfo.roomInfo.Status != 2)
+            {
+                Log.Debug($"[ExamPanel] 缓存过期或房间状态异常，清理缓存 examId={activeExamId}");
+                ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
+                activeExamId = -1;
+            }
+        }
         GlobalInfo.canEditUserInfo = false;
         NetworkManager.Instance.IsIMSync = false;
 
@@ -71,7 +76,6 @@ public class ExamPanel : HoverHintPanel
             (ushort)RoomChannelEvent.LiveRoomSettingModuleClose,
             (ushort)ExamPanelEvent.Submit,
             (ushort)ExamPanelEvent.Quit,
-            (ushort)ExamPanelEvent.Resume,
             (ushort)RoomChannelEvent.RoomInfo
         );
 
@@ -146,22 +150,31 @@ public class ExamPanel : HoverHintPanel
                                 uuid = GlobalInfo.roomInfo.Uuid
                             }, () =>
                             {
-                                //取得考核成绩列表，记录提交情况
-                                ExamUtility.Instance.InitSubmitCache(examId, () =>
+                                //从服务端获取 recordId，初始化提交状态缓存
+                                RequestManager.Instance.GetExamResultList(examId, (list) =>
                                 {
+                                    var records = list.records != null
+                                        ? list.records.ToDictionary(r => r.examineeId, r => r.id)
+                                        : new Dictionary<int, int>();
+                                    ExamUtility.Instance.InitSubmitCache(records);
+
                                     ExamBtn.interactable = true;
                                     //修改考核房间状态
                                     NetworkManager.Instance.RoomWorking(GlobalInfo.roomInfo.Uuid, () =>
                                     {
-                                        ExamUtility.Instance.SetHostExamCache(GlobalInfo.roomInfo.Uuid, examId);
+                                        ExamUtility.Instance.SetHostExamCache(GlobalInfo.roomInfo.Uuid, examId, null, records);
                                         StartExam(examId);
                                     }, (error) =>
                                     {
                                         Log.Error($"修改考核房间[{GlobalInfo.roomInfo.Uuid}]状态失败：{error}");
-                                        ExamUtility.Instance.SetHostExamCache(GlobalInfo.roomInfo.Uuid, examId);
+                                        ExamUtility.Instance.SetHostExamCache(GlobalInfo.roomInfo.Uuid, examId, null, records);
                                         StartExam(examId);
                                     });
-                                }, (error) => OnStartExamFailed());
+                                }, (error) =>
+                                {
+                                    Log.Error($"获取考核[{examId}]列表失败：{error}");
+                                    OnStartExamFailed();
+                                });
                             }, (msg) => OnStartExamFailed());
                         }, (error) => OnStartExamFailed());
                     }, (error) => OnStartExamFailed());
@@ -203,97 +216,118 @@ public class ExamPanel : HoverHintPanel
     {
         if (activeExamId != -1)
         {
-            ExamUtility.Instance.InitSubmitCache(activeExamId, () =>
+            //考核已被其他流程结束
+            if (activeExamId == -1) return;
+
+            // Status==2表示考核进行中
+            if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.Status == 2)
             {
-                //考核已被其他流程结束
-                if (activeExamId == -1) return;
-
-                // 初始化待完成考生集合（所有考生加入，已提交的不加入）
-                abnormalQuitMembers.Clear();
-
-                //待完成考生为空 → 结束考核
-                if (abnormalQuitMembers.Count == 0)
+                // 从服务端获取考核列表，验证考核是否仍存在，同时刷新 recordId
+                RequestManager.Instance.GetExamResultList(activeExamId, (list) =>
                 {
-                    StopExam((ushort)ExamPanelEvent.Stop);
-                    return;
-                }
+                    if (activeExamId == -1) return;
 
-                // Status==2表示考核进行中
-                if (GlobalInfo.roomInfo != null && GlobalInfo.roomInfo.Status == 2)
-                {
-                    GlobalInfo.waitExam = false;
-                    // 恢复考核倒计时
-                    var cachedEndTime = ExamUtility.Instance.GetHostExamEndTime(GlobalInfo.roomInfo.Uuid);
-                    if (cachedEndTime.HasValue && cachedEndTime.Value > GlobalInfo.ServerTime)
+                    if (list.records == null || list.records.Count == 0)
                     {
-                        examEndTime = cachedEndTime.Value;
-                        countdownCts = new System.Threading.CancellationTokenSource();
-                        Timing(examEndTime, countdownCts.Token).Forget();
-
-                        // 恢复考核成员列表，包含未提交的断连成员
-                        var roomMembers = NetworkManager.Instance.GetRoomMemberList();
-                        var members = roomMembers != null ? new List<Member>(roomMembers) : new List<Member>();
-
-                        // 根据InitSubmitCache结果，将未在房间但未提交的成员加入列表 由于 考核成员成绩列表返回结果:服务器返回的全是"ended":false暂时弃用
-                        //目前是确保房主进房间，重连进房间，一直在房间，没人的时候结束考核
-                        //房间没人但是还有异常退出的人员时不结束考核，仅在房主一直在房间时处理
-                        //如果能补充"ended":false，再支持房主和异常退出的人不在房间，房主先重进房间没人但是不结束。
-                        //var unsubmittedExaminees = ExamUtility.Instance.Examinees;
-                        //if (unsubmittedExaminees != null)
-                        //{
-                        //    var memberIds = new HashSet<int>(members.Select(m => m.Id));
-                        //    foreach (var examineeId in unsubmittedExaminees)
-                        //    {
-                        //        if (!memberIds.Contains(examineeId))
-                        //        {
-                        //            var examResult = ExamUtility.Instance.GetExamResult(examineeId);
-                        //            if (examResult != null)
-                        //            {
-                        //                members.Add(new Member
-                        //                {
-                        //                    Id = examResult.examineeId,
-                        //                    Nickname = examResult.examineeName,
-                        //                    UserNo = examResult.examineeNo,
-                        //                });
-                        //            }
-                        //        }
-                        //    }
-                        //}
-
-                        if (members.Count > 0)
-                            UpdateMemberList(members);
-
-                        OnExamStart();
-                    }
-                    else
-                    {
-                        StopExam((ushort)ExamPanelEvent.Stop);
+                        Log.Debug($"[ExamPanel] 考核[{activeExamId}]服务端无记录，清理缓存");
+                        ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
+                        activeExamId = -1;
+                        ResetRoom(() =>
+                        {
+                            ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
+                            NetworkManager.Instance.IsIMSync = true;
+                        });
                         return;
                     }
 
-                    NetworkManager.Instance.IsIMSync = true;
-                }
-                else
+                    RestoreExamState(list.records);
+                }, (error) =>
                 {
-                    ResetRoom(() =>
-                    {
-                        ////清空上轮考核的状态信息
-                        ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
-                        NetworkManager.Instance.IsIMSync = true;
-                    });
-                }
-            }, (error) =>
+                    Log.Error($"获取考核[{activeExamId}]列表失败：{error}");
+                    // 网络错误时使用本地缓存兜底（无提交状态信息，默认全部未提交）
+                    RestoreExamState(null);
+                });
+            }
+            else
             {
-                Log.Error($"获取考核[{activeExamId}]成绩列表失败：{error}");
-                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                popupDic.Add("好的", new PopupButtonData(() => ExitRoom(false), true));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("错误", "获取考核失败，请重新加入房间", popupDic));
-            });
+                ResetRoom(() =>
+                {
+                    ////清空上轮考核的状态信息
+                    ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
+                    NetworkManager.Instance.IsIMSync = true;
+                });
+            }
         }
         else
         {
             NetworkManager.Instance.IsIMSync = true;
         }
+    }
+
+    /// <summary>
+    /// 恢复考核状态：倒计时、成员列表、提交状态
+    /// </summary>
+    /// <param name="records">服务端考核记录列表，null表示使用本地缓存兜底</param>
+    private void RestoreExamState(List<RequestData.ExamResult> records)
+    {
+        if (activeExamId == -1) return;
+
+        // 根据服务端数据初始化提交缓存：已提交(ended=true)的标记为已提交，其余为未提交
+        if (records != null && records.Count > 0)
+        {
+            ExamUtility.Instance.InitSubmitCacheWithStatus(records);
+        }
+        else
+        {
+            // 网络错误兜底：使用本地缓存的 recordId，默认全部未提交
+            var cachedRecords = ExamUtility.Instance.GetHostExamExamineeRecords(GlobalInfo.roomInfo.Uuid);
+            if (cachedRecords != null && cachedRecords.Count > 0)
+                ExamUtility.Instance.InitSubmitCache(cachedRecords);
+        }
+
+        GlobalInfo.waitExam = false;
+        var cachedEndTime = ExamUtility.Instance.GetHostExamEndTime(GlobalInfo.roomInfo.Uuid);
+        Log.Debug($"[RestoreExamState] examId={activeExamId} cachedEndTime={cachedEndTime} serverTime={GlobalInfo.ServerTime}");
+        if (cachedEndTime.HasValue && cachedEndTime.Value > GlobalInfo.ServerTime)
+        {
+            Log.Debug($"[RestoreExamState] 恢复倒计时 endTime={cachedEndTime.Value} 剩余={(cachedEndTime.Value - GlobalInfo.ServerTime).TotalMinutes:F1}分钟");
+            examEndTime = cachedEndTime.Value;
+            countdownCts = new System.Threading.CancellationTokenSource();
+            Timing(examEndTime, countdownCts.Token).Forget();
+        }
+        else
+        {
+            Log.Debug($"[RestoreExamState] 跳过倒计时恢复 cachedEndTime={(cachedEndTime?.ToString() ?? "null")} serverTime={GlobalInfo.ServerTime}");
+        }
+
+        // 恢复考核成员列表
+        var roomMembers = NetworkManager.Instance.GetRoomMemberList();
+        var members = roomMembers != null ? new List<Member>(roomMembers) : new List<Member>();
+        Log.Debug($"[RestoreExamState] roomMembers.Count={members.Count} members=[{string.Join(",", members.Select(m => $"{m.Id}({m.Nickname})"))}]");
+
+        if (records != null && records.Count > 0)
+        {
+            var roomMemberIds = new HashSet<int>(members.Select(m => m.Id));
+            int submittedCount = records.Count(r => r.examineTime > 0);
+            int offlineCount = records.Count(r => !roomMemberIds.Contains(r.examineeId));
+            Log.Debug($"[RestoreExamState] 考核人数={records.Count} 已提交={submittedCount} 掉线={offlineCount} 在线未提交={records.Count - submittedCount - offlineCount}");
+        }
+
+        if (members.Count > 0)
+            UpdateMemberList(members);
+
+        OnExamStart();
+
+        Log.Debug($"[RestoreExamState] OnExamStart后 allMemberItem.Count={allMemberItem.Count} AllSubmit={ExamUtility.Instance.AllSubmit()}");
+
+        if (ExamUtility.Instance.AllSubmit())
+        {
+            Log.Debug($"[RestoreExamState] 全员已提交，结束考核");
+            StopExam((ushort)ExamPanelEvent.Stop);
+            return;
+        }
+
+        NetworkManager.Instance.IsIMSync = true;
     }
 
     /// <summary>
@@ -339,12 +373,9 @@ public class ExamPanel : HoverHintPanel
             case (ushort)ExamPanelEvent.Submit:
                 MsgBrodcastOperate submitData = msg as MsgBrodcastOperate;
                 {
-                    // 已提交则从待完成集合中移除
-                    abnormalQuitMembers.Remove(submitData.senderId);
                     SetMemberItemState(Content.FindChildByName(submitData.senderId.ToString()), (int)State.Submit);
                     ExamUtility.Instance.UpdateSubmitCache(submitData.senderId);
-                    //待完成集合为空 或 小组模式 → 结束考核
-                    if (abnormalQuitMembers.Count == 0 || GlobalInfo.IsGroupMode())
+                    if (ExamUtility.Instance.AllSubmit() || GlobalInfo.IsGroupMode())
                     {
                         StopExam();
                         foreach (Transform item in Content)
@@ -359,9 +390,6 @@ public class ExamPanel : HoverHintPanel
                 {
                     RemoveMember(quitData.senderId);
                 }
-                break;
-            case (ushort)ExamPanelEvent.Resume:
-                CheckLastExam();
                 break;
             case (ushort)RoomChannelEvent.LiveRoomSettingModuleClose:
                 RoomInfoTog.isOn = false;
@@ -391,9 +419,9 @@ public class ExamPanel : HoverHintPanel
         DateTime startTime = GlobalInfo.ServerTime;
         DateTime endTime = startTime.AddMinutes(GlobalInfo.currentCourseInfo.duration).AddSeconds(3);
         examEndTime = endTime;
-        ExamUtility.Instance.SetHostExamCache(GlobalInfo.roomInfo.Uuid, id, endTime);
+        ExamUtility.Instance.SetHostExamCache(GlobalInfo.roomInfo.Uuid, id, endTime, ExamUtility.Instance.ExamineeRecords);
         ToolManager.SendBroadcastMsg(new MsgExamStart((ushort)ExamPanelEvent.Start, activeExamId, startTime, endTime, ExamUtility.Instance.ExamineeRecords),true);
-     
+
         //开始倒计时 停止新成员加入考核房间 禁止房主操作
         RootCanvasGroup.blocksRaycasts = false;
         this.WaitTime(3f, () =>
@@ -417,6 +445,8 @@ public class ExamPanel : HoverHintPanel
     private void StopExam(ushort msgId = 0)
     {
         if (activeExamId == -1) return;
+
+        Log.Debug($"[StopExam] 被调用 msgId={msgId} activeExamId={activeExamId}\n{Environment.StackTrace}");
 
         if (FullScreenUserId != -1)
         {
@@ -473,7 +503,6 @@ public class ExamPanel : HoverHintPanel
     /// </summary>
     private void OnExamStart()
     {
-        abnormalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(false);
         this.FindChildByName("InExam").gameObject.SetActive(true);
         foreach (Transform item in Content)
@@ -490,7 +519,6 @@ public class ExamPanel : HoverHintPanel
         GlobalInfo.waitExam = true;
         countdownCts?.Cancel();
         this.GetComponentByChildName<Text>("Time").gameObject.SetActive(false);
-        abnormalQuitMembers.Clear();
         this.FindChildByName("StartExam").gameObject.SetActive(true);
         this.FindChildByName("InExam").gameObject.SetActive(false);
         foreach (Transform item in Content)
@@ -766,8 +794,8 @@ public class ExamPanel : HoverHintPanel
         SetTeacher(Bottom, members.Find(member => member.Id == GlobalInfo.account.id));
         WaitHint.SetActive(allMemberItem.Count == 0);
 
-        // 待完成考生集合为空 → 自动结束考核
-        if (!GlobalInfo.waitExam && abnormalQuitMembers.Count == 0)
+        // 全员已提交 → 自动结束考核
+        if (!GlobalInfo.waitExam && ExamUtility.Instance.AllSubmit())
             StopExam((ushort)ExamPanelEvent.Stop);
     }
     private void SetTeacher(Transform tf, Member info)
@@ -865,7 +893,6 @@ public class ExamPanel : HoverHintPanel
                 popupDic.Add("移出", new PopupButtonData(() =>
                 {
                     NetworkManager.Instance.KickOutUser(info.Id);
-                    abnormalQuitMembers.Remove(info.Id);
                     RemoveMember(info.Id);
                 }, true));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", $"将<color=#F6533F>{info.Nickname}</color>移出考核?", popupDic));
@@ -987,10 +1014,18 @@ public class ExamPanel : HoverHintPanel
         // 考核中成员重进时，发送考核数据让其恢复状态
         if (newJoinedId != GlobalInfo.roomInfo.creatorId && activeExamId != -1)
         {
-            Log.Debug($"[ExamPanel] 成员[{newJoinedId}]重连，准备发送考核消息，activeExamId={activeExamId}, IsIMSync={NetworkManager.Instance.IsIMSync}, waitExam={GlobalInfo.waitExam}");
+            Log.Debug($"[ExamPanel] 成员[{newJoinedId}]重连，发送考核消息，activeExamId={activeExamId}, IsIMSync={NetworkManager.Instance.IsIMSync}, waitExam={GlobalInfo.waitExam}");
             Transform memberItem = Content.FindChildByName(newJoinedId.ToString());
             if (memberItem != null)
                 SetMemberItemState(memberItem, (int)State.InExam);
+
+            // 向重连成员重发考核开始消息，让其恢复考试状态
+            var examineeRecords = ExamUtility.Instance.ExamineeRecords;
+            if (examineeRecords != null && examineeRecords.Count > 0)
+            {
+                DateTime now = GlobalInfo.ServerTime;
+                ToolManager.SendBroadcastMsg(new MsgExamStart((ushort)ExamPanelEvent.Start, activeExamId, now, examEndTime, examineeRecords), true);
+            }
         }
     }
     /// <summary>
@@ -1028,8 +1063,8 @@ public class ExamPanel : HoverHintPanel
         }
         WaitHint.SetActive(allMemberItem.Count == 0);
 
-        // 待完成考生集合为空 → 自动结束考核
-        if (!GlobalInfo.waitExam && abnormalQuitMembers.Count == 0)
+        // 全员已提交 → 自动结束考核
+        if (!GlobalInfo.waitExam && ExamUtility.Instance.AllSubmit())
             StopExam((ushort)ExamPanelEvent.Stop);
     }
 
@@ -1106,10 +1141,12 @@ public class ExamPanel : HoverHintPanel
         {
             RequestManager.Instance.EndExam(activeExamId, () =>
             {
+                ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
                 callback?.Invoke();
             }, (error) =>
             {
                 Log.Error($"考核[{activeExamId}]结束失败：{error}");
+                ExamUtility.Instance.DeleteHostExamCache(GlobalInfo.roomInfo.Uuid);
                 callback?.Invoke();
             });
         }

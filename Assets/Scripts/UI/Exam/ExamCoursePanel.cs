@@ -833,7 +833,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
     }
     private async UniTaskVoid _submitExamRecord(bool submitRecording = true, bool showToast = true, Action<bool> callBack = null, CancellationToken ct = default)
     {
-        if (GlobalInfo.currentWiki == null)
+        var currentWiki = GlobalInfo.currentWiki;
+        if (currentWiki == null)
         {
             callBack?.Invoke(false);
             return;
@@ -841,36 +842,47 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
         await UniTask.WaitForEndOfFrame(this, ct);
 
-        switch (GlobalInfo.currentWiki.typeId)
+        // await之后重新获取，防止异步期间状态变更
+        currentWiki = GlobalInfo.currentWiki;
+        if (currentWiki == null)
+        {
+            callBack?.Invoke(false);
+            return;
+        }
+
+        switch (currentWiki.typeId)
         {
             case (int)PediaType.Operation:
-                SubmitOperationEncyclopedia(GlobalInfo.currentWiki.id, showToast, submitRecording, callBack);
+                SubmitOperationEncyclopedia(currentWiki.id, showToast, submitRecording, callBack);
                 break;
             case (int)PediaType.Exercise:
                 OPLExerciseModule exercise = GetComponentInChildren<OPLExerciseModule>();
-                if(exercise != null)
+                if (exercise != null)
                 {
                     string operation = string.Empty;
-                    EncyclopediaExercise encyclopediaExercise = GlobalInfo.currentWiki as EncyclopediaExercise;
-                    switch (encyclopediaExercise.data.exercise.type)
+                    EncyclopediaExercise encyclopediaExercise = currentWiki as EncyclopediaExercise;
+                    if (encyclopediaExercise?.data?.exercise != null)
                     {
-                        case 1://选择题(单选;多选)
-                            operation = exercise._selectedAnswers.Aggregate(string.Empty, (current, i) => current + ((char)('A' + i)).ToString());
-                            break;
-                        case 2://判断题
-                            if (exercise._selectedAnswers.Count == 1)
-                                operation = exercise._selectedAnswers[0] == 0 ? "正确" : "错误";
-                            else
-                                operation = string.Empty;
-                            break;
-                        case 3://操作题
-                        default:
-                            break;
+                        switch (encyclopediaExercise.data.exercise.type)
+                        {
+                            case 1://选择题(单选;多选)
+                                operation = exercise._selectedAnswers.Aggregate(string.Empty, (current, i) => current + ((char)('A' + i)).ToString());
+                                break;
+                            case 2://判断题
+                                if (exercise._selectedAnswers.Count == 1)
+                                    operation = exercise._selectedAnswers[0] == 0 ? "正确" : "错误";
+                                else
+                                    operation = string.Empty;
+                                break;
+                            case 3://操作题
+                            default:
+                                break;
+                        }
                     }
-                    SubmitExerciseEncyclopedia(GlobalInfo.currentWiki.id, operation, showToast, submitRecording, callBack);
-                }            
+                    SubmitExerciseEncyclopedia(currentWiki.id, operation, showToast, submitRecording, callBack);
+                }
                 break;
-        }  
+        }
     }
 
     /// <summary>
@@ -1039,7 +1051,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
     private void OnExamStart(MsgExamStart msgExamStartData)
     {
         Log.Debug($"[ExamCoursePanel] OnExamStart examId={msgExamStartData.examId}, waitExam={GlobalInfo.waitExam}");
-        UIManager.Instance.CloseUI<LoadingPanel>();
+        // 打开Loading，持续到LoadEncyclopediaModel中模型加载完毕
+        UIManager.Instance.OpenUI<LoadingPanel>();
         this.FindChildByName("WaitHint").gameObject.SetActive(false);
         RequestManager.Instance.GetExamination(msgExamStartData.examId, (examination) =>
         {
@@ -1048,6 +1061,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
             if (GlobalInfo.currentWikiList == null || GlobalInfo.currentWikiList.Count == 0)
             {
+                UIManager.Instance.CloseUI<LoadingPanel>();
                 var popupDic = new Dictionary<string, PopupButtonData>();
                 {
                     popupDic.Add("确定", new PopupButtonData(Quit, true));
@@ -1063,28 +1077,29 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 if (GlobalInfo.waitExam)
                 {
                     GlobalInfo.waitExam = false;
-                   
+
+                    // 立即保存缓存，避免倒计时期间断开导致无法重连
+                    PlayerPrefs.SetString(GlobalInfo.CachedRoom, GlobalInfo.roomInfo.Uuid);
+                    ExamUtility.Instance.SetParticipantExamCache(
+                        GlobalInfo.roomInfo.Uuid,
+                        msgExamStartData.examId,
+                        msgExamStartData.endTime,
+                        msgExamStartData.examineeRecords
+                    );
+
                     if (NetworkManager.Instance.IsIMSyncState)
                         StartExam(msgExamStartData);
                     else
-                        //正常开始：保存房间信息，走倒计时流程
+                        //正常开始：走倒计时流程，3s结束后开始考核（模型在首次位置同步时懒加载创建）
                         StartTiming(() =>
                         {
-                            PlayerPrefs.SetString(GlobalInfo.CachedRoom, GlobalInfo.roomInfo.Uuid);
-
-                            // 保存参与者考核缓存，用于异常退出后自动重连
-                            ExamUtility.Instance.SetParticipantExamCache(
-                                GlobalInfo.roomInfo.Uuid,
-                                msgExamStartData.examId,
-                                msgExamStartData.endTime,
-                                msgExamStartData.examineeRecords
-                            );
                             StartExam(msgExamStartData);
                         });
                 }
                
             }
         }, (error) => {
+            UIManager.Instance.CloseUI<LoadingPanel>();
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
             popupDic.Add("好的", new PopupButtonData(Quit, true));
             UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("错误", "获取考试信息失败！请重新加入房间", popupDic, showCloseBtn: false));
@@ -1366,15 +1381,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 }
                 break;
             case (ushort)RoomChannelEvent.OtherJoin:
-                if (!GlobalInfo.waitExam)
-                {
-                    int joinedUser = ((MsgIntString)msg).arg1;
-                    if (joinedUser == GlobalInfo.roomInfo.creatorId)
-                    {
-                        // 通知房主同步考核剩余时长
-                        NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Resume, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Resume, remainingSeconds))));
-                    }
-                }
                 break;
             case (ushort)RoomChannelEvent.OtherLeave:
                 break;
@@ -1387,10 +1393,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
             case (ushort)RoomChannelEvent.LeaveRoom:
                 if (GlobalInfo.roomInfo == null) break;
                 ExamScreenRecording.Instance.StopRecordMovie();
-                if (!GlobalInfo.waitExam)
-                    Submit(null, false);
-                else
+                // 考核尚未正式开始(未进入StartExam)，清除缓存不留重连入口
+                if (examId == 0)
                     ClearExamCache();
+                else
+                    GlobalInfo.waitExam = true;
                 NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
                 DoQuit();
                 break;

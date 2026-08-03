@@ -231,7 +231,7 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT283FieldElement.cs" />
     <Compile Include="Assets\Scripts\General\Tool\FileStorage\AliyunUtils.cs" />
     <Compile Include="Assets\Scripts\General\Tool\TreeView\TreeList.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\TSQ_TsqXsp.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\CustomP\TSQ_TsqXsp.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Decompression\Inflate.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x509\X509NameTokenizer.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\DHKeyParameters.cs" />
@@ -242,7 +242,7 @@
     <Compile Include="Assets\Framework\Extend\EventTriggerExtend.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\KeyGenerationParameters.cs" />
     <Compile Include="Assets\Framework\Extend\ColorExtend.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\SampleEvent.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\CustomP\SampleEvent.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMNetwork\Scripts\FMStereoPi.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\modes\IAeadBlockCipher.cs" />
     <Compile Include="Assets\SDK\HighlightPlus\Runtime\Scripts\InputProxy.cs" />
@@ -722,7 +722,7 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SignalR\Authentication\IAuthenticationProvider.cs" />
     <Compile Include="Assets\Framework\FileSystem\SelectFolderOrFile\FormTool.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\IDSA.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\TSQ_Dydzcl.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\CustomP\TSQ_Dydzcl.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\IWithMovablePointer.cs" />
     <Compile Include="Assets\Scripts\Destroy\Tool\AudioRecord\ClipToWav.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\zlib\InfBlocks.cs" />
@@ -1139,7 +1139,7 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\LongArray.cs" />
     <Compile Include="Assets\Framework\UI\Base\UIManager.cs" />
     <Compile Include="Assets\Scripts\UI\Static\InputFieldModule.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\LineGraph.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\CustomP\LineGraph.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SocketIO\Error.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Decompression\ZTree.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Caching\HTTPCacheMaintananceParams.cs" />
@@ -1151,7 +1151,7 @@
     <Compile Include="Assets\Scripts\Model\Config\ModelOperation.cs" />
     <Compile Include="Assets\Scripts\Destroy\Overview\SpriteTog.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\Decompression\DeflateStream.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\LCU_mlfsjs.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\CustomP\LCU_mlfsjs.cs" />
     <Compile Include="Assets\Scripts\General\Manager\SoundManager.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Mapper\GameViewShotEncoder.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecP160K1Curve.cs" />
@@ -1205,7 +1205,7 @@
     <Compile Include="Assets\Scripts\Destroy\ButtonWithSoundEffect.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\BaseKeyboard.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\SupplementalDataEntry.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\LC_Fjlqgz.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\CustomP\LC_Fjlqgz.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMNetwork\Scripts\Demo\FMNetwork_DemoAnimation.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\Internal\IWebPlugin.cs" />
     <Compile Include="Assets\Framework\Resource\Load\LoadLocalAsset.cs" />
@@ -1270,7 +1270,7 @@
     <Compile Include="Assets\Scripts\General\ComponentTool\MonoBehaviour\ContentSizeFitter_RangeSize.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\ocsp\ResponderID.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\multiplier\WTauNafMultiplier.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\LC_Zlqzz.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\CustomP\LC_Zlqzz.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\DigestInputBuffer.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\field\PrimeField.cs" />
     <Compile Include="Assets\Scripts\UI\Module\ShowExamVideoModule.cs" />
@@ -1396,7 +1396,7 @@
     <Compile Include="Assets\SDK\DatePicker\DatePicker\DatePicker_Config.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\Asn1Tags.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\ECKeyGenerationParameters.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\TiaoSuQiXunjian\DynamicRope.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\CustomP\DynamicRope.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\Arrays.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\TEAEngine.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMWebSocket\Scripts\SocketIO\FM_IO\Decoder.cs" />

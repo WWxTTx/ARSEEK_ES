@@ -40,11 +40,27 @@ public class ExamInfoConfirmPanel : UIPanelBase
 
         BackGround = transform.GetComponentByChildName<CanvasGroup>("BackGround");
         Content = transform.GetComponentByChildName<CanvasGroup>("Content");
+        changeName = this.GetComponentByChildName<InputField>("ChangeNameInputField");
+        changeUserNo = this.GetComponentByChildName<InputField>("ChangeUserNoInputField");
+        changeUserOrg = this.GetComponentByChildName<InputField>("ChangeUserOrgInputField");
+        closeBtn = transform.GetComponentByChildName<Button>("CloseBtn");
+        confirmBtn = transform.GetComponentByChildName<Button>("ConfirmBtn");
+
+        if (BackGround == null || Content == null || changeName == null ||
+            changeUserNo == null || changeUserOrg == null || closeBtn == null || confirmBtn == null)
+        {
+            Log.Error($"[ExamInfoConfirmPanel] prefab缺少组件: " +
+                $"BackGround={BackGround != null} Content={Content != null} " +
+                $"ChangeName={changeName != null} ChangeUserNo={changeUserNo != null} " +
+                $"ChangeUserOrg={changeUserOrg != null} CloseBtn={closeBtn != null} ConfirmBtn={confirmBtn != null}");
+            Close();
+            return;
+        }
+
         BackGround.alpha = 0;
         Content.alpha = 0;
 
         #region 修改真实姓名
-        changeName = this.GetComponentByChildName<InputField>("ChangeNameInputField");
         changeName.text = GlobalInfo.account.nickname;//设置初始值
         changeName.interactable = false;//设置初始不能编辑
         Button nameEditor = changeName.GetComponentByChildName<Button>("Editor");
@@ -94,7 +110,6 @@ public class ExamInfoConfirmPanel : UIPanelBase
         #endregion
 
         #region 修改工号
-        changeUserNo = this.GetComponentByChildName<InputField>("ChangeUserNoInputField");
         changeUserNo.text = GlobalInfo.account.userNo;
         changeUserNo.textComponent.gameObject.SetActive(false);
         changeUserNo.placeholder.gameObject.SetActive(false);
@@ -161,7 +176,6 @@ public class ExamInfoConfirmPanel : UIPanelBase
         #endregion
 
         #region 修改单位
-        changeUserOrg = this.GetComponentByChildName<InputField>("ChangeUserOrgInputField");
         changeUserOrg.text = GlobalInfo.account.userOrgName;
         changeUserOrg.textComponent.gameObject.SetActive(false);
         changeUserOrg.placeholder.gameObject.SetActive(false);
@@ -215,13 +229,11 @@ public class ExamInfoConfirmPanel : UIPanelBase
         });
         #endregion
 
-        closeBtn = transform.GetComponentByChildName<Button>("CloseBtn");
         closeBtn.onClick.AddListener(() =>
         {
             UIManager.Instance.CloseUI<ExamInfoConfirmPanel>();
         });
 
-        confirmBtn = transform.GetComponentByChildName<Button>("ConfirmBtn");
         confirmBtn.onClick.AddListener(() =>
         {
             if(string.IsNullOrEmpty(changeUserNo.text))

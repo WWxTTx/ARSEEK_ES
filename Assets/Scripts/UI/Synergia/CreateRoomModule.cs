@@ -294,8 +294,16 @@ public class CreateRoomModule : ResourcesModule
         }, (code, msg) =>
         {
             if (this == null) return;
-            Log.Error($"获取房间列表失败 {msg}");
-            onContinue?.Invoke();
+            Log.Warning($"获取房间列表失败 {msg}，直接尝试删除缓存房间 {cachedRoomUuid}");
+            GlobalInfo.ClearCachedRoom();
+            NetworkManager.Instance.DeleteRoom(cachedRoomUuid, () =>
+            {
+                onContinue?.Invoke();
+            }, (delCode, delMsg) =>
+            {
+                Log.Error($"删除房间失败 {delMsg}");
+                onContinue?.Invoke();
+            });
         });
     }
 

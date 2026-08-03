@@ -22,22 +22,6 @@ public class ExamUtility : Singleton<ExamUtility>
     /// </summary>
     private Dictionary<int, int> examineeRecords = new Dictionary<int, int>();
 
-    /// <summary>
-    /// 参与考核成员的考试结果详情
-    /// </summary>
-    private Dictionary<int, ExamResult> examResultMap = new Dictionary<int, ExamResult>();
-
-
-    public List<int> Examinees
-    {
-        get
-        {
-            if (submitCache == null || submitCache.Count == 0)
-                return null;
-            return submitCache.Keys.ToList();
-        }
-    }
-
     public Dictionary<int, int> ExamineeRecords
     {
         get
@@ -47,34 +31,9 @@ public class ExamUtility : Singleton<ExamUtility>
     }
 
     /// <summary>
-    /// 房主使用创建时获取
+    /// 初始化提交缓存，考生由房主在开始重连时传递，房主从 InitExamRecord 响应获取
     /// </summary>
-    /// <param name="examId"></param>
-    /// <param name="success"></param>
-    /// <param name="failure"></param>
-    public void InitSubmitCache(int examId, UnityAction success, UnityAction<string> failure)
-    {
-        RequestManager.Instance.GetExamResultList(examId, (list) =>
-        {
-            submitCache.Clear();
-            examineeRecords.Clear();
-
-            //获取指定ID考核的未结束答题的成员列表
-            submitCache = list.records.Select(r => r).Where(r => !r.ended).ToDictionary(kvp => kvp.examineeId, kvp => false);
-            examineeRecords = list.records.ToDictionary(kvp => kvp.examineeId, kvp => kvp.id);
-            examResultMap = list.records.ToDictionary(kvp => kvp.examineeId, kvp => kvp);
-            success?.Invoke();
-        }, (error) =>
-        {
-            Log.Error($"获取考核[{examId}]成员列表失败：{error}");
-            failure?.Invoke(error);
-        });
-    }
-
-    /// <summary>
-    /// 考生使用 由房主在开始重连时传递
-    /// </summary>
-    /// <param name="records"></param>
+    /// <param name="records">examineeId → recordId 映射</param>
     public void InitSubmitCache(Dictionary<int, int> records)
     {
         submitCache.Clear();
@@ -85,6 +44,26 @@ public class ExamUtility : Singleton<ExamUtility>
 
         submitCache = records.ToDictionary(kvp => kvp.Key, kvp => false);
         examineeRecords = records;
+    }
+
+    /// <summary>
+    /// 从服务端考核列表初始化提交缓存，根据 examineTime>0 判断真实提交状态
+    /// （ended字段不可靠，提交后仍返回false，必须以考试用时为准）
+    /// </summary>
+    /// <param name="records">服务端返回的考核记录列表</param>
+    public void InitSubmitCacheWithStatus(List<RequestData.ExamResult> records)
+    {
+        submitCache.Clear();
+        examineeRecords.Clear();
+
+        if (records == null || records.Count == 0)
+            return;
+
+        foreach (var r in records)
+        {
+            examineeRecords[r.examineeId] = r.id;
+            submitCache[r.examineeId] = r.examineTime > 0;
+        }
     }
 
     /// <summary>
@@ -149,13 +128,6 @@ public class ExamUtility : Singleton<ExamUtility>
     public void ClearSubmitCache()
     {
         submitCache.Clear();
-    }
-
-    public ExamResult GetExamResult(int examineeId)
-    {
-        if (examResultMap.TryGetValue(examineeId, out var result))
-            return result;
-        return null;
     }
 
     /// <summary>
@@ -371,6 +343,14 @@ public class ExamUtility : Singleton<ExamUtility>
             if (!string.IsNullOrEmpty(data.endTime))
                 return DateTime.Parse(data.endTime);
         }
+        return null;
+    }
+
+    public Dictionary<int, int> GetHostExamExamineeRecords(string roomUuid)
+    {
+        var examHistory = GetExamHistory();
+        if (examHistory != null && examHistory.TryGetValue(GlobalInfo.account.id, out var roomExams) && roomExams.TryGetValue(roomUuid, out var data))
+            return data.examineeRecords;
         return null;
     }
 

@@ -475,8 +475,8 @@ public class ExamTrainingPanel : UIPanelBase
                 return;
             }
 
-            //如果是该账号创建的房间，可解散或重新进入
-            if (room.creatorId == GlobalInfo.account.id)
+            //如果是该账号创建的房间，可解散或重新进入；备课管理员也可解散任意房间
+            if (room.creatorId == GlobalInfo.account.id || GlobalInfo.account.courseManager)
             {
                 var popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("解散", new PopupButtonData(() =>
@@ -607,6 +607,19 @@ public class ExamTrainingPanel : UIPanelBase
     {
         if (GlobalInfo.IsCachedRoom(roomUuid))
         {
+            // 保底清理：缓存考核已过期则清除，走正常确认流程
+            DateTime? endTime = ExamUtility.Instance.GetParticipantExamEndTime(roomUuid);
+            if (endTime.HasValue && endTime.Value <= GlobalInfo.ServerTime)
+            {
+                ExamUtility.Instance.DeleteParticipantExamCache(roomUuid);
+                GlobalInfo.ClearCachedRoom();
+                UIManager.Instance.OpenUI<ExamInfoConfirmPanel>(UILevel.Normal, new ExamInfoConfirmPanel.ConfirmData()
+                {
+                    onConfirmed = onConfirmed
+                });
+                transform.SetAsFirstSibling();
+                return;
+            }
             onConfirmed?.Invoke();
         }
         else

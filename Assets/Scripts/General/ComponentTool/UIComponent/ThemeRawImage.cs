@@ -57,20 +57,22 @@ public class ThemeRawImage : MonoBehaviour
 
         ResManager.Instance.LoadCoverImage(themeType.ToString(), ResManager.Instance.OSSDownLoadPath + imgPath, false, (texture) =>
         {
-            if (texture != null)
+            if (this == null || rawImage == null || texture == null)
             {
-                rawImage.texture = texture;
-                switch (aspectRatioFitter.aspectMode)
-                {
-                    case AspectRatioFitter.AspectMode.None:
-                        rawImage.GetComponent<RectTransform>().sizeDelta = new Vector2(texture.width, texture.height);
-                        break;
-                    case AspectRatioFitter.AspectMode.EnvelopeParent:
-                        aspectRatioFitter.aspectRatio = (float)texture.width / texture.height;
-                        break;
-                }
-                rawImage.SetAlpha(1);
+                updated = true;
+                return;
             }
+            rawImage.texture = texture;
+            switch (aspectRatioFitter.aspectMode)
+            {
+                case AspectRatioFitter.AspectMode.None:
+                    rawImage.GetComponent<RectTransform>().sizeDelta = new Vector2(texture.width, texture.height);
+                    break;
+                case AspectRatioFitter.AspectMode.EnvelopeParent:
+                    aspectRatioFitter.aspectRatio = (float)texture.width / texture.height;
+                    break;
+            }
+            rawImage.SetAlpha(1);
             updated = true;
         });
     }

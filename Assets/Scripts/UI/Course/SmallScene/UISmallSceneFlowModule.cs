@@ -92,26 +92,26 @@ public class UISmallSceneFlowModule : UIModuleBase
         InitFlowTreeList(smallFlowCtrl.flows, mTreeView);
         mTreeView.CollapseAllItem();
 
+        if (smallFlowCtrl.flows.Length > 0 && mTreeView != null)
+        {
+            //默认选择第一步
+            string firstStepUID = smallFlowCtrl.flows[0].steps[0].ID;
+            MsgStringTuple<int, int, string> msgStringTuple = new MsgStringTuple<int, int, string>()
+            {
+                msgId = (ushort)SmallFlowModuleEvent.SelectStep,
+                arg1 = firstStepUID,
+                arg2 = new Tuple<int, int, string>(0, 0, string.Empty)
+            };
+            FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate()
+            {
+                senderId = GlobalInfo.account.id,
+                msgId = msgStringTuple.msgId,
+                data = JsonTool.Serializable(msgStringTuple)
+            });
+        }
         if (!GlobalInfo.isExam)
         {
             mTreeView.NeedRepositionAll = true;
-            if (smallFlowCtrl.flows.Length > 0 && mTreeView != null)
-            {
-                //默认选择第一步
-                string firstStepUID = smallFlowCtrl.flows[0].steps[0].ID;
-                MsgStringTuple<int, int, string> msgStringTuple = new MsgStringTuple<int, int, string>()
-                {
-                    msgId = (ushort)SmallFlowModuleEvent.SelectStep,
-                    arg1 = firstStepUID,
-                    arg2 = new Tuple<int, int, string>(0, 0, string.Empty)
-                };
-                FormMsgManager.Instance.SendMsg(new MsgBrodcastOperate()
-                {
-                    senderId = GlobalInfo.account.id,
-                    msgId = msgStringTuple.msgId,
-                    data = JsonTool.Serializable(msgStringTuple)
-                });
-            }
             //this.WaitTime(0.1f, () =>
             //{
                 //避免中途界面销毁

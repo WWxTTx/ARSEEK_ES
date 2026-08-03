@@ -55,7 +55,19 @@ public class PlayerController : MonoBase
     /// <summary>
     /// 检测到遮挡时相机距碰撞面的回退距离
     /// </summary>
-    public float cameraCollisionOffset = 0.3f;
+    public float cameraCollisionOffset = 0.5f;
+    /// <summary>
+    /// 避障球体半径（大于0可提前感知墙壁，过渡更平滑）
+    /// </summary>
+    public float cameraObstacleRadius = 0.15f;
+    /// <summary>
+    /// 避障后相机距玩家头部的最小距离（防止贴太近导致无法瞄准）
+    /// </summary>
+    public float cameraMinAvoidanceDist = 0.5f;
+    /// <summary>
+    /// 避障释放（相机后退）的速度（单位/秒），收缩瞬间完成不做限制
+    /// </summary>
+    public float cameraObstacleReleaseSpeed = 3f;
 
     [HideInInspector]
     public bool isFirstPerson
@@ -95,6 +107,11 @@ public class PlayerController : MonoBase
     private Tweener modelPositionFollow;
     private CharacterController controller;
     private bool wasCameraAway;
+    private Vector3 obstacleTarget;
+    private bool obstacleTargetInit;
+    private Vector3 lastBodyPosition;
+    private bool lastBodyPositionInit;
+    private float obstacleReleaseTimer;
     /// <summary>
     /// 相机交给其他模式时，延迟隐藏模型的时长（让相机先移开，避免角色消失过程暴露在视角中）
     /// </summary>
@@ -340,6 +357,7 @@ public class PlayerController : MonoBase
                 agent.velocity = Vector3.zero;
             return;
         }
+
         debugMoveFrame++;
         if (debugMoveFrame % 60 == 0)
         {
@@ -440,6 +458,14 @@ public class PlayerController : MonoBase
         cachedMoveSpeed = PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
     }
 
+    public void KillCameraTweens()
+    {
+        cameraYawPivot.DOKill();
+        verticalPoint.DOKill();
+        transform.DOKill();
+        cameraYawPivot.localRotation = Quaternion.identity;
+    }
+
     private void OnEnable()
     {
         RefreshSpeedCache();
@@ -528,25 +554,95 @@ public class PlayerController : MonoBase
         CameraFollow();
     }
 
-    // 跟随角色(强制使用玩家跟随点)
+    /// <summary>
+    /// 相机跟随（每帧LateUpdate调用）
+    ///
+    /// 第三人称避障策略：
+    /// 从角色头部(origin)向理想相机位置(desiredPos)做射线检测。
+    /// - 无遮挡：safePos = desiredPos（相机理想位置）
+    /// - 有遮挡：safePos = 碰撞点前方（收缩到墙前）
+    ///
+    /// 收缩时瞬间到位，锁定1秒（期间允许继续收缩，但不准释放）。
+    /// 1秒后无碰撞才取消收缩，恢复正常跟随。
+    /// </summary>
     void CameraFollow()
     {
         t = 1f / cameraMoveDuration * Time.deltaTime;
         if (isFirstPerson)
         {
+            // 第一人称：直接跟随，无避障
+            obstacleTargetInit = false;
             mainCamera.position = Vector3.Lerp(mainCamera.position, firstCameraFollowPoint.position, t);
             mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, firstCameraFollowPoint.rotation, t);
         }
         else
         {
-            Vector3 desiredPos = cameraFollowPoint.position;
-            Vector3 origin = verticalPoint.position;
+            // —— 第三人称避障 ——
+            Vector3 origin = verticalPoint.position;        // 射线起点（角色头部）
+            Vector3 desiredPos = cameraFollowPoint.position; // 理想相机位置（cameraFollowPoint 跟随 cameraYawPivot 旋转）
             Vector3 dir = desiredPos - origin;
             float dist = dir.magnitude;
-            if (dist > 0.01f && Physics.Raycast(origin, dir / dist, out RaycastHit hit, dist, cameraObstacleMask))
+
+            if (dist > 0.01f)
             {
-                desiredPos = hit.point + hit.normal * cameraCollisionOffset;
+                // 1. 计算安全位置 safePos
+                Vector3 safePos = desiredPos;               // 默认：理想位置
+                Vector3 rayDir = dir / dist;
+
+                // SphereCast 或 Raycast 检测 origin→desiredPos 之间是否有障碍物
+                if (cameraObstacleRadius > 0.001f
+                    ? Physics.SphereCast(origin, cameraObstacleRadius, rayDir, out RaycastHit hit, dist, cameraObstacleMask)
+                    : Physics.Raycast(origin, rayDir, out hit, dist, cameraObstacleMask))
+                {
+                    // 有遮挡：safePos 推到碰撞点前方
+                    float pushedDist = Mathf.Max(cameraMinAvoidanceDist, hit.distance - cameraObstacleRadius);
+                    safePos = origin + rayDir * pushedDist + hit.normal * cameraCollisionOffset;
+                }
+                // 无遮挡：safePos 保持为 desiredPos
+
+                // 2. 更新记忆位置 obstacleTarget
+                // 有遮挡：收缩瞬间到位，锁定1秒（允许继续收缩，不准释放）
+                // 无遮挡：倒计时结束后退出障碍模式
+                if (safePos != desiredPos)
+                {
+                    if (!obstacleTargetInit)
+                    {
+                        obstacleTarget = safePos;
+                        obstacleTargetInit = true;
+                    }
+                    else
+                    {
+                        float curDist = Vector3.Distance(origin, obstacleTarget);
+                        float safeDist = Vector3.Distance(origin, safePos);
+                        if (safeDist < curDist)
+                        {
+                            // 继续收缩：允许
+                            obstacleTarget = safePos;
+                        }
+                        // safeDist >= curDist：想释放，但锁定期间不准
+                    }
+                    obstacleReleaseTimer = 0.3f;
+                    desiredPos = obstacleTarget;
+                }
+                else
+                {
+                    if (obstacleTargetInit)
+                    {
+                        obstacleReleaseTimer -= Time.deltaTime;
+                        if (obstacleReleaseTimer <= 0f)
+                        {
+                            obstacleTargetInit = false;
+                        }
+                        else
+                        {
+                            desiredPos = obstacleTarget;
+                        }
+                    }
+                }
             }
+            // dist ≈ 0：相机跟随点与头部重合（极小概率），desiredPos 保持不变
+
+            // 3. 平滑插值到目标位置/旋转
             mainCamera.position = Vector3.Lerp(mainCamera.position, desiredPos, t);
             mainCamera.rotation = Quaternion.Slerp(mainCamera.rotation, cameraFollowPoint.rotation, t);
         }

@@ -19,6 +19,11 @@ public class SpeechManager : Singleton<SpeechManager>
     private TipType currentTipType;
 
     /// <summary>
+    /// 每次 DoSpeech 递增，回调时校验，防止异步加载覆盖新播放
+    /// </summary>
+    private int playId;
+
+    /// <summary>
     /// 当前播放的提示语音剩余时间（仅当播放的是StepName/StepComplete时有效，Tips返回0）
     /// </summary>
     public float PromptVoiceRemainingTime
@@ -158,11 +163,19 @@ public class SpeechManager : Singleton<SpeechManager>
 
     public async UniTaskVoid RePlayStart(string ID, int index, TipType tipType, CancellationToken ct)
     {
-        await UniTask.Delay(800, cancellationToken: ct);
-        await UniTask.WaitUntil(() => !IsAudioPlaying, cancellationToken: ct);
-        await UniTask.Delay(200, cancellationToken: ct);
-        lasttype = tipType;
-        PlayImmediate(ID, index, tipType);
+        try
+        {
+            await UniTask.Delay(800, cancellationToken: ct);
+            await UniTask.WaitUntil(() => !IsAudioPlaying, cancellationToken: ct);
+            await UniTask.Delay(200, cancellationToken: ct);
+            lasttype = tipType;
+            PlayImmediate(ID, index, tipType);
+        }
+        finally
+        {
+            if (nextCts?.Token == ct)
+                nextCts = null;
+        }
     }
 
     void OnDestroy()
@@ -221,6 +234,13 @@ public class SpeechManager : Singleton<SpeechManager>
     TipType lasttype = TipType.StepName;
     CancellationTokenSource nextCts;
 
+    /// <summary>
+    /// StepComplete 播放时间戳，用于判断下一步 StepName 是否应排队等待
+    /// 超过窗口期（手动跳转步骤）则立即打断
+    /// </summary>
+    private float stepCompleteTime;
+    private const float StepCompleteWindow = 3f;
+
     public SpeechData GetSpeechData(string stepId, int index, TipType tipType)
     {
         stepId = "BK" + GlobalInfo.currentWiki.id + stepId.Substring(6, stepId.Length - 6);
@@ -244,6 +264,9 @@ public class SpeechManager : Singleton<SpeechManager>
     private void DoSpeech(SpeechData speechData, TipType tipType)
     {
         lasttype = tipType;
+        if (tipType == TipType.StepComplete)
+            stepCompleteTime = Time.realtimeSinceStartup;
+        int currentPlayId = ++playId;
         if (tipType == TipType.Tips)
         {
             onDataFetched?.Invoke(speechData);
@@ -257,6 +280,9 @@ public class SpeechManager : Singleton<SpeechManager>
 
         LoadLocalAsset.Instance.LoadAudio(speechData.audioUrl, audioClip =>
         {
+            if (currentPlayId != playId)
+                return;
+
             audioSource.clip = audioClip;
             audioSource.volume = PlayerPrefs.GetFloat(GlobalInfo.volumeCacheKey, 1f);
             audioSource.Play();
@@ -482,6 +508,7 @@ public class SpeechManager : Singleton<SpeechManager>
     {
         currentStepId = null;
         currentTipType = TipType.StepName;
+        lasttype = TipType.StepName;
         nextCts?.Cancel();
         nextCts?.Dispose();
         nextCts = null;
@@ -508,7 +535,12 @@ public class SpeechManager : Singleton<SpeechManager>
             return;
         }
 
-        if (lasttype == TipType.StepComplete)
+        // 仅在自然步骤推进时排队：StepComplete 刚播完、新请求是 StepName、且在窗口期内
+        bool isNaturalNextStep = tipType == TipType.StepName
+            && lasttype == TipType.StepComplete
+            && Time.realtimeSinceStartup - stepCompleteTime < StepCompleteWindow;
+
+        if (isNaturalNextStep)
         {
             if (nextCts == null)
             {

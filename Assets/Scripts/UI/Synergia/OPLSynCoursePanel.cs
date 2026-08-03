@@ -383,6 +383,10 @@ public class OPLSynCoursePanel : OPLCoursePanel
                     GlobalInfo.hasRole = encyclopediaOperation.hasRole;
                 UIModuleBase mdoe = UIManager.Instance.OpenModuleUI<UISmallSceneModule>(this, BaikeModulePoint, new SmallSceneData(encyclopediaOperation.flows));
                 mdoe.transform.SetAsFirstSibling();
+                // 培训模式复用模型后，通过 SelectStep 触发全局初始视角 + 第一步视图的 SetFinalState
+                UISmallSceneModule smallSceneModule = mdoe as UISmallSceneModule;
+                if (smallSceneModule != null && smallSceneModule.smallFlowCtrl != null)
+                    smallSceneModule.smallFlowCtrl.SelectStep(0, 0, false);
                 break;
             case (int)PediaType.Animation:
                 GlobalInfo.currentBaikeType = BaikeType.Anime;

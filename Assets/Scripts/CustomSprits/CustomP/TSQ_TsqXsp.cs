@@ -225,8 +225,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 break;
             case AvailableStatus.旋钮开度给定13:
                 SetUIPanel("操作界面");
-                int mbkd = 13;
-                kd = float.Parse(TextDic["导叶开度"].text);
+                kd = 0;
                 RotationControl((int)kd, 0);
                 DOVirtual.DelayedCall(2f, () => {
                     kdgd.DOLocalRotate(new Vector3(-90, 35, 0), 1);
@@ -235,7 +234,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 {
                     ChangeFouces(true);
                     Monitor(true);
-                    RotationControl(mbkd, 6);
+                    RotationControl(13, 6);
                     DOTween.To(() => 0f, x =>
                     {
                         TextDic["机组频率"].text = x.ToString("F2");
@@ -248,7 +247,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                         TextDic["导叶目标值"].text = x.ToString("F2");
                         TextDic["导叶开度"].text = x.ToString("F2");
                         CalculateBladeOpening(x);
-                    }, mbkd, 6).OnComplete(() =>
+                    }, 13f, 6).OnComplete(() =>
                     {
                         ChangeFouces(false);
                         DOVirtual.DelayedCall(1, () =>
@@ -265,7 +264,7 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
                 });
                 break;
             case AvailableStatus.有功降到0:
-                kd = float.Parse(TextDic["导叶开度"].text);
+                kd = 79;
                 RotationControl((int)kd, 0);
                 DOVirtual.DelayedCall(2f, () => {
                     kdgd.DOLocalRotate(new Vector3(-90, -35, 0), 1);
@@ -1247,17 +1246,6 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     /// <param name="rota"></param>
     void RotationControl(int opening, float during)
     {
-        //if(opening == 100)
-        //{
-        //    xz.DOLocalRotate(new Vector3(-90, -15.5f, -111), during);
-        //    tg.DOMove(new Vector3(3.9544f, -6.65f, -2.3903f), during);
-        //}
-        //else if (opening == 0)
-        //{
-        //    xz.DOLocalRotate(new Vector3(-90, 5.5f, -111), during);
-        //    tg.DOMove(new Vector3(3.192f, -6.65f, -3.03f), during);
-        //}
-        //改为支持全开度 插值
         float normalizedT = opening / 100f;
         Vector3 targetRotation = new Vector3(-90, Mathf.Lerp(5.5f, -15.5f, normalizedT), -111);
         Vector3 targetPosition = new Vector3(
@@ -1265,13 +1253,24 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
             -6.65f,
             Mathf.Lerp(-3.03f, -2.3903f, normalizedT)
         );
-        xz.DOLocalRotate(targetRotation, during);
-        if (monitorCamera != null)
-            tg.DOMove(targetPosition, during).OnUpdate(() => {
-                // 在每一帧，更新相机位置
-                monitorCamera.transform.position = jkwz.position;
-                monitorCamera.transform.eulerAngles = jkwz.eulerAngles;
-            });
+
+        if (during <= 0f)
+        {
+            xz.DOKill();
+            xz.localRotation = Quaternion.Euler(targetRotation);
+            tg.DOKill();
+            tg.position = targetPosition;
+        }
+        else
+        {
+            xz.DOLocalRotate(targetRotation, during);
+            var tween = tg.DOMove(targetPosition, during);
+            if (monitorCamera != null)
+                tween.OnUpdate(() => {
+                    monitorCamera.transform.position = jkwz.position;
+                    monitorCamera.transform.eulerAngles = jkwz.eulerAngles;
+                });
+        }
     }
 
     /// <summary>

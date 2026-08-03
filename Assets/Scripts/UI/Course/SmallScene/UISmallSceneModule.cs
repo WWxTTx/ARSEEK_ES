@@ -587,8 +587,7 @@ public class UISmallSceneModule : UIModuleBase
             if (playerController == null)
                 return;
 
-            if (ModelState == ModelState.Operating || GlobalInfo.InPaintMode || GlobalInfo.SysPopup || inMap
-                || GlobalInfo.ShowPopup || _cursorFreeRefCount > 0 || _isPopupActive)
+            if (!CanSwitchInputMode())
                 return;
 
             EnableCameraControl(isAlt);
@@ -1418,10 +1417,26 @@ public class UISmallSceneModule : UIModuleBase
     }
 
     /// <summary>
+    /// 是否允许切换输入模式（与PC Alt自动切换逻辑一致，弹窗等UI计数时禁止切换）
+    /// </summary>
+    private bool CanSwitchInputMode()
+    {
+        return ModelState != ModelState.Operating
+            && !GlobalInfo.InPaintMode
+            && !GlobalInfo.SysPopup
+            && !inMap
+            && !GlobalInfo.ShowPopup
+            && _cursorFreeRefCount == 0
+            && !_isPopupActive;
+    }
+
+    /// <summary>
     /// 切换到自由点击模式（解锁光标，禁用相机控制），双端公用
     /// </summary>
     public void SwitchToFreeClick()
     {
+        if (!CanSwitchInputMode())
+            return;
 #if UNITY_STANDALONE || UNITY_EDITOR
         RequestCursorFree();
 #else
@@ -2171,7 +2186,15 @@ public class UISmallSceneModule : UIModuleBase
 
         SpeechManager.Instance.StopSpeech();
 
-        UnityEngine.AI.NavMesh.RemoveAllNavMeshData();
+        // 培训模式快速创建房间复用时，跳过 NavMesh 清理
+        if (ParentPanel is OPLCoursePanel op && op.SkipDestructiveCleanup)
+        {
+            // 模型将被复用，保留 NavMesh 数据
+        }
+        else
+        {
+            UnityEngine.AI.NavMesh.RemoveAllNavMeshData();
+        }
         UniversalRenderPipelineUtils.SetRendererFeatureActive("ScreenSpaceAmbientOcclusion", true);
 
         ChangeProp(null);

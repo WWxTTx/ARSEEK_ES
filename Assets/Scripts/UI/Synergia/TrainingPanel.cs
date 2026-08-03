@@ -595,8 +595,25 @@ public class TrainingPanel : UIPanelBase
                 return;
             }
 
-            //本人创建的或无需密码的房间 直接加入
-            if (roomInfos[uuid].creatorId == GlobalInfo.account.id || !roomInfos[uuid].NeedPwd)
+            //本人创建的或管理员可解散或重新进入
+            if (roomInfos[uuid].creatorId == GlobalInfo.account.id || GlobalInfo.account.admin || GlobalInfo.account.courseManager)
+            {
+                var popupDic = new Dictionary<string, PopupButtonData>();
+                popupDic.Add("解散", new PopupButtonData(() =>
+                {
+                    NetworkManager.Instance.DeleteRoom(uuid, () => RefreshRoomList(), (code, msg) =>
+                    {
+                        Log.Error($"删除房间失败 {msg}");
+                    });
+                }, false));
+                popupDic.Add("进入", new PopupButtonData(() =>
+                {
+                    JoinRoom(uuid, roomInfos[uuid].Password);
+                }, true));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "进入或者解散房间？", popupDic));
+            }
+            //无需密码的房间 直接加入
+            else if (!roomInfos[uuid].NeedPwd)
             {
                 JoinRoom(uuid, roomInfos[uuid].Password);
             }
