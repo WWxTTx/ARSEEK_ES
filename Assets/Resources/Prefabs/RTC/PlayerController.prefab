@@ -808,7 +808,7 @@ GameObject:
   - component: {fileID: 3220105125739572635}
   - component: {fileID: 2804301144191026207}
   m_Layer: 12
-  m_Name: renti
+  m_Name: Box004
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2049,6 +2049,7 @@ GameObject:
   - component: {fileID: 1506259017953883851}
   - component: {fileID: 7121775634307786772}
   - component: {fileID: 2549032970269073791}
+  - component: {fileID: 3812004571966280143}
   m_Layer: 0
   m_Name: PlayerController
   m_TagString: Untagged
@@ -2103,6 +2104,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b41286bcf50c0745b8239552dde37e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  msgIds: 
   cameraMaxDistance: -0.4
   cameraMinDistance: -3.4
   cameraMoveDuration: 0.25
@@ -2112,6 +2114,34 @@ MonoBehaviour:
   moveSensitivity: 0.025
   rotateSensitivity: 1
   zoomSensitivity: 2
+  cameraObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  cameraCollisionOffset: 0.5
+  cameraObstacleRadius: 0.2
+  cameraMinAvoidanceDist: 0.5
+  cameraObstacleReleaseSpeed: 3
+  cachedRotateSpeed: 0
+  cachedMoveSpeed: 0
+  hasTapTarget: 0
+--- !u!114 &3812004571966280143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6977547533246145224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11fbe30eb062a6c45972075a7dd0a500, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  ghostMaterial: {fileID: 2100000, guid: b263185639c351c448b172b67f852108, type: 2}
+  overlapRenderers:
+  - {fileID: 5970070056128028308}
+  - {fileID: 8410193053843878170}
+  - {fileID: 2804301144191026207}
+  overlapDistance: 1
 --- !u!195 &7121775634307786772
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -2375,7 +2405,7 @@ GameObject:
   - component: {fileID: 3614652432156438674}
   - component: {fileID: 8410193053843878170}
   m_Layer: 12
-  m_Name: casual09_m_highpoly3
+  m_Name: Box003
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

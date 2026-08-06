@@ -36,10 +36,11 @@ public class UISmallSceneMasterComputerPanel : MonoBase
 
     private void Awake()
     {
-        // 监听步骤选择事件
+        // 监听步骤选择事件和图纸关闭事件
         AddMsg(new ushort[]{
             (ushort)SmallFlowModuleEvent.SelectStep,
-            (ushort)SmallFlowModuleEvent.CompleteStep
+            (ushort)SmallFlowModuleEvent.CompleteStep,
+            (ushort)SmallFlowModuleEvent.ClousePop
         });
 
         // 从 WindowView 下获取唯一的 ImageViewer
@@ -120,11 +121,14 @@ public class UISmallSceneMasterComputerPanel : MonoBase
     /// </summary>
     private void OnOverButtonClick()
     {
-        // 隐藏图纸面板
+        // 隐藏本地面板
         HideView();
         Over.gameObject.SetActive(false);
 
-        // 结束当前步骤进入下一步
+        // 广播关闭图纸（arg1=false 区别于 BehavePopup 的关闭弹窗 arg1=true）
+        ToolManager.SendBroadcastMsg(new MsgBool((ushort)SmallFlowModuleEvent.ClousePop, false));
+
+        // 谁点击谁推进步骤（不限定房主，房主可能不在房间）
         SmallFlowCtrl flowCtrl = ModelManager.Instance?.modelGo?.GetComponent<SmallFlowCtrl>();
         if (flowCtrl != null)
         {
@@ -167,6 +171,13 @@ public class UISmallSceneMasterComputerPanel : MonoBase
         {
             case (ushort)SmallFlowModuleEvent.SelectStep:
                 HideView();
+                break;
+            case (ushort)SmallFlowModuleEvent.ClousePop:
+                // arg1=false=关闭图纸(arg1=true=关闭弹窗，由UISmallSceneModule处理)
+                if (msg is MsgBrodcastOperate brodcast
+                    && brodcast.senderId != GlobalInfo.account.id
+                    && !brodcast.GetData<MsgBool>().arg1)
+                    HideView();
                 break;
         }
     }

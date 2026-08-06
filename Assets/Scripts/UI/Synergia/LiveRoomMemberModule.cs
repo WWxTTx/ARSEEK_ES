@@ -256,13 +256,9 @@ public class LiveRoomMemberModule : UIModuleBase
                     //todo 有成员加入房间时，房主异常离线的情况?
                     if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Synergia)
                     {
-                        Log.Debug($"[协同调试] 房主给新成员分配操作权限 | newJoinedId:{newJoinedId} | newJoinedName:{newJoinedName}");
                         NetworkManager.Instance.SetUserControl(newJoinedId, true);
                     }
-                    else
-                    {
-                        Log.Debug($"[协同调试] 非协同房间，不分配权限 | RoomType:{GlobalInfo.roomInfo.RoomType}");
-                    }
+
                     UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo(string.Format("{0}加入房间", newJoinedName)));
                 }
             }
@@ -420,8 +416,6 @@ public class LiveRoomMemberModule : UIModuleBase
     /// </summary>
     public void UpdateMemberList(List<Member> members)
     {
-        Log.Debug($"[同名调试] UpdateMemberList | 收到成员数:{members.Count} | IDs:[{string.Join(",", members.Select(m => m.Id))}] | Names:[{string.Join(",", members.Select(m => m.Nickname))}]");
-
         //对比新旧成员列表，移除不在新列表中的用户视线标记
         List<int> oldIds = new List<int>(allMemberItem.Keys);
         List<int> newIds = members.Select(m => m.Id).ToList();
@@ -433,19 +427,16 @@ public class LiveRoomMemberModule : UIModuleBase
         allMemberItem.Clear();
 
         var filteredMembers = FilterMemberList(members);
-        Log.Debug($"[同名调试] UpdateMemberList | 过滤后成员数:{filteredMembers.Count} | IDs:[{string.Join(",", filteredMembers.Select(m => m.Id))}] | Names:[{string.Join(",", filteredMembers.Select(m => m.Nickname))}]");
         MemberScrollView.content.UpdateItemsView(filteredMembers, i => i.Id.ToString(), SetNewMember, SetOldMember);
     }
 
     private List<Member> FilterMemberList(List<Member> members)
     {
         string searchKeyword = SearchModule.Text.Replace(" ", "");
-        Log.Debug($"[同名调试] FilterMemberList | 输入:{members.Count} | searchKeyword:'{searchKeyword}'");
 
         if (!string.IsNullOrEmpty(searchKeyword))
         {
             members = members.Select(item => item).Where(member => member.Nickname.Contains(searchKeyword)).ToList();
-            Log.Debug($"[同名调试] FilterMemberList | 搜索过滤后:{members.Count}");
         }
 
         Empty.SetActive(members.Count == 0);

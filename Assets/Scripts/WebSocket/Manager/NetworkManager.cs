@@ -28,6 +28,10 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     private string lastRoomPassword;
 
     /// <summary>
+    /// 最近一次通道异常的名称（用于退出弹窗提示）
+    /// </summary>
+    public static string LastErrorChannelName;
+    /// <summary>
     /// 当前重连次数
     /// </summary>
     private int attemptCount;
@@ -56,6 +60,13 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// 避免重复退出
     /// </summary>
     private bool lockQuit = false;
+
+#if UNITY_EDITOR
+    /// <summary>
+    /// [Debug] 强制断网模式，开启后拦截所有重连
+    /// </summary>
+    public bool DebugBlockReconnect = false;
+#endif
 
     protected override void InstanceAwake()
     {
@@ -205,6 +216,8 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
         if (lockQuit)
             return;
         lockQuit = true;
+        UIManager.Instance.HideUI<LoadingPanel>();
+        UIManager.Instance.CloseUI<TransitionPanel>();
         StopReconnect();
         //退出房间 主动断开连接
         CloseAllConnection();
@@ -405,21 +418,17 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     {
         if (attemptCount >= MaxReconnectAttempt)
         {
+            BestHTTP.HTTPManager.OnQuit();
+            string channel = LastErrorChannelName ?? "某通道";
+            string msg = $"{channel}通道连接异常，已静默自动重连三次失败，被迫退出房间";
             Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-            popupDic.Add("取消", new PopupButtonData(() =>
-            {
-                BestHTTP.HTTPManager.OnQuit();
-                EnsureLeaveRoom(string.Empty);
-            }, false));
             popupDic.Add("确定", new PopupButtonData(() =>
             {
-                attemptCount = 0;
-                DelayReconnect();
+                EnsureLeaveRoom(msg);
             }, true));
-            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "连接超时，是否重新连接?", popupDic, ()=>
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", msg, popupDic, () =>
             {
-                BestHTTP.HTTPManager.OnQuit();
-                EnsureLeaveRoom(string.Empty);
+                EnsureLeaveRoom(msg);
             }));
         }
         else
@@ -437,4 +446,15 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     {
         return (DateTime.Now - sinceTime).TotalSeconds > Timeout;
     }
+
+#if UNITY_EDITOR
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0))
+        {
+            DebugBlockReconnect = !DebugBlockReconnect;
+            Debug.LogWarning($"[Debug] 断网模式: {(DebugBlockReconnect ? "开启" : "关闭")}");
+        }
+    }
+#endif
 }

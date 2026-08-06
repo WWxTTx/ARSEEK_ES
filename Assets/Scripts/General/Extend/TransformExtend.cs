@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+using DG.Tweening;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -265,14 +265,8 @@ public static class TransformExtend
                 {
                     oldChildren.Add(tmp.name, tmp);
                 }
-                else
-                {
-                    Log.Debug($"[同名调试] UpdateItemsView | oldChildren 已有同名Key被跳过: {tmp.name}");
-                }
             }
         }
-
-        Log.Debug($"[同名调试] UpdateItemsView | childCount:{childCount} | infosCount:{count} | oldChildrenKeys:[{string.Join(",", oldChildren.Keys)}]");
 
         for (int i = 0; i < count; i++)
         {
@@ -304,7 +298,6 @@ public static class TransformExtend
                 tmp = oldChildren[tmpName];
                 oldChildCallback?.Invoke(tmp, t);
             }
-            Log.Debug($"[同名调试] UpdateItemsView | [{i}] tmpName:{tmpName} | isNew:{isNew} | transformName:{tmp.name}");
             tmp.gameObject.SetActive(true);
         }
     }

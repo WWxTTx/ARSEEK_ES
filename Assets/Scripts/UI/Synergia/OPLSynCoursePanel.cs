@@ -645,7 +645,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
         // YG: 重新开始标记为假
         ModelManager.Instance.DestroySyncComponent();
         NetworkManager.Instance.ReleaseMicrophone();
-        NetworkManager.Instance.LeaveRoom();
+        NetworkManager.Instance.LeaveRoom(GlobalInfo.IsHomeowner());
     }
 
     public override void GotoLogout()

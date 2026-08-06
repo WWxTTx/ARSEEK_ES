@@ -243,6 +243,7 @@ public class SpeechManager : Singleton<SpeechManager>
 
     public SpeechData GetSpeechData(string stepId, int index, TipType tipType)
     {
+        if (GlobalInfo.currentWiki == null) return null;
         stepId = "BK" + GlobalInfo.currentWiki.id + stepId.Substring(6, stepId.Length - 6);
 
         if (StepSpeechData!= null && StepSpeechData.ContainsKey(stepId))

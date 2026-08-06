@@ -676,7 +676,12 @@ public class UISmallSceneToolModule : UIModuleBase
         foreach (var item in items)
         {
             if (item.Value.transform.parent == GridContent)
+            {
                 item.Value.SetIsOnWithoutNotify(false);
+                var text = item.Value.GetComponentInChildren<Text>();
+                if (text != null)
+                    text.color = Color.white;
+            }
         }
     }
 

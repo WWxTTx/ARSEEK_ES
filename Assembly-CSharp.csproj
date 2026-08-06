@@ -1525,6 +1525,9 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\signers\IDsaKCalculator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\modes\gcm\Tables1kGcmExponentiator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\io\BaseInputStream.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\GhostDepthPrepassFeature.cs" />
+    <Compile Include="Assets\Scripts\UI\Course\SmallScene\OverlapDetection.cs" />
+    <Compile Include="Assets\Scripts\UI\Course\SmallScene\CharacterGhost.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\SDK\FMETP_STREAM\FMCore\Plugins\FMTurboJpeg\FMTurboJpegWrapper\FMTurbojpegWrapper.dll" />
@@ -1651,6 +1654,7 @@
     <None Include="Assets\SDK\HighlightPlus\Runtime\Resources\HighlightPlus\HighlightAddDepth.shader" />
     <None Include="Assets\Packages\Microsoft.NET.StringTools.17.4.0\notices\THIRDPARTYNOTICES.txt" />
     <None Include="Assets\SDK\HighlightPlus\Runtime\Resources\HighlightPlus\HighlightSeeThroughMask.shader" />
+    <None Include="Assets\Scripts\CustomSprits\URP - CS_Advanced Ghost.shader" />
     <None Include="Assets\Packages\Microsoft.Extensions.Options.8.0.2\analyzers\dotnet\roslyn4.4\cs\tr\Microsoft.Extensions.Options.SourceGeneration.resources.dll" />
     <None Include="Assets\Packages\Microsoft.Extensions.Logging.Abstractions.8.0.1\analyzers\dotnet\roslyn4.4\cs\es\Microsoft.Extensions.Logging.Generators.resources.dll" />
     <None Include="Assets\Packages\System.Text.Json.8.0.5\analyzers\dotnet\roslyn4.0\cs\zh-Hant\System.Text.Json.SourceGeneration.resources.dll" />

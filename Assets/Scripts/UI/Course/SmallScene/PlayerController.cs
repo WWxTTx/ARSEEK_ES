@@ -2,6 +2,7 @@ using UnityEngine;
 using DG.Tweening;
 using UnityEngine.AI;
 using UnityFramework.Runtime;
+using System.Collections.Generic;
 
 /// <summary>
 ///   存在三个控制旋转的方法
@@ -59,7 +60,7 @@ public class PlayerController : MonoBase
     /// <summary>
     /// 避障球体半径（大于0可提前感知墙壁，过渡更平滑）
     /// </summary>
-    public float cameraObstacleRadius = 0.15f;
+    public float cameraObstacleRadius = 0.2f;
     /// <summary>
     /// 避障后相机距玩家头部的最小距离（防止贴太近导致无法瞄准）
     /// </summary>
@@ -107,15 +108,20 @@ public class PlayerController : MonoBase
     private Tweener modelPositionFollow;
     private CharacterController controller;
     private bool wasCameraAway;
-    private Vector3 obstacleTarget;
+    private float obstacleMaxDist;       // 狭窄区域相机最远距离上限，只减不增
     private bool obstacleTargetInit;
-    private Vector3 lastBodyPosition;
-    private bool lastBodyPositionInit;
-    private float obstacleReleaseTimer;
+    private float lastDebugYaw = float.NaN; // 每1度旋转打印一次距离
+
+    /// <summary>
+    /// 上一帧位置，用于判断角色是否在移动（驱动动画）
+    /// </summary>
+    private Vector3 lastPosition;
     /// <summary>
     /// 相机交给其他模式时，延迟隐藏模型的时长（让相机先移开，避免角色消失过程暴露在视角中）
     /// </summary>
     private float hideModelDelay = 0.3f;
+
+    // 相机狭窄区域 debug
     #endregion
 
     private void Awake()
@@ -133,6 +139,11 @@ public class PlayerController : MonoBase
         mainCamera = Camera.main.transform;
         controller = GetComponent<CharacterController>();
         InitNavigation();
+
+        // 禁用角色间的物理碰撞
+        int playerLayer = LayerMask.NameToLayer("Player");
+        if (playerLayer >= 0)
+            Physics.IgnoreLayerCollision(playerLayer, playerLayer, true);
 
         verticalPoint = this.FindChildByName("VerticalPoint");
         cameraFollowPoint = this.FindChildByName("CameraFollowPoint");
@@ -155,28 +166,22 @@ public class PlayerController : MonoBase
             model.parent = transform.parent;
 
             animator = model.GetComponentInChildren<Animator>();
-            //animator.keepAnimatorStateOnDisable = true;
 
             modelRotateFollow = model.DORotate(Vector3.up * Vector3.SignedAngle(Vector3.back, model.position - transform.position, Vector3.up), modelRotateDuration).SetLoops(-1).SetAutoKill(false);
 
             modelPositionFollow = model.DOMove(transform.position, modelMoveDuration).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
             {
-                if (Vector3.Distance(transform.position, model.position) > 0.01f)
-                {
-                    animator.SetBool("isMove", true);
-                    modelRotateFollow.ChangeEndValue(Vector3.up * Vector3.SignedAngle(Vector3.back, model.position - transform.position, Vector3.up), modelRotateDuration, true);
-                }
+                Vector3 modelToTransform = model.position - transform.position;
+                modelToTransform.y = 0;
+                if (modelToTransform.sqrMagnitude > 0.0001f)
+                    modelRotateFollow.ChangeEndValue(Vector3.up * Vector3.SignedAngle(Vector3.back, modelToTransform, Vector3.up), modelRotateDuration, true);
                 else
-                {
-                    animator.SetBool("isMove", false);
                     modelRotateFollow.ChangeEndValue(transform.eulerAngles, modelRotateDuration, true);
-                }
 
                 modelPositionFollow.ChangeEndValue(transform.position, modelMoveDuration, true);
             });
         }
 
-        //GetComponent<NavMeshAgent>().enabled = false;
     }
     /// <summary>
     /// 控制旋转
@@ -463,7 +468,7 @@ public class PlayerController : MonoBase
         cameraYawPivot.DOKill();
         verticalPoint.DOKill();
         transform.DOKill();
-        cameraYawPivot.localRotation = Quaternion.identity;
+        cameraYawPivot.DOLocalRotate(Vector3.zero, 0.3f);
     }
 
     private void OnEnable()
@@ -505,6 +510,14 @@ public class PlayerController : MonoBase
                 UpdateModelVisibility();
             }
         }
+
+        // 根据实际位移驱动角色动画（非模型与transform的距离，避免网络同步/操作期间的异常）
+        Vector3 displacement = transform.position - lastPosition;
+        displacement.y = 0;
+        if (animator != null)
+            animator.SetBool("isMove", displacement.sqrMagnitude > 0.0001f);
+        lastPosition = transform.position;
+
 
         //导航的相机跟随不受其他条件影响
         if (isNavigating)
@@ -554,6 +567,7 @@ public class PlayerController : MonoBase
         CameraFollow();
     }
 
+
     /// <summary>
     /// 相机跟随（每帧LateUpdate调用）
     ///
@@ -561,10 +575,22 @@ public class PlayerController : MonoBase
     /// 从角色头部(origin)向理想相机位置(desiredPos)做射线检测。
     /// - 无遮挡：safePos = desiredPos（相机理想位置）
     /// - 有遮挡：safePos = 碰撞点前方（收缩到墙前）
-    ///
-    /// 收缩时瞬间到位，锁定1秒（期间允许继续收缩，但不准释放）。
-    /// 1秒后无碰撞才取消收缩，恢复正常跟随。
-    /// </summary>
+    bool HasAnyInput()
+    {
+#if UNITY_ANDROID || UNITY_IOS
+        if (moveJoystick != null && (moveJoystick.Vertical != 0 || moveJoystick.Horizontal != 0))
+            return true;
+        if (rotateJoystick != null && (rotateJoystick.Vertical != 0 || rotateJoystick.Horizontal != 0))
+            return true;
+#else
+        if (Input.GetAxis("Vertical") != 0 || Input.GetAxis("Horizontal") != 0)
+            return true;
+        if (Input.GetAxis("Mouse ScrollWheel") != 0)
+            return true;
+#endif
+        return false;
+    }
+
     void CameraFollow()
     {
         t = 1f / cameraMoveDuration * Time.deltaTime;
@@ -585,58 +611,38 @@ public class PlayerController : MonoBase
 
             if (dist > 0.01f)
             {
-                // 1. 计算安全位置 safePos
-                Vector3 safePos = desiredPos;               // 默认：理想位置
                 Vector3 rayDir = dir / dist;
 
-                // SphereCast 或 Raycast 检测 origin→desiredPos 之间是否有障碍物
+                // 1. 障碍避让：纯射线检测，无状态，碰到障碍就缩
                 if (cameraObstacleRadius > 0.001f
                     ? Physics.SphereCast(origin, cameraObstacleRadius, rayDir, out RaycastHit hit, dist, cameraObstacleMask)
                     : Physics.Raycast(origin, rayDir, out hit, dist, cameraObstacleMask))
                 {
-                    // 有遮挡：safePos 推到碰撞点前方
                     float pushedDist = Mathf.Max(cameraMinAvoidanceDist, hit.distance - cameraObstacleRadius);
-                    safePos = origin + rayDir * pushedDist + hit.normal * cameraCollisionOffset;
+                    desiredPos = origin + rayDir * pushedDist + hit.normal * cameraCollisionOffset;
                 }
-                // 无遮挡：safePos 保持为 desiredPos
 
-                // 2. 更新记忆位置 obstacleTarget
-                // 有遮挡：收缩瞬间到位，锁定1秒（允许继续收缩，不准释放）
-                // 无遮挡：倒计时结束后退出障碍模式
-                if (safePos != desiredPos)
+                // 2. 无任何输入时锁距离（只缩不放），有输入时释放
+                if (HasAnyInput())
                 {
-                    if (!obstacleTargetInit)
-                    {
-                        obstacleTarget = safePos;
-                        obstacleTargetInit = true;
-                    }
-                    else
-                    {
-                        float curDist = Vector3.Distance(origin, obstacleTarget);
-                        float safeDist = Vector3.Distance(origin, safePos);
-                        if (safeDist < curDist)
-                        {
-                            // 继续收缩：允许
-                            obstacleTarget = safePos;
-                        }
-                        // safeDist >= curDist：想释放，但锁定期间不准
-                    }
-                    obstacleReleaseTimer = 0.3f;
-                    desiredPos = obstacleTarget;
+                    if (obstacleTargetInit)
+                        obstacleTargetInit = false;
                 }
                 else
                 {
-                    if (obstacleTargetInit)
+                    float curDesiredDist = Vector3.Distance(origin, desiredPos);
+                    if (!obstacleTargetInit)
                     {
-                        obstacleReleaseTimer -= Time.deltaTime;
-                        if (obstacleReleaseTimer <= 0f)
-                        {
-                            obstacleTargetInit = false;
-                        }
-                        else
-                        {
-                            desiredPos = obstacleTarget;
-                        }
+                        obstacleMaxDist = curDesiredDist;
+                        obstacleTargetInit = true;
+                    }
+                    else if (curDesiredDist < obstacleMaxDist)
+                    {
+                        obstacleMaxDist = curDesiredDist;
+                    }
+                    if (Vector3.Distance(origin, desiredPos) > obstacleMaxDist)
+                    {
+                        desiredPos = origin + rayDir * obstacleMaxDist;
                     }
                 }
             }
@@ -668,8 +674,8 @@ public class PlayerController : MonoBase
         agent.acceleration = 100f;
         agent.stoppingDistance = 0.5f;
         agent.radius = 0.3f;
-        agent.avoidancePriority = 50;
-        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+        agent.avoidancePriority = 0;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
         if (!agent.isOnNavMesh)
         {
             agent.enabled = false;

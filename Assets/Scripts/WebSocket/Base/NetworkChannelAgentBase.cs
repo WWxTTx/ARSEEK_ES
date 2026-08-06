@@ -1,7 +1,7 @@
 using UnityFramework.Runtime;
 
 /// <summary>
-/// ÍøÂçÍ¨µÀ´úÀí»ùÀà
+/// ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 /// </summary>
 public abstract class NetworkChannelAgentBase : MonoBase
 {
@@ -10,12 +10,12 @@ public abstract class NetworkChannelAgentBase : MonoBase
     protected NetworkChannel networkChannel;
 
     /// <summary>
-    /// ³õÊ¼»¯Í¨µÀ
+    /// ï¿½ï¿½Ê¼ï¿½ï¿½Í¨ï¿½ï¿½
     /// </summary>
     public abstract void InitNetworkChannel();
 
     /// <summary>
-    /// Á¬½ÓÍ¨µÀ
+    /// ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½
     /// </summary>
     /// </summary>
     public void Connect(NetworkManager networkManager, string url, string roomUuid)
@@ -36,7 +36,7 @@ public abstract class NetworkChannelAgentBase : MonoBase
     }
 
     /// <summary>
-    /// ÖØÁ¬
+    /// ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     public void Reconnect(string url, string roomUuid)
     {
@@ -48,13 +48,13 @@ public abstract class NetworkChannelAgentBase : MonoBase
     }
 
     /// <summary>
-    /// ÏûÏ¢´¦Àí
+    /// ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     /// <param name="message"></param>
     public abstract void ProcessMessage(string message);
 
     /// <summary>
-    /// ¹Ø±ÕÁ¬½Ó
+    /// ï¿½Ø±ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     public void Close()
     {
@@ -64,8 +64,16 @@ public abstract class NetworkChannelAgentBase : MonoBase
         }
     }
 
+    public void DebugForceDisconnect()
+    {
+        if (networkChannel != null)
+        {
+            networkChannel.DebugForceDisconnect();
+        }
+    }
+
     /// <summary>
-    /// Í¨µÀÊÇ·ñÁ¬½Ó
+    /// Í¨ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     /// <returns></returns>
     public bool IsChannelConnected()
@@ -103,7 +111,7 @@ public abstract class NetworkChannelAgentBase : MonoBase
     }
 
     /// <summary>
-    /// Í¨µÀ³É¹¦½¨Á¢Á¬½ÓÊÂ¼þ
+    /// Í¨ï¿½ï¿½ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
     /// </summary>
     protected virtual void OnChannelOpen()
     {
@@ -111,7 +119,7 @@ public abstract class NetworkChannelAgentBase : MonoBase
     }
 
     /// <summary>
-    /// Í¨µÀÁ¬½Ó¹Ø±ÕÊÂ¼þ
+    /// Í¨ï¿½ï¿½ï¿½ï¿½ï¿½Ó¹Ø±ï¿½ï¿½Â¼ï¿½
     /// </summary>
     protected virtual void OnChannelClosed()
     {
@@ -119,7 +127,7 @@ public abstract class NetworkChannelAgentBase : MonoBase
     }
 
     /// <summary>
-    /// Í¨µÀÁ¬½ÓÒì³£ÊÂ¼þ
+    /// Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ì³£ï¿½Â¼ï¿½
     /// </summary>
     protected virtual void OnChannelError()
     {

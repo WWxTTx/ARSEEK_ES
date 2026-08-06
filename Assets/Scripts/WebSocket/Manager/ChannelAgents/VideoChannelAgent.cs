@@ -15,6 +15,8 @@ public class VideoChannelAgent : NetworkChannelAgentBase
     public GameViewEncoder localGameViewEncoder;
 
     private Dictionary<string, GameViewDecoder> clientGameViewDecoders = new Dictionary<string, GameViewDecoder>();
+    private Dictionary<int, float> lastFrameTime = new Dictionary<int, float>();
+    private const float frameTimeout = 3f;
 
     private string gameViewPrefix = "100";
     private string paintPrefix = "700";
@@ -135,6 +137,7 @@ public class VideoChannelAgent : NetworkChannelAgentBase
             {
                 if (clientGameViewDecoders[label] != null)
                 {
+                    lastFrameTime[userId] = Time.time;
                     //clientGameViewDecoders[label].Action_ProcessImageData(jObject[NetworkManager.PAYLOAD][NetworkManager.DATA].ToObject<byte[]>());
                     string base64 = jObject[NetworkManager.PAYLOAD][NetworkManager.DATA].ToObject<string>();
                     // 补齐填充 '='
@@ -164,6 +167,7 @@ public class VideoChannelAgent : NetworkChannelAgentBase
     public void RemoveGameViewDecoder(int userId, bool destroy)
     {
         string viewLabel = $"100{userId}";
+        lastFrameTime.Remove(userId);
         if (clientGameViewDecoders.ContainsKey(viewLabel))
         {
             if (destroy)
@@ -184,6 +188,34 @@ public class VideoChannelAgent : NetworkChannelAgentBase
             }
         }
         clientGameViewDecoders.Clear();
+        lastFrameTime.Clear();
+    }
+
+    private void LateUpdate()
+    {
+        if (clientGameViewDecoders.Count == 0) return;
+
+        float now = Time.time;
+        List<int> timeoutIds = null;
+        foreach (var kv in clientGameViewDecoders)
+        {
+            int userId = int.Parse(kv.Key.Substring(3));
+            if (lastFrameTime.TryGetValue(userId, out float lastTime) && now - lastTime > frameTimeout)
+            {
+                timeoutIds ??= new List<int>();
+                timeoutIds.Add(userId);
+            }
+        }
+
+        if (timeoutIds != null)
+        {
+            foreach (int userId in timeoutIds)
+            {
+                Log.Debug($"[VideoChannelAgent] 视频帧超时 {frameTimeout}s，移除用户{userId}画面");
+                RemoveGameViewDecoder(userId, true);
+                FormMsgManager.Instance.SendMsg(new MsgIntStringBool((ushort)RoomChannelEvent.OtherDisconnect, userId, string.Empty, false));
+            }
+        }
     }
 
     #region 视频帧消息包

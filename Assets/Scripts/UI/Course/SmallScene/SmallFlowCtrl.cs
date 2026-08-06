@@ -383,16 +383,50 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 异步导航到目标 1 以内（不吸附到目标姿态），完成后执行 proceed。
     /// </summary>
+    /// <summary>
+    /// 取 collider 表面离 player 最近的点，无 collider 时回退到 transform.position。
+    /// </summary>
+    private static Vector3 ClosestPointOnCollider(Vector3 playerPos, Transform t)
+    {
+        var col = t.GetComponent<Collider>();
+        return col ? col.ClosestPoint(playerPos) : t.position;
+    }
+
     private async UniTaskVoid NavigateNearTargetAsync(PlayerController pc, Transform target, Action proceed)
     {
         pc.KillCameraTweens();
         pc.Model.GetComponent<Animator>().SetBool("isMove", true);
         pc.StartNavigation(target, false);
-        await UniTask.WaitUntil(() => !pc || pc.NavEnd);
+        await UniTask.WaitUntil(() =>
+        {
+            if (!pc) return true;
+            Vector3 cp = ClosestPointOnCollider(pc.transform.position, target);
+            return Vector3.Distance(pc.transform.position, cp) <= 0.5f || pc.NavEnd;
+        });
         if (!pc)
             return;
+        pc.EndNavigation();
         pc.Model.GetComponent<Animator>().SetBool("isMove", false);
         proceed();
+    }
+
+    private static Transform GetClosestHighlightNode(ModelRestrict restrict, Vector3 playerPos)
+    {
+        if (restrict == null || restrict.modelHighlight?.highlightNodes == null || restrict.modelHighlight.highlightNodes.Count == 0)
+            return null;
+        Transform closest = null;
+        float minDist = float.MaxValue;
+        foreach (var node in restrict.modelHighlight.highlightNodes)
+        {
+            Vector3 cp = ClosestPointOnCollider(playerPos, node.transform);
+            float d = (cp - playerPos).sqrMagnitude;
+            if (d < minDist)
+            {
+                minDist = d;
+                closest = node.transform;
+            }
+        }
+        return closest;
     }
 
     #endregion
@@ -562,6 +596,10 @@ public class SmallFlowCtrl : MonoBase
         {
             AddmodeInfo(item);
         }
+
+        // 进入任务统一以第三人称视角开始
+        if (playerController != null)
+            playerController.ToThird();
     }
 
     void AddmodeInfo(ModelInfo modelInfo)
@@ -1117,6 +1155,82 @@ public class SmallFlowCtrl : MonoBase
     }
 
     /// <summary>
+    /// 从当前步骤的初始视角(initState)和上一步的联动步骤(actions)中向前搜索
+    /// 直到找到包含Navigation数据的步骤，提取其目标Transform，找不到则返回全局视角的Transform。
+    /// 供 TryExecuteOperation 的导航距离检查使用。
+    /// </summary>
+    private Transform ResolveStepNavigationTarget()
+    {
+        // 跨 flow 向前搜索角色位置
+        for (int f = index_NowFlow; f >= 0; f--)
+        {
+            List<SmallStep1> steps = flows[f].steps;
+            int startS = (f == index_NowFlow) ? index_NowStep : steps.Count - 1;
+
+            for (int s = startS; s >= 0; s--)
+            {
+                SmallStep1 step = steps[s];
+
+                // 1. 检查步骤 s 的初始视角中是否有 Navigation
+                foreach (var state in step.initState)
+                {
+                    if (state.operation != null && state.operation.name == "Navigation")
+                    {
+                        Transform t = GetTransformFromNavigationOp(state.operation, state.optionName);
+                        if (t != null) return t;
+                    }
+                }
+
+                // 2. 检查前一个步骤的联动操作中是否有 Navigation
+                SmallStep1 prevStep = null;
+                if (s > 0)
+                    prevStep = steps[s - 1];
+                else if (f > 0)
+                    prevStep = flows[f - 1].steps[flows[f - 1].steps.Count - 1];
+
+                if (prevStep != null)
+                {
+                    foreach (var action in prevStep.actions)
+                    {
+                        if (action.operation != null && action.operation.name == "Navigation")
+                        {
+                            Transform t = GetTransformFromNavigationOp(action.operation, action.optionName);
+                            if (t != null) return t;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 回退到全局视角
+        if (globalPerspective != null && !string.IsNullOrEmpty(globalPerspective.initState))
+        {
+            Transform t = GetTransformFromNavigationOp(globalPerspective, globalPerspective.initState);
+            if (t != null) return t;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 从 Navigation 操作的 Pose 或 PlayerNavigation 行为中提取目标 Transform。
+    /// </summary>
+    private static Transform GetTransformFromNavigationOp(ModelOperation operation, string optionName)
+    {
+        OperationBase op = operation.operations?.Find(o => o.name.Equals(optionName));
+        if (op?.behaveBases == null) return null;
+
+        foreach (var behave in op.behaveBases)
+        {
+            if (behave is BehavePlayerNavigation nav && nav.ctrlGO != null)
+                return nav.ctrlGO.transform;
+            if (behave is BehavePose pose && pose.ctrlGO != null)
+                return pose.ctrlGO.transform;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// 选择步骤跳转时，显式执行角色位置相关设置，其他SetFinalState将跳过位置的设置，仅由此方法设置
     /// 从当前步骤的初始视角(initState)和上一步的联动步骤(actions)中向前搜索
     /// 直到找到包含位置数据的步骤，找不到则设置为默认位置和视角
@@ -1218,6 +1332,7 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="self">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
     public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, bool self)
     {
+        VariableJoystick.tapRotationTriggered = false;
         GlobalInfo.WaitUiOq = false;
         NetworkManager.Instance.IsIMSync = false;
         ignoreMove = self;
@@ -1313,23 +1428,25 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="self">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, bool self)
     {
-        // 非考核模式：距离检查，太远先导航再执行
+        VariableJoystick.tapRotationTriggered = false;
+        // 非考核模式：距离检查，离步骤递归目标位置超过0.5m先导航再执行
         if (!GlobalInfo.isExam && self && data.operation != null)
         {
             PlayerController pc = playerController;
             if (pc != null)
             {
-                var restrict = data.operation.GetComponent<ModelRestrict>();
-                Transform target = (restrict != null && restrict.modelHighlight?.highlightNodes?.Count > 0)
-                    ? restrict.modelHighlight.highlightNodes[0].transform
-                    : data.operation.transform;
-                if (target != null && Vector3.Distance(pc.transform.position, target.position) > 0.5f)
+                Transform target = ResolveStepNavigationTarget();
+                if (target != null)
                 {
-                    NavigateNearTargetAsync(pc, target, () =>
+                    Vector3 closestPoint = ClosestPointOnCollider(pc.transform.position, target);
+                    if (Vector3.Distance(pc.transform.position, closestPoint) > 0.5f)
                     {
-                        ExecuteOperationCore(data, correctOp, userNo, userName, self);
-                    }).Forget();
-                    return;
+                        NavigateNearTargetAsync(pc, target, () =>
+                        {
+                            ExecuteOperationCore(data, correctOp, userNo, userName, self);
+                        }).Forget();
+                        return;
+                    }
                 }
             }
         }
@@ -1511,6 +1628,10 @@ public class SmallFlowCtrl : MonoBase
                     //培训模式需要走到下一个位置才能开始下一步语音
                     ExecuteFlowLinkOperation(opLinkages, callback, ++index);
                 });
+            }
+            else if (ignoreMove)
+            {
+                ExecuteFlowLinkOperation(opLinkages, callback, ++index);
             }
             else
             {

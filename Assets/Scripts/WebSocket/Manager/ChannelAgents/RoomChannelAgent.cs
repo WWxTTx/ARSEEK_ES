@@ -42,6 +42,21 @@ public class RoomChannelAgent : NetworkChannelAgentBase
         Clear();
     }
 
+    protected override void OnChannelError()
+    {
+        base.OnChannelError();
+        Log.Debug($"[RoomChannelAgent] RTM通道异常断开，清理成员数据");
+        Clear();
+        FormMsgManager.Instance.SendMsg(new MsgBase((ushort)RoomChannelEvent.UpdateMemberList));
+    }
+
+    protected override void OnChannelClosed()
+    {
+        base.OnChannelClosed();
+        Clear();
+        FormMsgManager.Instance.SendMsg(new MsgBase((ushort)RoomChannelEvent.UpdateMemberList));
+    }
+
     /// <summary>
     /// 发送消息
     /// </summary>
@@ -91,7 +106,6 @@ public class RoomChannelAgent : NetworkChannelAgentBase
                     case NetworkManager.MEMBER_LIST:
                         //成员列表消息
                         string membersJson = jObject[NetworkManager.PAYLOAD]["members"].ToString();
-                        Log.Debug($"[同名调试] MEMBER_LIST 原始JSON: {membersJson}");
                         UpdateRoomMembers(JsonTool.DeSerializable<List<Member>>(membersJson));
                         break;
                     case NetworkManager.MEMBER_IN:
@@ -126,24 +140,6 @@ public class RoomChannelAgent : NetworkChannelAgentBase
     /// <param name="members"></param>
     private void UpdateRoomMembers(List<Member> members)
     {
-        if (roomMembers == null || roomMembers.Count == 0)
-        {
-            if (GlobalInfo.roomInfo.RoomType == (int)RoomType.Synergia && members.Find(m => m.Id == GlobalInfo.roomInfo.creatorId) == null)
-            {
-                // 加入房间时若房主异常离线，提示退出房间
-                // 避免协同房间无房主为新成员分配权限颜色
-                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                ModelManager.Instance.DestroySyncComponent();
-                NetworkManager.Instance.ReleaseMicrophone();
-
-                popupDic.Add("确定", new PopupButtonData(() =>
-                {
-                    NetworkManager.Instance.LeaveRoom();
-                }, true));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "房主不在房间内，请退出房间重试", popupDic, null, false));
-            }
-        }
-
         roomMembers = members;
 
         //缓存当前用户列表

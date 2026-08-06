@@ -1880,6 +1880,7 @@ GameObject:
   - component: {fileID: 7754893099456428146}
   - component: {fileID: 5461165285516984822}
   - component: {fileID: 2207850729571745306}
+  - component: {fileID: 4527891330074658219}
   m_Layer: 12
   m_Name: Player
   m_TagString: Untagged
@@ -1887,6 +1888,22 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &4527891330074658219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6977547533246145224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11fbe30eb062a6c45972075a7dd0a500, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  ghostMaterial: {fileID: 2100000, guid: b263185639c351c448b172b67f852108, type: 2}
+  overlapRenderers:
+  - {fileID: 5970070056128028308}
+  overlapDistance: 1
 --- !u!4 &7754893099456428146
 Transform:
   m_ObjectHideFlags: 0

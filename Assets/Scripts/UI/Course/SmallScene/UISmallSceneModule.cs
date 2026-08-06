@@ -487,6 +487,38 @@ public class UISmallSceneModule : UIModuleBase
         });
     }
 
+    /// <summary>
+    /// 将 AB 包里自带的 PlayerController 替换为本地 PlayerPrefab。
+    /// AB 包的角色资源可能过期，本地预制体才带有重叠透明所需的材质引用。
+    /// </summary>
+    private PlayerController ReplacePlayerController(PlayerController abPlayer)
+    {
+        if (PlayerPrefab == null)
+            return abPlayer;
+
+        Transform abTrans = abPlayer.transform;
+        Transform parent = abTrans.parent;
+        int siblingIndex = abTrans.GetSiblingIndex();
+        Vector3 localPos = abTrans.localPosition;
+        Quaternion localRot = abTrans.localRotation;
+        Vector3 localScale = abTrans.localScale;
+
+        // AB 版本的 Awake 已把 Model 子节点移到 modelRoot 下，需一并清理
+        Transform abModel = abPlayer.Model;
+        if (abModel != null && abModel.parent != abTrans)
+            Destroy(abModel.gameObject);
+        Destroy(abPlayer.gameObject);
+
+        GameObject go = Instantiate(PlayerPrefab, parent);
+        go.transform.SetSiblingIndex(siblingIndex);
+        go.transform.localPosition = localPos;
+        go.transform.localRotation = localRot;
+        go.transform.localScale = localScale;
+        go.layer = LayerMask.NameToLayer("Player");
+
+        return go.GetComponent<PlayerController>();
+    }
+
     void InitModel(UIData uiData = null)
     {
         //缓存主相机引用，避免每帧 mainCam 查找
@@ -528,9 +560,15 @@ public class UISmallSceneModule : UIModuleBase
             playerController = modelRoot.GetComponentInChildren<PlayerController>();
             if (playerController == null)
             {
+                // AB 包里没有 PlayerController，从本地 PlayerPrefab 实例化
                 playerController = Instantiate(PlayerPrefab, modelRoot).GetComponent<PlayerController>();
                 playerController.gameObject.layer = LayerMask.NameToLayer("Player");
                 Instantiate(ScenePrefab, modelRoot);
+            }
+            else
+            {
+                // AB 包里带了 PlayerController，替换成 PlayerPrefab（Resources 版本）
+                playerController = ReplacePlayerController(playerController);
             }
 
             ModelManager.Instance.AddSyncComponent(playerController.gameObject);
@@ -676,8 +714,8 @@ public class UISmallSceneModule : UIModuleBase
                 FirstPersonBtn.gameObject.SetActive(true);
             });
 
-            FirstPersonBtn.gameObject.SetActive(false);
-            ThirdPersonBtn.gameObject.SetActive(true);
+            FirstPersonBtn.gameObject.SetActive(true);
+            ThirdPersonBtn.gameObject.SetActive(false);
 #endif
 
 #if UNITY_ANDROID || UNITY_IOS
@@ -1684,8 +1722,9 @@ public class UISmallSceneModule : UIModuleBase
                     {
                         ShortcutManager.SmallScene_SwitchCursor, ()=>
                         {
-                            if (ModelState == ModelState.Operating || GlobalInfo.InPaintMode || GlobalInfo.SysPopup || inMap
-                                || GlobalInfo.ShowPopup || _cursorFreeRefCount > 0 || _isPopupActive)
+                            if (ModelState == ModelState.Operating || GlobalInfo.InPaintMode || inMap)
+                                return;
+                            if (isAlt && (GlobalInfo.SysPopup || GlobalInfo.ShowPopup || _cursorFreeRefCount > 0 || _isPopupActive))
                                 return;
                             if(playerController == null)
                                 return;
@@ -1733,6 +1772,8 @@ public class UISmallSceneModule : UIModuleBase
         ClearHighlight();
         RefreshHighlight();
         userOpModel.Clear();
+        _cursorFreeRefCount = 0;
+        _isPopupActive = false;
     }
 
     private void OnPropChanged(string propID)
@@ -1811,8 +1852,6 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     public void RequestCursorFree()
     {
-        if (GlobalInfo.IsExamMode())
-            return;
 #if UNITY_STANDALONE || UNITY_EDITOR
         if (_cursorFreeRefCount++ == 0)
         {
@@ -1827,8 +1866,6 @@ public class UISmallSceneModule : UIModuleBase
     /// </summary>
     public void ReleaseCursorFree()
     {
-        if (GlobalInfo.IsExamMode())
-            return;
 #if UNITY_STANDALONE || UNITY_EDITOR
         if (_cursorFreeRefCount <= 0) return;
         if (--_cursorFreeRefCount == 0)
@@ -1847,7 +1884,9 @@ public class UISmallSceneModule : UIModuleBase
     {
         if (GlobalInfo.courseMode != CourseMode.Training &&
             GlobalInfo.courseMode != CourseMode.Livebroadcast &&
-            GlobalInfo.courseMode != CourseMode.Collaboration)
+            GlobalInfo.courseMode != CourseMode.Collaboration &&
+            GlobalInfo.courseMode != CourseMode.Exam &&
+            GlobalInfo.courseMode != CourseMode.OnlineExam)
             return;
 #if UNITY_STANDALONE || UNITY_EDITOR
         _cursorFreeRefCount = 0;

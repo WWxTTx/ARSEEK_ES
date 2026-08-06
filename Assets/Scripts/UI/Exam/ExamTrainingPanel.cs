@@ -244,6 +244,18 @@ public class ExamTrainingPanel : UIPanelBase
                     continue;
                 }
 
+                // 考核时间已过，不显示重连弹窗，直接提示考核已结束
+                DateTime? cachedEndTime = ExamUtility.Instance.GetParticipantExamEndTime(item.Uuid);
+                if (cachedEndTime.HasValue && cachedEndTime.Value <= GlobalInfo.ServerTime)
+                {
+                    ExamUtility.Instance.DeleteParticipantExamCache(item.Uuid);
+                    GlobalInfo.ClearCachedRoom();
+                    Dictionary<string, PopupButtonData> endedPopupDic = new Dictionary<string, PopupButtonData>();
+                    endedPopupDic.Add("确定", new PopupButtonData(null, true));
+                    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "您上次参与的考核已结束", endedPopupDic, null, false));
+                    continue;
+                }
+
                 Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
                 popupDic.Add("是", new PopupButtonData(() =>
                 {
@@ -253,7 +265,6 @@ public class ExamTrainingPanel : UIPanelBase
                 }, true));
                 popupDic.Add("否", new PopupButtonData(() =>
                 {
-                    ExamUtility.Instance.DeleteParticipantExamCache(item.Uuid);
                     GlobalInfo.ClearCachedRoom();
                 }));
                 UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？", popupDic, null, false));
@@ -408,8 +419,8 @@ public class ExamTrainingPanel : UIPanelBase
 
         if (info.AllowIn)
         {
-            //非房主不能加入考核中的房间
-            if (info.creatorId != GlobalInfo.account.id && !GlobalInfo.IsCachedRoom(info.Uuid))
+            //非房主且无有效考核缓存不能加入考核中的房间
+            if (info.creatorId != GlobalInfo.account.id && !GlobalInfo.IsCachedRoom(info.Uuid) && ExamUtility.Instance.GetParticipantExamId(info.Uuid) <= 0)
             {
                 inExam.onClick.RemoveAllListeners();
                 inExam.onClick.AddListener(() => UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo("正在考核中，不能进入")));
@@ -469,7 +480,7 @@ public class ExamTrainingPanel : UIPanelBase
                 return;
             }
 
-            if (room.Status == 2 && room.creatorId != GlobalInfo.account.id && !GlobalInfo.IsCachedRoom(room.Uuid))
+            if (room.Status == 2 && room.creatorId != GlobalInfo.account.id && !GlobalInfo.IsCachedRoom(room.Uuid) && ExamUtility.Instance.GetParticipantExamId(room.Uuid) <= 0)
             {
                 UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo("正在考核中，不能进入"));
                 return;
@@ -605,7 +616,8 @@ public class ExamTrainingPanel : UIPanelBase
 
     private void ConfirmAndJoinRoom(string roomUuid, UnityAction onConfirmed)
     {
-        if (GlobalInfo.IsCachedRoom(roomUuid))
+        int cachedExamId = ExamUtility.Instance.GetParticipantExamId(roomUuid);
+        if (GlobalInfo.IsCachedRoom(roomUuid) || cachedExamId > 0)
         {
             // 保底清理：缓存考核已过期则清除，走正常确认流程
             DateTime? endTime = ExamUtility.Instance.GetParticipantExamEndTime(roomUuid);

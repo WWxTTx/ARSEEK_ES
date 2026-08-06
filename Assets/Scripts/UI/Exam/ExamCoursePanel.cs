@@ -21,7 +21,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <summary>
     /// 开始考核后禁用设置
     /// </summary>
-    public override bool canOpenOption => true;//!inExam
+    public override bool canOpenOption => true;//!inExamInitSubmitCacheWithStatus
 
     /// <summary>
     /// 当前考核ID
@@ -82,6 +82,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     {
         string roomUuid = GlobalInfo.roomInfo.Uuid;
         int cachedExamId = ExamUtility.Instance.GetParticipantExamId(roomUuid);
+        Log.Debug($"[ExamCoursePanel] CheckAutoReconnect roomUuid={roomUuid} cachedExamId={cachedExamId} Status={GlobalInfo.roomInfo?.Status}");
 
         if (GlobalInfo.roomInfo == null || GlobalInfo.roomInfo.Status != 2)
         {
@@ -106,6 +107,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
         {
             ExamUtility.Instance.DeleteParticipantExamCache(roomUuid);
             GlobalInfo.ClearCachedRoom();
+            Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+            popupDic.Add("确定", new PopupButtonData(() => Quit(), true));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "您上次参与的考核已结束", popupDic, null, false));
             return;
         }
 
@@ -353,7 +357,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             if (go == null)
             {
                 Log.Warning(string.Format("百科{0}实例化失败", encyclopedia.id));
-                UIManager.Instance.CloseUI<LoadingPanel>();
+                CloseLoadingAsync();
                 NetworkManager.Instance.IsIMSync = true;
                 return;
             }
@@ -371,10 +375,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
             GlobalInfo.hasRole = encyclopediaOperation.hasRole;
             if (!encyclopediaOperation.hasRole)
                 ModelManager.Instance.AddSyncComponent(Camera.main.gameObject);
-            
+
             smallSceneModule = UIManager.Instance.OpenModuleUI<UISmallSceneModule>(this, BaikeModulePoint, new SmallSceneData(encyclopediaOperation.flows)) as UISmallSceneModule;
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
-            UIManager.Instance.CloseUI<LoadingPanel>();
+            CloseLoadingAsync();
 
             encyclopediaModelLoaded = true;
 
@@ -1090,11 +1094,15 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     if (NetworkManager.Instance.IsIMSyncState)
                         StartExam(msgExamStartData);
                     else
+                    {
                         //正常开始：走倒计时流程，3s结束后开始考核（模型在首次位置同步时懒加载创建）
+                        //关闭loading让用户看到倒计时
+                        UIManager.Instance.CloseUI<LoadingPanel>();
                         StartTiming(() =>
                         {
                             StartExam(msgExamStartData);
                         });
+                    }
                 }
                
             }
@@ -1141,6 +1149,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="data"></param>
     private void StartExam(MsgExamStart data)
     {
+        Log.Debug($"[ExamCoursePanel] StartExam examId={data.examId} waitExam={GlobalInfo.waitExam}->false endTime={data.endTime}");
         GlobalInfo.waitExam = false;
 
         //主动加载百科模型（现在不在房间内切百科了，房主重连时不发送百科选择消息了）
@@ -1149,6 +1158,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         if (baikeId != 0)
         {
             wikiInitialized = false;
+            UIManager.Instance.OpenUI<LoadingPanel>();
             LoadEncyclopedia(baikeId);
         }
 
@@ -1230,6 +1240,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// <param name="stopExamId"></param>
     private void OnExamStop(int stopExamId)
     {
+        Log.Debug($"[ExamCoursePanel] OnExamStop stopExamId={stopExamId} curExamId={examId} waitExam={GlobalInfo.waitExam}");
         Submit(() =>
         {
             Dictionary<string, PopupButtonData> popupDic1 = new Dictionary<string, PopupButtonData>();
@@ -1315,6 +1326,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
             ClearExamCache();
         }
 
+    }
+
+    private void CloseLoadingAsync()
+    {
+        UIManager.Instance.CloseUI<LoadingPanel>();
     }
 
     private void UpdateUIWhenExamStop()

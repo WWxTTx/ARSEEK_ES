@@ -569,9 +569,26 @@ public class TrainingPanel : UIPanelBase
             downloader.CourseNeedUpdate.Contains(roomInfos[uuid].CourseId))
         {
             if (ResourcesDownloader.DownloadingCount > 0)
+            {
                 UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("资源正在下载中，请等待下载完成"));
+            }
             else
-                UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("请先下载课程资源"));
+            {
+                var popupDic = new Dictionary<string, PopupButtonData>();
+                popupDic.Add("确定", new PopupButtonData(() =>
+                {
+                    if (this == null) return;
+                    Transform roomItem = LiveScrollView.content.FindChildByName(uuid);
+                    if (roomItem != null)
+                    {
+                        Button UpdateBtn = roomItem.GetComponentByChildName<Button>("Update");
+                        if (UpdateBtn != null && UpdateBtn.gameObject.activeSelf)
+                            UpdateBtn.onClick.Invoke();
+                    }
+                }, true));
+                popupDic.Add("取消", new PopupButtonData(null));
+                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "请先下载课程资源，是否立即下载？", popupDic, null, false));
+            }
             return;
         }
 

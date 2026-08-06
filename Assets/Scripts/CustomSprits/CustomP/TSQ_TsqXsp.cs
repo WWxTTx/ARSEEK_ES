@@ -70,33 +70,25 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     {
         SetImageRaycast(true);
         GlobalInfo.WaitUiOq = true;
-        //将表现内容和步骤分开 同步时只执行表现内容 不设置步骤 等待操作者使用结束消息触发下一步
+
         if (steps.Count == 0)
-        {
             DealEvent((AvailableStatus)msgUI.status);
-        }
-        else if(steps.Count <= msgUI.stepIndex)
-        {
-            callback?.Invoke();
-            currentStepIndex = msgUI.stepIndex;
-            SetTip();
-            return;
-        }
 
         await UniTask.WaitUntil(() => steps.Count > 0, cancellationToken: this.GetCancellationTokenOnDestroy());
 
-        for (int i = currentStepIndex; i < msgUI.stepIndex && i < steps.Count; i++)
+        // 逐一追齐到发送方的步骤进度（TryToNext 完成最后一步时自动触发 callback）
+        isSyncing = true;
+        while (currentStepIndex < msgUI.stepIndex && currentStepIndex < steps.Count)
         {
-            if (TryToNext(steps[i]))
-            {
-                // 发送广播消息给其他用户（包含操作对象ID）
-                ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, (int)status, currentStepIndex), true);
-                ButenEvent(steps[i]);
-            }
+            string stepName = steps[currentStepIndex];
+            if (TryToNext(stepName))
+                ButenEvent(stepName);
+            else
+                break;
         }
+        isSyncing = false;
 
         await UniTask.Yield();
-        currentStepIndex = msgUI.stepIndex;
         SetTip();
     }
 
@@ -173,6 +165,8 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     public void DealEvent(AvailableStatus status)
     {
         Debug.Log("执行" + status.ToString());
+        steps.Clear();
+        currentStepIndex = 0;
         switch (status)
         {
             case AvailableStatus.巡检:
@@ -1284,15 +1278,21 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     /// </summary>
     public void ButenEvent(string eventname)
     {
-        //没有触发对应流程时直接返回不执行
-        if (steps.Count > 0)
+        // 同步追赶时绕过校验，直接执行表现
+        if (!isSyncing)
         {
-            //存在流程时执行错误 且不是考核给提示
-            if (!TryToNext(eventname))
+            //没有触发对应流程时直接返回不执行（仅在流程进行中校验步骤，完成后允许自由触发）
+            if (steps.Count > 0 && currentStepIndex < steps.Count)
             {
-                if (!GlobalInfo.isExam && currentStepIndex < steps.Count)
-                    smallSceneModule?.OnErrorShow();
-                return;
+                //存在流程时执行错误 且不是考核给提示
+                if (!TryToNext(eventname))
+                {
+                    if (!GlobalInfo.isExam)
+                        smallSceneModule?.OnErrorShow();
+                    return;
+                }
+                // 操作者：发送当前步骤进度同步给其他用户
+                ToolManager.SendBroadcastMsg(new MsgSyncCustomUI((ushort)SmallFlowModuleEvent.SynchronizationTsq, (int)status, currentStepIndex), true);
             }
         }
 
@@ -1536,10 +1536,11 @@ public class TSQ_TsqXsp : MonoBase, IBaseBehaviour
     List<string> steps = new List<string>();
     // 当前步骤
     int currentStepIndex = 0;
+    bool isSyncing = false;
 
     public void StartFlow()
     {
-        if (smallSceneModule.ModelState != ModelState.OtherOperating)
+        if (smallSceneModule && smallSceneModule.ModelState != ModelState.OtherOperating)
             SetImageRaycast(false);
         currentStepIndex = 0;
         SetTip();

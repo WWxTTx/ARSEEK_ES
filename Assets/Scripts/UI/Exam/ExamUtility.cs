@@ -22,12 +22,25 @@ public class ExamUtility : Singleton<ExamUtility>
     /// </summary>
     private Dictionary<int, int> examineeRecords = new Dictionary<int, int>();
 
+    /// <summary>
+    /// 房主是否从考核开始到现在一直在线（单人考核专用）
+    /// true=房主从未离开，可信赖提交状态 → 等待掉线重连
+    /// false=房主中途离开过，提交状态不可靠 → 按房间成员判断
+    /// </summary>
+    private bool hostContinuousOnline = true;
+
     public Dictionary<int, int> ExamineeRecords
     {
         get
         {
             return examineeRecords;
         }
+    }
+
+    public bool HostContinuousOnline
+    {
+        get { return hostContinuousOnline; }
+        set { hostContinuousOnline = value; }
     }
 
     /// <summary>
@@ -47,13 +60,12 @@ public class ExamUtility : Singleton<ExamUtility>
     }
 
     /// <summary>
-    /// 从服务端考核列表初始化提交缓存，根据 examineTime>0 判断真实提交状态
-    /// （ended字段不可靠，提交后仍返回false，必须以考试用时为准）
+    /// 从服务端考核列表更新考生记录，保留已有的提交状态（IM消息积累的提交状态优先级高于API）。
+    /// examineeRecords 由服务端数据覆盖（recordId 以服务端为准）。
     /// </summary>
     /// <param name="records">服务端返回的考核记录列表</param>
     public void InitSubmitCacheWithStatus(List<RequestData.ExamResult> records)
     {
-        submitCache.Clear();
         examineeRecords.Clear();
 
         if (records == null || records.Count == 0)
@@ -62,7 +74,8 @@ public class ExamUtility : Singleton<ExamUtility>
         foreach (var r in records)
         {
             examineeRecords[r.examineeId] = r.id;
-            submitCache[r.examineeId] = r.examineTime > 0;
+            if (!submitCache.ContainsKey(r.examineeId))
+                submitCache[r.examineeId] = r.examineTime > 0;
         }
     }
 
@@ -94,12 +107,23 @@ public class ExamUtility : Singleton<ExamUtility>
     }
 
     /// <summary>
-    /// 是否全员提交
-    /// 房间内无其他成员视为全员提交
+    /// 是否全员提交。
+    /// 单人考核且房主全程在线时，以 examineeRecords 为准等待掉线考生重连提交；
+    /// 其余情况（多人考核、房主中途离开过）沿用房间成员列表判断，成员空了即结束。
     /// </summary>
     /// <returns></returns>
     public bool AllSubmit()
     {
+        if (!GlobalInfo.IsGroupMode() && hostContinuousOnline && examineeRecords.Count > 0)
+        {
+            foreach (var examineeId in examineeRecords.Keys)
+            {
+                if (!HasSubmitted(examineeId))
+                    return false;
+            }
+            return true;
+        }
+
         return submitCache.Count == 0 || !submitCache.Values.Contains(false);
     }
 
@@ -128,6 +152,15 @@ public class ExamUtility : Singleton<ExamUtility>
     public void ClearSubmitCache()
     {
         submitCache.Clear();
+        examineeRecords.Clear();
+    }
+
+    /// <summary>
+    /// 未提交考生ID列表，用于日志与UI显示
+    /// </summary>
+    public List<int> GetPendingExaminees()
+    {
+        return examineeRecords.Keys.Where(id => !HasSubmitted(id)).ToList();
     }
 
     /// <summary>
