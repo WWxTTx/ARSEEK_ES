@@ -7,12 +7,11 @@ public class Option_GeneralModule : UIModuleBase
 {
     /// <summary>
     /// 将滑动条值映射到速度系数
-    /// 滑动条 0-0.5 → 系数 0.5-1
-    /// 滑动条 0.5-1 → 系数 1-2
+    /// 滑动条 0-1 → 系数 1-1.5
     /// </summary>
     private static float SliderToCoefficient(float sliderValue)
     {
-        return sliderValue <= 0.5f ? 0.5f + sliderValue : sliderValue * 2f;
+        return 1f + sliderValue * 0.5f;
     }
 
     /// <summary>
@@ -20,7 +19,7 @@ public class Option_GeneralModule : UIModuleBase
     /// </summary>
     private static float CoefficientToSlider(float coefficient)
     {
-        return coefficient <= 1f ? coefficient - 0.5f : coefficient / 2f;
+        return (coefficient - 1f) * 2f;
     }
 
     public override void Open(UIData uiData = null)
@@ -84,7 +83,7 @@ public class Option_GeneralModule : UIModuleBase
                 PlayerPrefs.SetFloat(GlobalInfo.moveSpeedCacheKey, coefficient);
                 SliderValue.text = Mathf.Floor(coefficient * 100) + "%";
                 if (playerController != null)
-                    playerController.cachedMoveSpeed = coefficient;
+                    playerController.RefreshSpeedCache();
             });
         }
 
@@ -100,7 +99,7 @@ public class Option_GeneralModule : UIModuleBase
                 PlayerPrefs.SetFloat(GlobalInfo.rotateSpeedCacheKey, coefficient);
                 SliderValue.text = Mathf.Floor(coefficient * 100) + "%";
                 if (playerController != null)
-                    playerController.cachedRotateSpeed = coefficient;
+                    playerController.RefreshSpeedCache();
             });
         }
 
@@ -193,24 +192,8 @@ public class Option_GeneralModule : UIModuleBase
 
     private static void ApplyFrameSettings(int qualityIndex)
     {
-#if UNITY_STANDALONE
-        QualitySettings.vSyncCount = 1;
-        Application.targetFrameRate = -1;
-#elif UNITY_ANDROID
         QualitySettings.vSyncCount = 0;
-        switch (qualityIndex)
-        {
-            case 1:
-                Application.targetFrameRate = 30;
-                break;
-            case 2:
-                Application.targetFrameRate = 60;
-                break;
-            default:
-                Application.targetFrameRate = -1;
-                break;
-        }
-#endif
+        Application.targetFrameRate = 60;
     }
 
     /// <summary>

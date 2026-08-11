@@ -190,12 +190,13 @@ public class SmallFlowCtrl : MonoBase
         {
             _index_NowStep = value;
             ClearCompletedOps();
-            ignoreMove = false;
-            // 自动播放：使用 DelayStart
+            // 不在此处重置 ignoreMove：CompleteStep 同步端依赖它保持 true 来抑制导航，由 Next() / SelectStep 调用方设置。
             if (nowFlowStep != null && nowFlowStep.initState != null && nowFlowStep.initState.Count > 0)
             {
                 ExecuteInitStateSequentially(nowFlowStep.initState, nowFlowStep, 0, 0, () =>
                 {
+                    if (LoadingPanel.Loading)
+                        UIManager.Instance.CloseUI<LoadingPanel>();
                     AimCameraAtFirstOp();
                     SpeechManager.Instance.PlayImmediate(nowFlowStep.ID, 0, TipType.StepName);
                 });
@@ -342,15 +343,12 @@ public class SmallFlowCtrl : MonoBase
             if (firstOp == null)
                 return;
 
-            PlayerController pc = playerController;
-            if (pc == null)
-                return;
-
-            //所有可操作对象必然有一个射线检测碰撞盒，使用其中心点的世界坐标是最准确的锁定
+            //找高光标记的位置
+            Transform target = firstOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform;
             //延迟0.1f是为了避免锁定和设置最终状态在同一帧执行，导致锁定到设置最终状态前的位置
             DOVirtual.DelayedCall(0.1f, () =>
             {
-                pc.AimAtTarget(firstOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform.position);
+                playerController?.AimAtTarget(target);
             });
         }
     }
@@ -370,27 +368,14 @@ public class SmallFlowCtrl : MonoBase
         if (nextOp == null)
             return;
 
-        PlayerController pc = playerController;
-        if (pc == null)
-            return;
-
+        //找高光标记的位置
+        Transform target = nextOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform;
         DOVirtual.DelayedCall(0.1f, () =>
         {
-            pc.AimAtTarget(nextOp.operation.GetComponent<ModelRestrict>().modelHighlight.highlightNodes[0].transform.position);
+            playerController?.AimAtTarget(target);
         });
     }
 
-    /// <summary>
-    /// 异步导航到目标 1 以内（不吸附到目标姿态），完成后执行 proceed。
-    /// </summary>
-    /// <summary>
-    /// 取 collider 表面离 player 最近的点，无 collider 时回退到 transform.position。
-    /// </summary>
-    private static Vector3 ClosestPointOnCollider(Vector3 playerPos, Transform t)
-    {
-        var col = t.GetComponent<Collider>();
-        return col ? col.ClosestPoint(playerPos) : t.position;
-    }
 
     private async UniTaskVoid NavigateNearTargetAsync(PlayerController pc, Transform target, Action proceed)
     {
@@ -400,33 +385,13 @@ public class SmallFlowCtrl : MonoBase
         await UniTask.WaitUntil(() =>
         {
             if (!pc) return true;
-            Vector3 cp = ClosestPointOnCollider(pc.transform.position, target);
-            return Vector3.Distance(pc.transform.position, cp) <= 0.5f || pc.NavEnd;
+            return Vector3.Distance(pc.transform.position, target.position) <= 0.5f || pc.NavEnd;
         });
         if (!pc)
             return;
         pc.EndNavigation();
         pc.Model.GetComponent<Animator>().SetBool("isMove", false);
         proceed();
-    }
-
-    private static Transform GetClosestHighlightNode(ModelRestrict restrict, Vector3 playerPos)
-    {
-        if (restrict == null || restrict.modelHighlight?.highlightNodes == null || restrict.modelHighlight.highlightNodes.Count == 0)
-            return null;
-        Transform closest = null;
-        float minDist = float.MaxValue;
-        foreach (var node in restrict.modelHighlight.highlightNodes)
-        {
-            Vector3 cp = ClosestPointOnCollider(playerPos, node.transform);
-            float d = (cp - playerPos).sqrMagnitude;
-            if (d < minDist)
-            {
-                minDist = d;
-                closest = node.transform;
-            }
-        }
-        return closest;
     }
 
     #endregion
@@ -543,6 +508,16 @@ public class SmallFlowCtrl : MonoBase
     /// 当前操作的实际执行者（非协同同步方）。联动弹窗等场景用此判断是否执行完整行为。
     /// </summary>
     public bool IsCurrentOperationExecutor { get; private set; } = true;
+
+    /// <summary>
+    /// 本次操作是否持有相机锁定。执行开始时获取，整条链（操作联动+步骤联动）走完后在 Over 中释放。
+    /// </summary>
+    private bool cameraLockHeld;
+
+    /// <summary>
+    /// 相机锁定代次。每次开始新操作时自增，使上一次操作的延迟释放回调失效。
+    /// </summary>
+    private int cameraLockGeneration;
 
     private Func<bool> audioNotPlayingPredicate;
 
@@ -995,6 +970,11 @@ public class SmallFlowCtrl : MonoBase
                 onResetToolNum.Invoke(tool.Value);
         }
 
+        // 跳步骤是生命周期边界：强制清空相机锁定，防止上一步异常路径漏放锁导致相机永久不跟随
+        cameraLockHeld = false;
+        cameraLockGeneration++;
+        ModelManager.Instance.CameraLockReset();
+
         index_NowFlow = flowIndex;
         _index_NowStep = 0;
         ClearCompletedOps();
@@ -1237,7 +1217,7 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     private void ApplyPlayerPositionForStepJump(int stepIndex)
     {
-        bool found = false;
+        bool found = ignoreMove = false;
         // 跨 flow 向前搜索角色位置
         for (int f = index_NowFlow; f >= 0 && !found; f--)
         {
@@ -1329,16 +1309,21 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="userNo">操作人工号</param>
     /// <param name="userName">操作人姓名</param>
     /// <param name="callback"></param>
-    /// <param name="self">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param></param>
+    /// <param name="self">为true 表示是本人操作；为false表示是其他玩家操作（不执行相机移动、角色导航等操作表现）</param></param>
     public void TryExecuteFreeOperation(SmallOp1 data, string userNo, string userName, bool self)
     {
         VariableJoystick.tapRotationTriggered = false;
         GlobalInfo.WaitUiOq = false;
         NetworkManager.Instance.IsIMSync = false;
-        ignoreMove = self;
+        ignoreMove = !self;  // 其他玩家操作时忽略移动和动画
         IsCurrentOperationExecutor = self;
+        // 上一次操作若走了异常路径没能释放，这里先补放并推进代次，使旧的延迟释放回调失效
+        BeginCameraLockScope();
         if (self && IsCameraStationaryOperation(data.operation))
-            ModelManager.Instance.CameraDotween = true;
+        {
+            ModelManager.Instance.CameraLockAcquire();
+            cameraLockHeld = true;
+        }
 
         string modelInfoId = data.operation?.GetComponent<ModelInfo>()?.ID;
         SmallOp1 stepOp;
@@ -1396,13 +1381,38 @@ public class SmallFlowCtrl : MonoBase
             {
                 // 步骤未结束时，瞄准下一个需点击的操作目标
                 AimCameraAtNextOp();
+                // 延迟回调期间可能已开始新操作，用当前代次做校验，避免放掉新操作的锁
+                int generation = cameraLockGeneration;
                 //发送步骤操作结束消息
                 DOVirtual.DelayedCall(0.1f, () =>
                 {
-                    ModelManager.Instance.CameraDotween = false;
+                    ReleaseCameraLock(generation);
                     ToolManager.SendBroadcastMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteExecute));
                 });
             }
+        else
+            ReleaseCameraLock(cameraLockGeneration);
+    }
+
+    /// <summary>
+    /// 本次操作（含操作对象联动、步骤联动）全部执行完毕，释放相机锁定，允许相机重新跟随角色。
+    /// </summary>
+    /// <param name="generation">获取锁时的代次；与当前代次不符说明已开始新操作，本次释放作废</param>
+    private void ReleaseCameraLock(int generation)
+    {
+        if (!cameraLockHeld || generation != cameraLockGeneration)
+            return;
+        cameraLockHeld = false;
+        ModelManager.Instance.CameraLockRelease();
+    }
+
+    /// <summary>
+    /// 开始新操作前调用：补放上一次操作可能残留的锁，并推进代次使旧的延迟释放回调失效。
+    /// </summary>
+    private void BeginCameraLockScope()
+    {
+        ReleaseCameraLock(cameraLockGeneration);
+        cameraLockGeneration++;
     }
 
     /// <summary>
@@ -1427,41 +1437,18 @@ public class SmallFlowCtrl : MonoBase
     /// <param name="callback"></param>
     /// <param name="self">为true 表示非本人操作；不执行相机移动、角色导航等操作表现</param>
     public void TryExecuteOperation(SmallOp1 data, bool correctOp, string userNo, string userName, bool self)
-    {
-        VariableJoystick.tapRotationTriggered = false;
-        // 非考核模式：距离检查，离步骤递归目标位置超过0.5m先导航再执行
-        if (!GlobalInfo.isExam && self && data.operation != null)
-        {
-            PlayerController pc = playerController;
-            if (pc != null)
-            {
-                Transform target = ResolveStepNavigationTarget();
-                if (target != null)
-                {
-                    Vector3 closestPoint = ClosestPointOnCollider(pc.transform.position, target);
-                    if (Vector3.Distance(pc.transform.position, closestPoint) > 0.5f)
-                    {
-                        NavigateNearTargetAsync(pc, target, () =>
-                        {
-                            ExecuteOperationCore(data, correctOp, userNo, userName, self);
-                        }).Forget();
-                        return;
-                    }
-                }
-            }
-        }
-
-        ExecuteOperationCore(data, correctOp, userNo, userName, self);
-    }
-
-    private void ExecuteOperationCore(SmallOp1 data, bool correctOp, string userNo, string userName, bool self)
-    {
+    { 
         GlobalInfo.WaitUiOq = false;
-        ignoreMove = self;
+        ignoreMove = !self;  // 其他玩家操作时忽略移动和动画
         IsCurrentOperationExecutor = self;
+        // 上一次操作若走了异常路径没能释放，这里先补放并推进代次，使旧的延迟释放回调失效
+        BeginCameraLockScope();
         string modelInfoId = data.operation != null ? data.operation.ID : string.Empty;
         if (self && IsCameraStationaryOperation(data.operation))
-            ModelManager.Instance.CameraDotween = true;
+        {
+            ModelManager.Instance.CameraLockAcquire();
+            cameraLockHeld = true;
+        }
         FormMsgManager.Instance.SendMsg(new MsgStringBool((ushort)SmallFlowModuleEvent.StartExecute, modelInfoId, self));
 
         // 并列操作序号，用于匹配对应语音
@@ -2433,10 +2420,16 @@ public class SmallFlowCtrl : MonoBase
     public void Next()
     {
         if (GlobalInfo.WaitUiOq)
+        {
             return;
+        }
 
+        // 等待UI操作时不再走到 Over，这里必须补放相机锁，否则相机会永久不跟随角色
+        ReleaseCameraLock(cameraLockGeneration);
+        UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true).ReleaseCursorFree();
         if (index_NowFlow <= flows.Length - 1)
         {
+            ignoreMove = false;
             if (index_NowStep < nowFlowSteps.Count - 1)
             {
                 index_NowStep += 1;

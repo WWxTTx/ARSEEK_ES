@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -141,24 +138,24 @@ public class CourseSideBar : MonoBase
             }
         });
 
-        //Prev.onClick.AddListener(() =>
-        //{
-        //    active = true;
-        //    if (BaikeSelectModule.CurrentBaikeIndex == 0)
-        //        return;
+        Prev.onClick.AddListener(() =>
+        {
+            active = true;
+            if (BaikeSelectModule.CurrentBaikeIndex == 0)
+                return;
 
-        //    Encyclopedia prevPedia = GlobalInfo.currentWikiList[--BaikeSelectModule.CurrentBaikeIndex];
-        //    ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, prevPedia.id), true);
-        //});
-        //Next.onClick.AddListener(() =>
-        //{
-        //    active = true;
-        //    if (BaikeSelectModule.CurrentBaikeIndex == GlobalInfo.currentWikiList.Count - 1)
-        //        return;
+            Encyclopedia prevPedia = GlobalInfo.currentWikiList[--BaikeSelectModule.CurrentBaikeIndex];
+            ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, prevPedia.id), true);
+        });
+        Next.onClick.AddListener(() =>
+        {
+            active = true;
+            if (BaikeSelectModule.CurrentBaikeIndex == GlobalInfo.currentWikiList.Count - 1)
+                return;
 
-        //    Encyclopedia nextPedia = GlobalInfo.currentWikiList[++BaikeSelectModule.CurrentBaikeIndex];
-        //    ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, nextPedia.id), true);
-        //});
+            Encyclopedia nextPedia = GlobalInfo.currentWikiList[++BaikeSelectModule.CurrentBaikeIndex];
+            ToolManager.SendBroadcastMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, nextPedia.id), true);
+        });
 
         if (HierarchyTog)
         {
@@ -298,10 +295,13 @@ public class CourseSideBar : MonoBase
 
     public void SetBaikePage()
     {
+        Prev.interactable = BaikeSelectModule.CurrentBaikeIndex > 0;
+        Next.interactable = BaikeSelectModule.CurrentBaikeIndex < GlobalInfo.currentWikiList.Count - 1;
 #if UNITY_ANDROID || UNITY_IOS
         BaikeTotalPage.text = $"{GlobalInfo.currentWikiList.Count}";
+        BaikeCurrentPage.text = $"{BaikeSelectModule.CurrentBaikeIndex + 1}";
 #else
-        BaikePage.text = $"1/{GlobalInfo.currentWikiList.Count}";
+        BaikePage.text = $"{BaikeSelectModule.CurrentBaikeIndex + 1}/{GlobalInfo.currentWikiList.Count}";
 #endif
     }
 
@@ -560,7 +560,7 @@ public class CourseSideBar : MonoBase
             time = 0;
             if (SideBarCanvas.alpha < 1 && !GlobalInfo.isARTracking)
             {
-                SideBarCanvas.DOFade(1, 0.3f);
+                Fade(1f, 0.3f);
             }
         }
         else
@@ -568,21 +568,60 @@ public class CourseSideBar : MonoBase
             time += Time.deltaTime;
             if (SideBarCanvas.alpha == 1 && time > activeInterval)
             {
-                SideBarCanvas.DOFade(0.5f, 1.5f);
+                Fade(0.5f, 1.5f);
             }
         }
 #endif
     }
 
-    public void Fade(bool fade)
+
+    private void Fade(float alpha, float duration)
     {
-        SideBarCanvas.blocksRaycasts = !fade;
-        SideBarCanvas.DOFade(fade ? 0 : 1, 0.3f);
+        bool hidden = alpha <= 0.01f;
+        SideBarCanvas.interactable = !hidden;
+        SideBarCanvas.blocksRaycasts = !hidden;
+        SideBarCanvas.DOFade(alpha, duration);
     }
 
-    public void ActiveCanvas()
+    /// <summary>
+    /// SideBar 进入动画（transform 滑入），返回 Tweener 供外部 Sequence.Join。
+    /// </summary>
+    public Tween JoinAnimTween(float playTime)
     {
-        active = true;
+        SideBarCanvas.blocksRaycasts = true;
+#if UNITY_STANDALONE
+        return ((RectTransform)transform).DOAnchorPos3DX(0, playTime);
+#else
+        return ((RectTransform)transform).DOAnchorPos3DX(100f, playTime);
+#endif
+    }
+
+    /// <summary>
+    /// SideBar 退出动画（transform 滑出），返回 Tweener 供外部 Sequence.Join。
+    /// </summary>
+    public Tween ExitAnimTween(float playTime)
+    {
+        SideBarCanvas.blocksRaycasts = false;
+        var rt = (RectTransform)transform;
+        return rt.DOAnchorPos3DX(-rt.sizeDelta.x, playTime);
+    }
+
+    /// <summary>立即显隐 SideBar，不走动画。</summary>
+    public void SetVisible(bool visible)
+    {
+        if (visible)
+        {
+            active = true;
+            SideBarCanvas.alpha = 1f;
+            SideBarCanvas.interactable = true;
+            SideBarCanvas.blocksRaycasts = true;
+        }
+        else
+        {
+            SideBarCanvas.alpha = 0f;
+            SideBarCanvas.interactable = false;
+            SideBarCanvas.blocksRaycasts = false;
+        }
     }
 
     /// <summary>

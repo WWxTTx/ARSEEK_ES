@@ -170,7 +170,7 @@ public class VideoChannelAgent : NetworkChannelAgentBase
         lastFrameTime.Remove(userId);
         if (clientGameViewDecoders.ContainsKey(viewLabel))
         {
-            if (destroy)
+            if (destroy && clientGameViewDecoders[viewLabel])
                 Destroy(clientGameViewDecoders[viewLabel].gameObject);
             clientGameViewDecoders.Remove(viewLabel);
         }

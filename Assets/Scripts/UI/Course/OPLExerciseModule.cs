@@ -79,12 +79,37 @@ public class OPLExerciseModule : UIModuleBase
                     break;
             }
 
+            // 考核模式：还原已答题目
+            if (GlobalInfo.IsExamMode())
+            {
+                var cachedAnswers = ExamUtility.Instance.GetExerciseAnswer(exercisePedia.id);
+                if (cachedAnswers != null && cachedAnswers.Count > 0)
+                {
+                    hasAnswered = false;
+                    confirmRequested = false;
+                    selectedAnswers.Clear();
+                    foreach (int index in cachedAnswers)
+                    {
+                        if (answerToggles.TryGetValue(index, out Toggle t))
+                        {
+                            t.isOn = true;
+                            selectedAnswers.Add(index);
+                        }
+                    }
+                    ConfirmAnswer.gameObject.SetActive(true);
+                }
+            }
+
             //this.WaitTime(0.1f, () =>
             //{
             //    //延迟 通知模块开始答题
             //    SendMsg(new MsgBase((ushort)SmallFlowModuleEvent.CompleteStep));
             //});
         }
+
+
+        if (LoadingPanel.Loading)
+            UIManager.Instance.CloseUI<LoadingPanel>();
     }
 
     private void Init()
@@ -103,10 +128,17 @@ public class OPLExerciseModule : UIModuleBase
         ConfirmAnswer.onClick.RemoveAllListeners();
         ConfirmAnswer.onClick.AddListener(() =>
         {
+            //标记本题的"确定"由本人点击触发，避免切题后残留的确定消息被下一题误处理
+            confirmRequested = true;
             MsgList<int> msgAnswers = new MsgList<int>((ushort)ExercisesModuleEvent.ConfirmAnswer, selectedAnswers.ToList());
             SendMsg(new MsgBrodcastOperate(msgAnswers.msgId, JsonTool.Serializable(msgAnswers)));
         });
-        ConfirmAnswer.gameObject.SetActive(!GlobalInfo.IsExamMode());
+        ConfirmAnswer.gameObject.SetActive(false);
+
+        OnAnswerChanged.AddListener(() =>
+        {
+            ConfirmAnswer.gameObject.SetActive(selectedAnswers.Count > 0);
+        });
 
         #region 直连答题
 #if UNITY_ANDROID || UNITY_IOS
@@ -159,7 +191,7 @@ public class OPLExerciseModule : UIModuleBase
     private void LoadExercise()
     {
         ExerciseContent exerciseContent = JsonTool.DeSerializable<ExerciseContent>(exercise.content);
-        Type.text = CheckType(exercise.type, exerciseContent, out bool multipleChoice);
+        Type.text = CheckType(exercise.type, exerciseContent, out multipleChoice);
         LoadQuestion(exerciseContent.question);
         LoadAnswers(exerciseContent.answers, multipleChoice);
         RefreshLayouGroup();
@@ -192,6 +224,8 @@ public class OPLExerciseModule : UIModuleBase
     }
 
     private int score;
+    private bool hasAnswered = false;
+    private bool confirmRequested = false;
     /// <summary>
     /// 加载题目
     /// </summary>
@@ -202,7 +236,10 @@ public class OPLExerciseModule : UIModuleBase
         {
             var target = GlobalInfo.currentWikiList.Find(wiki => wiki.id == GlobalInfo.currentWiki.id);
             if (target != null)
+            {
                 score = target.totalScore;
+                Log.Debug($"[OPLExerciseModule] LoadQuestion: wikiId={GlobalInfo.currentWiki.id}, score={score}");
+            }
             else
                 Log.Error($"分值获取出错");
             Title.text = $"({score}分) {question.text}";
@@ -226,6 +263,7 @@ public class OPLExerciseModule : UIModuleBase
 
     public List<int> _selectedAnswers { get { return selectedAnswers.ToList(); } }
     private HashSet<int> selectedAnswers = new HashSet<int>();
+    private bool multipleChoice;
 
     /// <summary>
     /// 加载选项
@@ -233,6 +271,9 @@ public class OPLExerciseModule : UIModuleBase
     /// <param name="answers"></param>
     private void LoadAnswers(List<ExerciseAnswer> answers, bool multipleChoice = false)
     {
+        hasAnswered = false;
+        confirmRequested = false;
+        selectedAnswers.Clear();
         int index = 0;
         bool hasExtend = false;
         Content.UpdateItemsView(answers, (item, info) =>
@@ -253,6 +294,11 @@ public class OPLExerciseModule : UIModuleBase
                 choice.onValueChanged.RemoveAllListeners();
                 choice.onValueChanged.AddListener(isOn =>
                 {
+                    if (isOn)
+                        selectedAnswers.Add(sendID);
+                    else
+                        selectedAnswers.Remove(sendID);
+
                     if (GlobalInfo.IsGroupMode())
                     {
                         ToolManager.SendBroadcastMsg(new MsgIntBool()
@@ -267,10 +313,6 @@ public class OPLExerciseModule : UIModuleBase
                         SendMsg(new MsgIntBool((ushort)ExercisesModuleEvent.ChooseAnswer, sendID, isOn));
                     }
 
-                    if (isOn)
-                        selectedAnswers.Add(sendID);
-                    else
-                        selectedAnswers.Remove(sendID);
                 });
 
                 item.FindChildByName("True").gameObject.SetActive(false);
@@ -428,9 +470,19 @@ public class OPLExerciseModule : UIModuleBase
 
     private void OnAnswerConfirm(int userId, List<int> answers)
     {
-        //if (GlobalInfo.IsExamMode())
-        //    return;
+        if (hasAnswered)
+            return;
+
+        if (!confirmRequested)
+            return;
+
+        hasAnswered = true;
+        ConfirmAnswer.gameObject.SetActive(false);
+
+        Log.Debug($"[OPLExerciseModule] OnAnswerConfirm: wikiId={GlobalInfo.currentWiki.id}, score={score}, answers={string.Join(",", answers)}");
+
         bool isTrue = true;
+        bool isExam = GlobalInfo.IsExamMode();
         Toggle tempToggle = null;
         {
             foreach (Transform child in Content)
@@ -443,30 +495,61 @@ public class OPLExerciseModule : UIModuleBase
                 {
                     if (tempToggle.isOn)
                     {
-                        tempToggle.FindChildByName("True").gameObject.SetActive(true);
+                        if (!isExam) tempToggle.FindChildByName("True").gameObject.SetActive(true);
                     }
                     else
                     {
-                        tempToggle.FindChildByName("False2").gameObject.SetActive(true);
+                        if (!isExam) tempToggle.FindChildByName("False2").gameObject.SetActive(true);
                         isTrue = false;
                     }
                 }
                 else if (tempToggle.isOn)
                 {
-                    tempToggle.FindChildByName("False1").gameObject.SetActive(true);
+                    if (!isExam) tempToggle.FindChildByName("False1").gameObject.SetActive(true);
                     isTrue = false;
                 }
             }
         }
 
-        if (isTrue)
-            SoundManager.Instance.PlayEffect("TrueProblem", true);
+        if (!isExam)
+        {
+            if (isTrue)
+                SoundManager.Instance.PlayEffect("TrueProblem", true);
+            else
+                SoundManager.Instance.PlayEffect("FalseProblem", true);
+        }
         else
-            SoundManager.Instance.PlayEffect("FalseProblem", true);
+        {
+            int finalScore = isTrue ? score : 0;
+            Log.Debug($"[OPLExerciseModule] SendExerciseScore: isTrue={isTrue}, score={score}, finalScore={finalScore}");
+            SendMsg(new MsgInt((ushort)ExamPanelEvent.ExerciseScore, finalScore));
 
-        ////为了保留提交答案记录可见
-        //if (GlobalInfo.IsExamMode() && userId == GlobalInfo.account.id)
-        //    SendMsg(new MsgInt((ushort)ExamPanelEvent.ExerciseScore, isTrue ? score : 0));
+            ExamUtility.Instance.SetExerciseAnswer(GlobalInfo.currentWiki.id, new List<int>(answers));
+
+            ToolManager.SendBroadcastMsg(new MsgOperatingRecord(
+                (ushort)SmallFlowModuleEvent.OperatingRecord,
+                Title.text,
+                -1,
+                GlobalInfo.account.userNo,
+                GlobalInfo.account.nickname,
+                UISmallSceneOperationHistory.OpType.Operation,
+                true,
+                isTrue ? score : 0,
+                BaikeSelectModule.CurrentBaikeIndex));
+
+            AdvanceToNext();
+        }
+    }
+
+    private void AdvanceToNext()
+    {
+        int currentIndex = BaikeSelectModule.CurrentBaikeIndex;
+        if (currentIndex < GlobalInfo.currentWikiList.Count - 1)
+        {
+            Encyclopedia nextPedia = GlobalInfo.currentWikiList[currentIndex + 1];
+            BaikeSelectModule.CurrentBaikeIndex = currentIndex + 1;
+            FormMsgManager.Instance.SendMsg(new MsgInt((ushort)BaikeSelectModuleEvent.BaikeSelect, nextPedia.id));
+        }
     }
 
     public override void ProcessEvent(MsgBase msg)
@@ -535,6 +618,9 @@ public class OPLExerciseModule : UIModuleBase
     /// </summary>
     private void ClearAnswer()
     {
+        hasAnswered = false;
+        confirmRequested = false;
+        selectedAnswers.Clear();
         Toggle tempToggle = null;
         foreach (Transform child in Content)
         {

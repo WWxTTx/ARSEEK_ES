@@ -22,25 +22,12 @@ public class ExamUtility : Singleton<ExamUtility>
     /// </summary>
     private Dictionary<int, int> examineeRecords = new Dictionary<int, int>();
 
-    /// <summary>
-    /// 房主是否从考核开始到现在一直在线（单人考核专用）
-    /// true=房主从未离开，可信赖提交状态 → 等待掉线重连
-    /// false=房主中途离开过，提交状态不可靠 → 按房间成员判断
-    /// </summary>
-    private bool hostContinuousOnline = true;
-
     public Dictionary<int, int> ExamineeRecords
     {
         get
         {
             return examineeRecords;
         }
-    }
-
-    public bool HostContinuousOnline
-    {
-        get { return hostContinuousOnline; }
-        set { hostContinuousOnline = value; }
     }
 
     /// <summary>
@@ -108,20 +95,24 @@ public class ExamUtility : Singleton<ExamUtility>
 
     /// <summary>
     /// 是否全员提交。
-    /// 单人考核且房主全程在线时，以 examineeRecords 为准等待掉线考生重连提交；
-    /// 其余情况（多人考核、房主中途离开过）沿用房间成员列表判断，成员空了即结束。
+    /// 单人考核以 examineeRecords 为准等待掉线考生重连提交；
+    /// 其余情况沿用房间成员列表判断，成员空了即结束。
     /// </summary>
-    /// <returns></returns>
     public bool AllSubmit()
     {
-        if (!GlobalInfo.IsGroupMode() && hostContinuousOnline && examineeRecords.Count > 0)
+        if (!GlobalInfo.IsGroupMode())
         {
-            foreach (var examineeId in examineeRecords.Keys)
+            if (examineeRecords.Count > 0)
             {
-                if (!HasSubmitted(examineeId))
-                    return false;
+                foreach (var examineeId in examineeRecords.Keys)
+                {
+                    if (!HasSubmitted(examineeId))
+                        return false;
+                }
+                return true;
             }
-            return true;
+            // examineeRecords 尚未填充（异步回调未完成），不可断定全员提交
+            return false;
         }
 
         return submitCache.Count == 0 || !submitCache.Values.Contains(false);
@@ -273,7 +264,7 @@ public class ExamUtility : Singleton<ExamUtility>
     /// <param name="baikeId"></param>
     /// <param name="success"></param>
     /// <param name="failure"></param>
-    public void SubmitExamineResult_Exercise(int examId, int baikeId, string operation, UnityAction success, UnityAction<int, string> failure)
+    public void SubmitExamineResult_Exercise(int examId, int baikeId, string operation, string msg, float score, UnityAction success, UnityAction<int, string> failure)
     {
         try
         {
@@ -282,7 +273,11 @@ public class ExamUtility : Singleton<ExamUtility>
                 new ExamineResultOperation()
                 {
                     index = 0,
+                    userNo = GlobalInfo.account.userNo,
+                    userName = GlobalInfo.account.nickname,
+                    msg = msg,
                     operation = operation,
+                    score = score
                 }
             };
             RequestManager.Instance.SubmitExamineResult_Excercise(examId, baikeId, operations.ToArray(), () =>
@@ -466,6 +461,35 @@ public class ExamUtility : Singleton<ExamUtility>
     public void DeleteParticipantExamCache(string roomUuid)
     {
         DeleteHostExamCache(roomUuid);
+    }
+    #endregion
+
+    #region 习题答案缓存
+    /// <summary>
+    /// 习题答案缓存（考核模式下切换百科后还原已选答案）
+    /// key: wikiId, value: 已选答案索引列表
+    /// </summary>
+    private Dictionary<int, List<int>> exerciseAnswerCache = new Dictionary<int, List<int>>();
+
+    public void SetExerciseAnswer(int wikiId, List<int> answers)
+    {
+        exerciseAnswerCache[wikiId] = new List<int>(answers);
+    }
+
+    public List<int> GetExerciseAnswer(int wikiId)
+    {
+        exerciseAnswerCache.TryGetValue(wikiId, out var answers);
+        return answers;
+    }
+
+    public void ClearExerciseAnswer(int wikiId)
+    {
+        exerciseAnswerCache.Remove(wikiId);
+    }
+
+    public void ClearAllExerciseAnswers()
+    {
+        exerciseAnswerCache.Clear();
     }
     #endregion
 }

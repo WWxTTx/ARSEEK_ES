@@ -2151,7 +2151,7 @@ public class BehaveMovePlayer : BehaveDotween
             }
         }
         //wait camerarotatetweener
-        sequence.AppendInterval(playerController.cameraRotateDuration);
+        sequence.AppendInterval(1);
         sequence.timeScale = multiplier;
         sequence.OnComplete(() =>
         {
@@ -2403,7 +2403,7 @@ public class BehavePlayerNavigation : BehaveDotween
             await UniTask.WaitUntil(() => playerController.NavEnd);
 
             // 等待相机旋转时间
-            await UniTask.WaitForSeconds(playerController.cameraRotateDuration);
+            await UniTask.WaitForSeconds(1);
         }
         else
         {
@@ -2561,7 +2561,8 @@ public class BehavePopup : BehaveBase
     //弹窗默认将确定和关闭事件都加上回调
     public override void Execute(UnityAction callback = null)
     {
-        //刷新自由移动标志位 
+        //刷新自由移动标志位。注意：聚焦等相机动画持锁期间该写入会被 ModelManager 忽略，
+        //由 SmallFlowCtrl.Over 在整条操作链结束后统一释放，避免相机在聚焦未结束时开始跟随角色。
         ModelManager.Instance.CameraDotween = false;
 
         //已存在系统级弹窗就不弹了 配置的弹窗都是非系统提示弹窗

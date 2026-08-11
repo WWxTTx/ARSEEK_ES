@@ -1,4 +1,4 @@
-﻿using UnityFramework.Runtime;
+using UnityFramework.Runtime;
 using DG.Tweening;
 using System.Collections.Generic;
 using UnityEngine;
@@ -161,8 +161,6 @@ public class ARPanel : UIPanelBase
                 {
                     request = false;
                     GlobalInfo.SaveCourseABInfo(courseABData);
-                    UIManager.Instance.CloseUI<LoadingPanel>();
-                    //courseList = courseData;
                     GetWebCam();
                 }, (msg) => GetCourseFailure(msg));
             }, failureMessage => GetCourseFailure(failureMessage));

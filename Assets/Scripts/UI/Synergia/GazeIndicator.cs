@@ -44,7 +44,7 @@ public class GazeIndicator : MonoBase
     private float minDistance = 2f;
     private float maxDistance = 5f;
     private Material material;
-    private float tileMaterialScale = 6;
+
     /// <summary>
     /// 射线长度限制
     /// </summary>
@@ -57,7 +57,7 @@ public class GazeIndicator : MonoBase
     public GameObject PlayerPrefab;
     private GameObject model;
     private Animator modelAnimator;
-    private float baseHeight;
+
     /// <summary>
     /// 角色模型导航相关
     /// </summary>
@@ -69,8 +69,8 @@ public class GazeIndicator : MonoBase
     private Vector3 targetEuler;
     private float lastAppliedEulerY;
     private float rotationDeadzone = 10f;
-    private bool wasMoving;
-    private int debugFrameCount;
+    private Vector3 lastPosition;
+    private CharacterGhost cachedGhost;
 
     /// <summary>
     /// 模型根节点
@@ -183,8 +183,6 @@ public class GazeIndicator : MonoBase
         model.transform.localPosition = Vector3.zero;
         modelAnimator = model.GetComponent<Animator>();
 
-        baseHeight = ModelManager.Instance.GetCameraSyncHeight();
-
         InfoPanel.anchoredPosition3D = new Vector3(0, 2.1f, 0);
         InfoPanel.eulerAngles = 180f * Vector3.up;
         InfoPanel.localScale = 0.001f * Vector3.one;
@@ -201,12 +199,25 @@ public class GazeIndicator : MonoBase
         agent.angularSpeed = GlobalInfo.baseRotateSpeed * rotateCoefficient;
         agent.acceleration = GlobalInfo.baseMoveSpeed * moveCoefficient;
         agent.stoppingDistance = 0.1f;
-        agent.radius = 0.3f;
+        agent.radius = 0.01f;
         agent.height = 1.8f;
-        agent.avoidancePriority = 50;
-        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+        agent.avoidancePriority = 0;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
 
         lastNavTarget = start.position;
+        lastPosition = start.position;
+
+        // CharacterGhost 在实例化的 model (PlayerPrefab) 上，不在 GazeIndicator 根节点
+        cachedGhost = model != null ? model.GetComponent<CharacterGhost>() : null;
+        if (cachedGhost == null)
+            cachedGhost = GetComponentInChildren<CharacterGhost>();
+
+        if (cachedGhost != null)
+        {
+            cachedGhost.positionSource = start;
+            OverlapDetection.UnregisterCharacter(cachedGhost.transform);
+            OverlapDetection.RegisterCharacter(start);
+        }
     }
 
     private void Update()
@@ -214,22 +225,28 @@ public class GazeIndicator : MonoBase
         if (!ShowPlayer || modelAnimator == null)
             return;
 
-        debugFrameCount++;
-        bool logThisFrame = debugFrameCount % 60 == 0;
+        // 根据实际位移驱动动画（与 PlayerController 一致），避免依赖 agent.velocity 的滞后/阈值问题
+        Vector3 displacement = start.position - lastPosition;
+        displacement.y = 0;
+        bool hasMoved = displacement.sqrMagnitude > 0.0001f;
 
         if (agent != null && agent.isOnNavMesh && agent.enabled)
         {
-            float speed = agent.velocity.magnitude;
-            bool isMoving = wasMoving ? speed > 0.1f : speed > 0.5f;
-            wasMoving = isMoving;
-            modelAnimator.SetBool("isMove", isMoving);
+            // 到达目标点后强制停止，避免 NavMeshAgent 在终点震荡
+            if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+                agent.velocity = Vector3.zero;
 
-            if (isMoving)
+            modelAnimator.SetBool("isMove", hasMoved);
+
+            if (hasMoved)
             {
-                Vector3 moveDir = agent.velocity / speed;
-                Quaternion targetRot = Quaternion.LookRotation(moveDir);
-                start.rotation = Quaternion.Slerp(start.rotation, targetRot, Time.deltaTime * 10f);
-                lastAppliedEulerY = start.rotation.eulerAngles.y;
+                if (agent.velocity.sqrMagnitude > 0.01f)
+                {
+                    Vector3 moveDir = agent.velocity.normalized;
+                    Quaternion targetRot = Quaternion.LookRotation(moveDir);
+                    start.rotation = Quaternion.Slerp(start.rotation, targetRot, Time.deltaTime * 10f);
+                    lastAppliedEulerY = start.rotation.eulerAngles.y;
+                }
             }
             else
             {
@@ -242,7 +259,6 @@ public class GazeIndicator : MonoBase
                 }
                 else if (agent.remainingDistance <= agent.stoppingDistance || (!agent.hasPath && !agent.pathPending))
                 {
-                    // 角度差在死区内，直接设为精确目标值收尾
                     if (Mathf.Abs(delta) > 0.1f)
                     {
                         lastAppliedEulerY = targetY;
@@ -278,11 +294,14 @@ public class GazeIndicator : MonoBase
                     start.rotation = Quaternion.Euler(0, lastAppliedEulerY, 0);
                 }
             }
+        }
 
-            if (logThisFrame)
-            {
-                Debug.LogWarning($"[GazeIndicator:{userId}] Update FALLBACK — startPos={start.position:F2}, targetPosition={targetPosition:F2}, dist={dist:F3}");
-            }
+        // 位置变化时检测角色重叠——远端角色靠近别人时自己变透明
+        if (hasMoved)
+        {
+            lastPosition = start.position;
+            if (cachedGhost != null)
+                cachedGhost.UpdateSelfGhost();
         }
     }
 
@@ -297,14 +316,8 @@ public class GazeIndicator : MonoBase
             return;
 
         Quaternion rotation = new Quaternion(rot.x, rot.y, rot.z, rot.w);
-        //if (ShowPlayer)
-        //{
-        SetPlayerPose(target.transform.TransformPoint(position), target.transform.rotation * rotation);
-        //}
-        //else
-        //{
-        //    SetLinePose(target.transform.TransformPoint(position), target.transform.rotation * rotation);
-        //}
+        Vector3 worldPos = target.transform.TransformPoint(position);
+        SetPlayerPose(worldPos, target.transform.rotation * rotation);
     }
 
     /// <summary>
@@ -331,9 +344,6 @@ public class GazeIndicator : MonoBase
                 {
                     agent.Warp(hit.position);  // 直接放到目标楼层的 NavMesh 上
                     lastNavTarget = hit.position;
-
-                    // Warp后检查是否与其他agent重叠，若重叠则偏移分离
-                    SeparateFromNearbyAgents(hit.position);
                 }
             }
             else
@@ -345,38 +355,12 @@ public class GazeIndicator : MonoBase
                 }
             }
         }
+
+        // 位置更新后检测角色重叠——远端角色靠近别人时自己变透明
+        if (cachedGhost != null)
+            cachedGhost.UpdateSelfGhost();
     }
 
-    /// <summary>
-    /// Warp后检测是否与其他NavMeshAgent重叠，若重叠沿远离方向偏移
-    /// </summary>
-    private void SeparateFromNearbyAgents(Vector3 warpPosition)
-    {
-        NavMeshAgent[] allAgents = FindObjectsOfType<NavMeshAgent>();
-        float separationDist = agent.radius * 2f;
-
-        foreach (var other in allAgents)
-        {
-            if (other == agent || !other.isOnNavMesh || !other.enabled)
-                continue;
-
-            if (Vector3.Distance(agent.transform.position, other.transform.position) < separationDist)
-            {
-                Vector3 dir = (agent.transform.position - other.transform.position).normalized;
-                if (dir.sqrMagnitude < 0.01f)
-                    dir = Random.insideUnitSphere;
-                dir.y = 0;
-                dir.Normalize();
-
-                Vector3 offset = warpPosition + dir * separationDist;
-                if (NavMesh.SamplePosition(offset, out NavMeshHit offsetHit, 1f, NavMesh.AllAreas))
-                {
-                    agent.Warp(offsetHit.position);
-                }
-                break;
-            }
-        }
-    }
 
     /// <summary>
     /// 设置位置和视线方向
@@ -448,7 +432,6 @@ public class GazeIndicator : MonoBase
     {
         showLine = show && GlobalInfo.currentBaikeType != BaikeType.SmallScene;
         Line.gameObject.SetActive(show);
-        //end.gameObject.SetActive(show);
     }
 
     public override void ProcessEvent(MsgBase msg)

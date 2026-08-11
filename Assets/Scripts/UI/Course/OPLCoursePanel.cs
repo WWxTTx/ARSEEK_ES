@@ -126,7 +126,6 @@ public class OPLCoursePanel : HoverHintPanel
     public Transform ShowModulePoint;
     #endregion
 
-    protected bool encyclopediaModelLoaded = false;
     private Func<bool> _encyclopediaModelLoadedPredicate;
 
     private float timeCourseStart;
@@ -167,7 +166,6 @@ public class OPLCoursePanel : HoverHintPanel
 
     protected virtual void InitVariables()
     {
-        _encyclopediaModelLoadedPredicate = () => encyclopediaModelLoaded;
         RootCanvasGroup = transform.GetComponent<CanvasGroup>();
         TopNavigation = transform.GetComponentByChildName<RectTransform>("TopNavigation");
         Title = TopNavigation.transform.GetComponentByChildName<Text>("Title");
@@ -274,32 +272,8 @@ public class OPLCoursePanel : HoverHintPanel
         {
             data = uiData as ABPanelInfo;
             GlobalInfo.currentCourseID = data.ID;
-
-//#if UNITY_ANDROID || UNITY_IOS
-//            if (ARTog)
-//            {
-//                ARTog.onValueChanged.AddListener((arg) =>
-//                {
-//                    GlobalInfo.isAR = arg;
-//                    if (arg)
-//                    {
-//                        CourseSideBar.ShowBaikeSelectModule(false);
-//                        UIManager.Instance.OpenModuleUI<ARModule>(this, SideToggleMenuPoint, new ARModuleData(ARTog));
-//                    }
-//                    else
-//                        UIManager.Instance.CloseModuleUI<ARModule>(this);
-//                });
-
-//                if (uiData != null && ((ABPanelInfo)uiData).PanelName == typeof(ARPanel).ToString())
-//                {
-//                    ARTog.isOn = true;
-//                }
-//            }
-//#endif
             InitData(() =>
             {
-                UIManager.Instance.CloseUI<LoadingPanel>();
-
                 SetTitle(GlobalInfo.currentCourseInfo);
 
                 if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count > 0)
@@ -423,9 +397,18 @@ public class OPLCoursePanel : HoverHintPanel
     /// <param name="msg"></param>
     protected virtual void OnBaikeSelectEventReceived(MsgBase msg)
     {
-        int baikeId = ((MsgInt)msg).arg;
+        int baikeId;
+        if (msg is MsgBrodcastOperate brodcastMsg)
+        {
+            // 来自 ToolManager.SendBroadcastMsg 的包装消息
+            baikeId = brodcastMsg.GetData<MsgInt>().arg;
+        }
+        else
+        {
+            // 来自 FormMsgManager.SendMsg 的直接消息
+            baikeId = ((MsgInt)msg).arg;
+        }
         OnBaikeChanged(baikeId);
-        encyclopediaModelLoaded = false;
         LoadEncyclopedia(baikeId);
     }
 
@@ -707,7 +690,8 @@ public class OPLCoursePanel : HoverHintPanel
 
     protected async UniTaskVoid ShowDescription(bool show, System.Threading.CancellationToken ct)
     {
-        await UniTask.WaitUntil(_encyclopediaModelLoadedPredicate, cancellationToken: ct);
+        if (_encyclopediaModelLoadedPredicate != null)
+            await UniTask.WaitUntil(_encyclopediaModelLoadedPredicate, cancellationToken: ct);
         await UniTask.Yield(ct);
         //DescToggle.gameObject.SetActive(true);
         DescToggle.isOn = show;
@@ -820,8 +804,6 @@ public class OPLCoursePanel : HoverHintPanel
                     break;
             }
 
-            UIManager.Instance.CloseUI<LoadingPanel>();
-            encyclopediaModelLoaded = true;
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
             
             Debug.Log("执行协同联机状态恢复");
@@ -916,10 +898,10 @@ public class OPLCoursePanel : HoverHintPanel
         Sequence sequence = DOTween.Sequence();
         sequence.Join(TopNavigation.DOAnchorPos3DY(0, JoinAnimePlayTime));
 #if UNITY_STANDALONE
-        sequence.Join(SideBar.DOAnchorPos3DX(0, JoinAnimePlayTime));
+        sequence.Join(CourseSideBar.JoinAnimTween(JoinAnimePlayTime));
         sequence.Join(BottomBtns.DOAnchorPos3DX(0, JoinAnimePlayTime));
 #else
-        sequence.Join(SideBar.DOAnchorPos3DX(100f, JoinAnimePlayTime));
+        sequence.Join(CourseSideBar.JoinAnimTween(JoinAnimePlayTime));
 #endif
         sequence.Join(RootCanvasGroup.DOFade(1f, JoinAnimePlayTime));
         return sequence;
@@ -929,7 +911,7 @@ public class OPLCoursePanel : HoverHintPanel
     {
         Sequence sequence = DOTween.Sequence();
         sequence.Join(TopNavigation.DOAnchorPos3DY(TopNavigation.sizeDelta.y, ExitAnimePlayTime));
-        sequence.Join(SideBar.DOAnchorPos3DX(-SideBar.sizeDelta.x, ExitAnimePlayTime));
+        sequence.Join(CourseSideBar.ExitAnimTween(ExitAnimePlayTime));
 #if UNITY_STANDALONE
         sequence.Join(BottomBtns.DOAnchorPos3DX(-BottomBtns.sizeDelta.x, ExitAnimePlayTime));
 #endif

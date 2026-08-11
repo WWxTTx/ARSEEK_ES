@@ -47,4 +47,32 @@ public static class OverlapDetection
 
         return false;
     }
+
+    /// <summary>
+    /// 返回第一个与 self 重叠的其他角色 Transform，没有则返回 null
+    /// </summary>
+    public static Transform GetOverlappingCharacter(Transform self, float distance)
+    {
+        float sqrThreshold = distance * distance;
+        Vector3 selfPos = self.position;
+
+        for (int i = characters.Count - 1; i >= 0; i--)
+        {
+            Transform other = characters[i];
+            if (other == null)
+            {
+                characters.RemoveAt(i);
+                continue;
+            }
+            if (other == self)
+                continue;
+
+            Vector3 delta = other.position - selfPos;
+            delta.y = 0f;
+            if (delta.sqrMagnitude < sqrThreshold)
+                return other;
+        }
+
+        return null;
+    }
 }

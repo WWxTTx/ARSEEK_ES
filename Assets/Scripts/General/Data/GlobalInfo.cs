@@ -82,7 +82,7 @@ public class GlobalInfo
     /// <summary>
     /// 基础移动速度
     /// </summary>
-    public const float baseMoveSpeed = 5f;
+    public const float baseMoveSpeed = 6f;
     /// <summary>
     /// 基础旋转速度
     /// </summary>
@@ -167,8 +167,9 @@ public class GlobalInfo
     /// </summary>
     public static void SetCourseMode(CourseMode mode)
     {
-        ModelManager.Instance.CameraDotween = false;
-        
+        // 课程模式切换是生命周期边界：强制清空相机锁定，防止上一场景残留锁导致相机永久不跟随
+        ModelManager.Instance.CameraLockReset();
+
         //重连时从房间类型中获得
         if (roomInfo != null)
         {

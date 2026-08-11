@@ -273,13 +273,53 @@ namespace UnityFramework.Runtime
         /// 相机是否正在执行dotween
         /// </summary>
         private bool cameraDotween = false;
+        /// <summary>
+        /// 相机锁定计数：CameraLock 的每一次 acquire 都会 +1，release 时 -1，
+        /// 计数归零时才真正把 CameraDotween 置 false，避免中途某段代码抢先复位导致相机在聚焦/观察动画未结束时开始跟随。
+        /// </summary>
+        private int cameraLockCount = 0;
         public bool CameraDotween
         {
             get { return cameraDotween; }
             set
             {
+                // 聚焦等相机动画持锁期间，拒绝无关代码把标志复位（例如联动中的弹窗行为），
+                // 否则相机会在动画未结束时开始跟随角色。置 true 始终允许。
+                if (!value && cameraLockCount > 0)
+                    return;
                 cameraDotween = value;
             }
+        }
+
+        /// <summary>
+        /// 获取相机锁定（聚焦等相机动画期间调用，防止相机中途开始跟随）。
+        /// 持锁期间 CameraDotween 无法被外部置 false，可安全嵌套。
+        /// </summary>
+        public void CameraLockAcquire()
+        {
+            cameraLockCount++;
+            cameraDotween = true;
+        }
+
+        /// <summary>
+        /// 释放一次相机锁定。仅当所有锁定都释放（计数归零）时才允许相机恢复跟随。
+        /// </summary>
+        public void CameraLockRelease()
+        {
+            if (cameraLockCount > 0)
+                cameraLockCount--;
+            if (cameraLockCount == 0)
+                cameraDotween = false;
+        }
+
+        /// <summary>
+        /// 强制清空相机锁定。用于步骤切换、课程模式切换等生命周期边界，
+        /// 避免某次 acquire 因异常路径没有配对释放而永久卡住相机跟随。
+        /// </summary>
+        public void CameraLockReset()
+        {
+            cameraLockCount = 0;
+            cameraDotween = false;
         }
         /// <summary>
         /// 重置相机机位

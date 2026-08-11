@@ -11,6 +11,13 @@ using UnityFramework.Runtime;
 using static UnityFramework.Runtime.RequestData;
 using Text = UnityEngine.UI.Text;
 
+[System.Serializable]
+public class SpeechSyncData
+{
+    public string audioUrl;
+    public string text;
+}
+
 public class SpeechManager : Singleton<SpeechManager>
 {
     public AudioSource audioSource;
@@ -102,6 +109,8 @@ public class SpeechManager : Singleton<SpeechManager>
     public void LoadData()
     {
         GlobalInfo.UpdateSpeechMode();
+        if (HasExerciseTag())
+            return;
         // 如果语音模式开启且不在考核模式，加载语音数据
         if (SpeechMode && GlobalInfo.currentWiki != null)
         {
@@ -117,6 +126,20 @@ public class SpeechManager : Singleton<SpeechManager>
                 });
             }
         }
+    }
+
+    private const string ExerciseTagName = "习题";
+
+    private bool HasExerciseTag()
+    {
+        if (GlobalInfo.currentCourseID <= 0)
+            return false;
+        if (!GlobalInfo.courseDicExists.TryGetValue(GlobalInfo.currentCourseID, out Course course))
+            return false;
+        if (!string.IsNullOrEmpty(course.tags_readable)
+            && course.tags_readable.Split('/').Any(t => t.Trim() == ExerciseTagName))
+            return true;
+        return false;
     }
 
     public void SaveData(List<SpeechData> pediaSpeechData)
@@ -144,13 +167,6 @@ public class SpeechManager : Singleton<SpeechManager>
 
     UnityAction<SpeechData> onDataFetched;
     UnityAction onComplete;
-    [System.Obsolete("Use RegisterTipDisplay instead")]
-    public void SetTipUI(UnityAction<SpeechData> onDataFetched, UnityAction onComplete)
-    {
-        this.onDataFetched = onDataFetched;
-        this.onComplete = onComplete;
-    }
-
     private CanvasGroup tipCanvasGroup;
     private Text tipText;
     public void RegisterTipDisplay(CanvasGroup canvasGroup, Text text)
@@ -288,14 +304,12 @@ public class SpeechManager : Singleton<SpeechManager>
             audioSource.volume = PlayerPrefs.GetFloat(GlobalInfo.volumeCacheKey, 1f);
             audioSource.Play();
 
-            // 直播模式下将TTS音频数字直送麦克风编码器，使观众端也能听到提示语音
+            // 直播模式下房主通过IM通道同步语音给成员（成员本地下载播放，避免PCM编码延迟）
             if (GlobalInfo.IsLiveMode() && GlobalInfo.IsOperator())
             {
-                byte[] ttsBytes = ConvertClipToPCM(audioClip);
-                if (ttsBytes != null && ttsBytes.Length > 0)
-                    NetworkManager.Instance.FeedTtsAudio(ttsBytes);
-                else
-                    Debug.LogWarning("[TTS语音] ConvertClipToPCM返回空数据");
+                var syncData = new SpeechSyncData { audioUrl = speechData.audioUrl, text = speechData.text };
+                var msg = new MsgBrodcastOperate((ushort)SpeechSyncEvent.Play, JsonTool.Serializable(syncData));
+                NetworkManager.Instance.SendIMMsg(msg);
             }
 
             _cts = new CancellationTokenSource();
@@ -313,45 +327,25 @@ public class SpeechManager : Singleton<SpeechManager>
     }
 
     /// <summary>
-    /// 将AudioClip转为11025Hz mono Int16 PCM字节数组，用于数字直送麦克风编码器
+    /// 直播模式下成员接收房主语音同步消息，本地下载并播放
     /// </summary>
-    private byte[] ConvertClipToPCM(AudioClip clip)
+    public void PlayRemoteSpeech(string audioUrl, string text)
     {
-        if (clip == null) return null;
+        if (string.IsNullOrEmpty(audioUrl))
+            return;
 
-        int dstSampleRate = 11025;
-        float[] srcSamples = new float[clip.samples * clip.channels];
-        clip.GetData(srcSamples, 0);
-
-        int srcLength = clip.samples;
-        int dstLength = Mathf.RoundToInt((float)srcLength * dstSampleRate / clip.frequency);
-        byte[] bytes = new byte[dstLength * 2];
-        float ratio = (float)clip.frequency / dstSampleRate;
-        int srcChannels = clip.channels;
-
-        for (int i = 0; i < dstLength; i++)
+        StopSpeech();
+        LoadLocalAsset.Instance.LoadAudio(audioUrl, audioClip =>
         {
-            float srcIndex = i * ratio;
-            int idx0 = (int)srcIndex;
-            int idx1 = Mathf.Min(idx0 + 1, srcLength - 1);
-            float frac = srcIndex - idx0;
+            audioSource.clip = audioClip;
+            audioSource.volume = PlayerPrefs.GetFloat(GlobalInfo.volumeCacheKey, 1f);
+            audioSource.Play();
 
-            float s0 = 0f, s1 = 0f;
-            for (int ch = 0; ch < srcChannels; ch++)
-            {
-                s0 += srcSamples[idx0 * srcChannels + ch];
-                s1 += srcSamples[idx1 * srcChannels + ch];
-            }
-            s0 /= srcChannels;
-            s1 /= srcChannels;
-
-            short int16 = (short)Mathf.Clamp((s0 + (s1 - s0) * frac) * 32767f, -32768, 32767);
-            bytes[i * 2] = (byte)(int16 & 0xff);
-            bytes[i * 2 + 1] = (byte)((int16 >> 8) & 0xff);
-        }
-
-        return bytes;
+            _cts = new CancellationTokenSource();
+            MultipleLineAsync(text, _cts.Token).Forget();
+        }, AudioType.MPEG);
     }
+
 
 
     /// <summary>
@@ -482,21 +476,6 @@ public class SpeechManager : Singleton<SpeechManager>
         }
     }
 
-
-    // 辅助方法：计算字符串出现次数
-    private int CountOccurrences(string source, string value)
-    {
-        int count = 0;
-        int index = 0;
-
-        while ((index = source.IndexOf(value, index, StringComparison.Ordinal)) != -1)
-        {
-            index += value.Length;
-            count++;
-        }
-
-        return count;
-    }
 
     private void SetSubTitle(string text)
     {

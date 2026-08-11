@@ -68,13 +68,18 @@ public class BaikeSelectModule : UIModuleBase
     public override void Show(UIData uiData = null)
     {
         base.Show(uiData);
+
+        if (GlobalInfo.currentWikiList != null && GlobalInfo.currentWikiList.Count > 0)
+        {
+            Page.text = $"{headerPrefix}{CurrentBaikeIndex + 1}/{GlobalInfo.currentWikiList.Count}";
+        }
+
         if (selectID > 0 && baikeToggles.Count > 0)
         {
             if (baikeToggles.TryGetValue(selectID, out Toggle toggle))
             {
                 toggle.SetIsOnWithoutNotify(true);
             }
-            Page.text = $"{headerPrefix}{CurrentBaikeIndex + 1}/{ GlobalInfo.currentWikiList.Count}";
         }
         //解决视频百科封面未加载就隐藏了模块，导致中止协程、加载不完全的问题
         LoadVideoPreviews();
@@ -295,7 +300,9 @@ public class BaikeSelectModule : UIModuleBase
                 break;
 #endif
             case (ushort)BaikeSelectModuleEvent.BaikeSelect:
-                int baikeId = ((MsgBrodcastOperate)msg).GetData<MsgInt>().arg;
+                int baikeId = msg is MsgBrodcastOperate broadcast
+                    ? broadcast.GetData<MsgInt>().arg
+                    : ((MsgInt)msg).arg;
                 if (baikeToggles.TryGetValue(baikeId, out Toggle toggle))
                 {
                     toggle.SetIsOnWithoutNotify(true);

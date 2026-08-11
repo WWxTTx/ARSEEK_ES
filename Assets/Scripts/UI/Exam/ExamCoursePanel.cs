@@ -50,6 +50,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
         base.Open(uiData);
         InitExam();
         InitRoomChannel();
+#if UNITY_ANDROID || UNITY_IOS
+        // 等待考核时 SideBar 不显示，StartExam 时才 SetVisible(true)
+        CourseSideBar.SetVisible(false);
+#endif
     }
 
     protected override void OnPrepareShow(UIData uiData)
@@ -61,8 +65,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
             Title.text = GlobalInfo.roomInfo.RoomName;
 
             NetworkManager.Instance.EnableLocalVideo(true);
-
-            UIManager.Instance.CloseUI<LoadingPanel>();
             NetworkManager.Instance.IsIMSync = true;
 
             // 自动重连检查：不依赖房主消息
@@ -153,15 +155,28 @@ public partial class ExamCoursePanel : OPLCoursePanel
     }
 
     /// <summary>
-    /// 重写 考核模式下收到 BaikeSelect 消息只更新选中索引，不再触发
-    /// OnBaikeChanged（销毁模型）和 LoadEncyclopedia（重复加载）
-    /// 统一在收到开始考核消息后直接调用
+    /// 考核模式下收到 BaikeSelect 消息，同步清理后切换百科
     /// </summary>
     protected override void OnBaikeSelectEventReceived(MsgBase msg)
     {
-        int baikeId = ((MsgInt)msg).arg;
+        int baikeId = msg is MsgBrodcastOperate broadcast
+            ? broadcast.GetData<MsgInt>().arg
+            : ((MsgInt)msg).arg;
+
+        if (GlobalInfo.currentWiki != null && GlobalInfo.currentWiki.id == baikeId)
+            return;
+
         BaikeSelectModule.selectID = baikeId;
         BaikeSelectModule.CurrentBaikeIndex = GlobalInfo.currentWikiList.FindIndex(wiki => wiki.id == baikeId);
+        GlobalInfo.InSingleMode = false;
+        ClearBaikeModules();
+        ModelManager.Instance.DestroyModels(true);
+        ModelManager.Instance.DestroyScripts(true);
+        ModelManager.Instance.DestroySyncComponent();
+        CourseSideBar.OnBaikeChanged();
+        UIManager.Instance.CloseModuleUI<ExamToastPanel>(this);
+
+        LoadEncyclopedia(baikeId);
     }
 
     /// <summary>
@@ -181,7 +196,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
     {
         //退出房间，立即删除flag，避免触发异常退出提示
         ClearExamCache();
-        if (!GlobalInfo.waitExam && ExamUtility.Instance.AllSubmit() && !NetworkManager.Instance.IsUserOnline(GlobalInfo.roomInfo.creatorId))
+        if (!GlobalInfo.waitExam && !NetworkManager.Instance.IsUserOnline(GlobalInfo.roomInfo.creatorId))
         {
             NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Flush, JsonTool.Serializable(new MsgBase((ushort)ExamPanelEvent.Flush))));
             NetworkManager.Instance.SendIMMsg(new MsgBrodcastOperate((ushort)ExamPanelEvent.Quit, JsonTool.Serializable(new MsgInt((ushort)ExamPanelEvent.Quit, examId))));
@@ -357,7 +372,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
             if (go == null)
             {
                 Log.Warning(string.Format("百科{0}实例化失败", encyclopedia.id));
-                CloseLoadingAsync();
+                UIManager.Instance.CloseUI<LoadingPanel>();
                 NetworkManager.Instance.IsIMSync = true;
                 return;
             }
@@ -378,9 +393,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
             smallSceneModule = UIManager.Instance.OpenModuleUI<UISmallSceneModule>(this, BaikeModulePoint, new SmallSceneData(encyclopediaOperation.flows)) as UISmallSceneModule;
             SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopedia.typeId != (int)PediaType.Operation));
-            CloseLoadingAsync();
-
-            encyclopediaModelLoaded = true;
 
             //单人考核的重连是单独的逻辑 不是在这里处理
             if(GlobalInfo.courseMode != CourseMode.Exam)
@@ -561,15 +573,12 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     score = data.score,
                     totalStepIndex = data.totalStepIndex
                 }).ToList();
-
-                WaitForFlowsReady(answerOp, answerOpCallBack).Forget();
             }
         };
 
         UnityAction<string> error = errorMsg =>
         {
             UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录获取失败"));
-            UIManager.Instance.CloseUI<LoadingPanel>();
         };
 
         try
@@ -588,17 +597,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
         {
             UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("网络超时，同步记录获取失败"));
         }
-    }
-
-    /// <summary>
-    /// 等待 smallSceneModule.smallFlowCtrl.flows 不为空后再执行回调
-    /// </summary>
-    private async UniTaskVoid WaitForFlowsReady(AnswerOp answerOp, Action<AnswerOp> answerOpCallBack)
-    {
-        await UniTask.WaitUntil(() => smallSceneModule != null && smallSceneModule.smallFlowCtrl != null
-            && smallSceneModule.smallFlowCtrl.flows != null && smallSceneModule.smallFlowCtrl.flows.Length > 0);
-        answerOpCallBack.Invoke(answerOp);
-        UIManager.Instance.CloseUI<LoadingPanel>();
     }
 
     /// <summary>
@@ -718,6 +716,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         if (step == -1)
         {
             //停留在第一个步骤且未完成：恢复到首步，补回已完成的部分 op（首步未完成，不能 Next）
+            SmallFlowCtrl.ignoreMove = false;
             smallSceneModule.smallFlowCtrl.SelectStep(flow, 0, false, savedAnswer);
             if (partialCompletedOps.Count > 0)
             {
@@ -726,6 +725,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         }
         else
         {
+            SmallFlowCtrl.ignoreMove = false;
             smallSceneModule.smallFlowCtrl.SelectStep(flow, step, false, savedAnswer);
             //历史是已完成的，需要操作的是下一步
             smallSceneModule.smallFlowCtrl.Next();
@@ -740,7 +740,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
 
         //完成恢复，打开消息处理
-        UIManager.Instance.CloseUI<LoadingPanel>();
         NetworkManager.Instance.IsIMSync = true;
     }
 
@@ -883,7 +882,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
                                 break;
                         }
                     }
-                    SubmitExerciseEncyclopedia(currentWiki.id, operation, showToast, submitRecording, callBack);
+                    string questionTitle = exercise.GetComponentByChildName<Text>("Title")?.text ?? "";
+                    // 注意：这里传递0分，因为实际的分数已经在SubmitCurrentExerciseRecord()中即时提交过了
+                    // 这个方法主要用于最终整体提交或补提交场景
+                    SubmitExerciseEncyclopedia(currentWiki.id, operation, questionTitle, 0, showToast, submitRecording, callBack);
                 }
                 break;
         }
@@ -962,12 +964,14 @@ public partial class ExamCoursePanel : OPLCoursePanel
     /// </summary>
     /// <param name="baikeId"></param>
     /// <param name="operation"></param>
+    /// <param name="msg"></param>
+    /// <param name="score"></param>
     /// <param name="showToast"></param>
     /// <param name="submitRecording"></param>
     /// <param name="callBack"></param>
-    private void SubmitExerciseEncyclopedia(int baikeId, string operation, bool showToast, bool submitRecording, Action<bool> callBack)
-    {    
-        ExamUtility.Instance.SubmitExamineResult_Exercise(examId, baikeId, operation, () =>
+    private void SubmitExerciseEncyclopedia(int baikeId, string operation, string msg, float score, bool showToast, bool submitRecording, Action<bool> callBack)
+    {
+        ExamUtility.Instance.SubmitExamineResult_Exercise(examId, baikeId, operation, msg, score, () =>
         {
             Log.Debug($"考核{examId} 百科:{baikeId} 考核记录提交成功");
             if (showToast)
@@ -1039,6 +1043,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
             case (ushort)ExamPanelEvent.Timeout:
                 OnHostTimeout((msg as MsgBrodcastOperate).GetData<MsgInt>().arg);
                 break;
+            case (ushort)ExamPanelEvent.ExerciseScore:
+                currentExerciseScore = ((MsgInt)msg).arg;
+                Log.Debug($"[ExamCoursePanel] ExerciseScore received: score={currentExerciseScore}, currentWikiId={GlobalInfo.currentWiki?.id}");
+                SubmitCurrentExerciseRecord();
+                break;
             case (ushort)ExamPanelEvent.Submit:
                 if (!GlobalInfo.waitExam)
                 {
@@ -1049,12 +1058,48 @@ public partial class ExamCoursePanel : OPLCoursePanel
         }
     }
 
+    private int currentExerciseScore = 0;
+
+    private void SubmitCurrentExerciseRecord()
+    {
+        var currentWiki = GlobalInfo.currentWiki;
+        if (currentWiki == null || currentWiki.typeId != (int)PediaType.Exercise)
+            return;
+
+        var exercise = GetComponentInChildren<OPLExerciseModule>();
+        if (exercise == null)
+            return;
+
+        string operation = "";
+        var encyclopediaExercise = currentWiki as EncyclopediaExercise;
+        if (encyclopediaExercise?.data?.exercise != null)
+        {
+            switch (encyclopediaExercise.data.exercise.type)
+            {
+                case 1:
+                    operation = exercise._selectedAnswers.Aggregate("", (cur, i) => cur + ((char)('A' + i)).ToString());
+                    break;
+                case 2:
+                    operation = exercise._selectedAnswers.Count == 1
+                        ? (exercise._selectedAnswers[0] == 0 ? "正确" : "错误")
+                        : "";
+                    break;
+            }
+        }
+
+        string questionTitle = exercise.GetComponentByChildName<Text>("Title")?.text ?? "";
+
+        Log.Debug($"[ExamCoursePanel] SubmitCurrentExerciseRecord: wikiId={currentWiki.id}, score={currentExerciseScore}, operation={operation}");
+        SubmitExerciseEncyclopedia(currentWiki.id, operation, questionTitle, currentExerciseScore, false, false, null);
+    }
+
     /// <summary>
     /// 考核开始回调
     /// </summary>
     private void OnExamStart(MsgExamStart msgExamStartData)
     {
         Log.Debug($"[ExamCoursePanel] OnExamStart examId={msgExamStartData.examId}, waitExam={GlobalInfo.waitExam}");
+        ExamUtility.Instance.ClearAllExerciseAnswers();
         // 打开Loading，持续到LoadEncyclopediaModel中模型加载完毕
         UIManager.Instance.OpenUI<LoadingPanel>();
         this.FindChildByName("WaitHint").gameObject.SetActive(false);
@@ -1176,10 +1221,10 @@ public partial class ExamCoursePanel : OPLCoursePanel
         mid.alpha = 1;
         mid.blocksRaycasts = true;
 #else
-        var side = this.GetComponentByChildName<CanvasGroup>("SideBar");
-        side.alpha = 1;
-        side.interactable = true;
+        CourseSideBar.SetVisible(true);
 #endif
+
+        CourseSideBar.SetBaikePage();
 
         //仅单人考核走 RecoveryExam（服务器记录定进度+补状态）；多人考核重连由 SyncBaikeState 缓存路径恢复
         if (NetworkManager.Instance.IsIMSyncState && GlobalInfo.courseMode == CourseMode.Exam)
@@ -1328,11 +1373,6 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
     }
 
-    private void CloseLoadingAsync()
-    {
-        UIManager.Instance.CloseUI<LoadingPanel>();
-    }
-
     private void UpdateUIWhenExamStop()
     {
         submit.gameObject.SetActive(false);
@@ -1344,9 +1384,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
         mid.alpha = 0.5f;
         mid.blocksRaycasts = false;
 #else
-        var side = this.GetComponentByChildName<CanvasGroup>("SideBar");
-        side.alpha = 1f;
-        side.interactable = false;
+        CourseSideBar.SetVisible(false);
 #endif
     }
     #endregion
@@ -1385,8 +1423,7 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 var self = NetworkManager.Instance.GetRoomMemberList().Find(value => value.Id == GlobalInfo.account.id);
                 if (self != null)
                 {
-                    bool isShut = !self.IsTalk || !GlobalInfo.isAllTalk;
-                    ButtonImageChange(isShut, self.IsChat);
+                    ButtonImageChange(!self.IsTalk, self.IsChat);
                 }
                 break;
             case (ushort)MediaChannelEvent.MicOnAir:
@@ -1404,6 +1441,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
                 if (((MsgBoolBool)msg).arg2)
                 {
                     UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo(GlobalInfo.isAllTalk ? "已解除全员禁言" : "已开启全员禁言"));
+                }
+                var talkSelf = NetworkManager.Instance.GetRoomMemberList().Find(value => value.Id == GlobalInfo.account.id);
+                if (talkSelf != null)
+                {
+                    ButtonImageChange(!GlobalInfo.isAllTalk, talkSelf.IsChat);
                 }
                 break;
             case (ushort)RoomChannelEvent.LeaveRoom:

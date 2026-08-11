@@ -479,12 +479,13 @@
     <Compile Include="Assets\SDK\FMETP_STREAM\FMCore\Scripts\Mapper\FMPCStreamEncoder.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsRsaSigner.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\parameters\AEADParameters.cs" />
+    <Compile Include="Assets\Scripts\UI\Course\SmallScene\CharacterGhost.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\RC4Engine.cs" />
-    <Compile Include="Assets\Scripts\Model\Base\ModelRotate.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\x509\X509CrlEntry.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\engines\SerpentEngine.cs" />
     <Compile Include="Assets\Framework\Debugger\Scripts\Runtime\Show\UIProfilerModule.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT193R2Curve.cs" />
+    <Compile Include="Assets\Scripts\Model\Base\ModelRotate.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SocketIO\HandshakeData.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\Asn1OutputStream.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\endo\GlvEndomorphism.cs" />
@@ -608,6 +609,7 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\NetworkChannelAgentBase.cs" />
     <Compile Include="Assets\Scripts\UI\Module\Setting\Option_GeneralModule.cs" />
     <Compile Include="Assets\Framework\Message\MsgBase.cs" />
+    <Compile Include="Assets\Scripts\CustomSprits\GhostDepthPrepassFeature.cs" />
     <Compile Include="Assets\SDK\FMETP_STREAM\FMNetwork\Scripts\LargeFileDecoder.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT193R1Point.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsClient.cs" />
@@ -1019,6 +1021,7 @@
     <Compile Include="Assets\Framework\UI\LoadingPanel.cs" />
     <Compile Include="Assets\Scripts\General\Tool\ThreadUtils.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\ocsp\ResponseBytes.cs" />
+    <Compile Include="Assets\Scripts\UI\Course\SmallScene\OverlapDetection.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\x509\X509DefaultEntryConverter.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\ECCurveType.cs" />
     <Compile Include="Assets\Scripts\General\Tool\UILine\Utilities\SetPropertyUtility.cs" />
@@ -1525,9 +1528,6 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\signers\IDsaKCalculator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\modes\gcm\Tables1kGcmExponentiator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\io\BaseInputStream.cs" />
-    <Compile Include="Assets\Scripts\CustomSprits\GhostDepthPrepassFeature.cs" />
-    <Compile Include="Assets\Scripts\UI\Course\SmallScene\OverlapDetection.cs" />
-    <Compile Include="Assets\Scripts\UI\Course\SmallScene\CharacterGhost.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\SDK\FMETP_STREAM\FMCore\Plugins\FMTurboJpeg\FMTurboJpegWrapper\FMTurbojpegWrapper.dll" />

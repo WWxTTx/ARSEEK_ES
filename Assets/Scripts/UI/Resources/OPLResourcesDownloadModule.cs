@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -284,35 +284,16 @@ public class OPLResourcesDownloadModule : ResourcesModule
         if (!string.IsNullOrEmpty(moduleData.searchKeyword))
             Search.text = moduleData.searchKeyword;
 
-        //todo:增加tag的读取
-
-        //CurrentSubCategory = moduleData.subCategory;
         //加载存储的标签
         CurrentTag = moduleData.tag;
-        //if (!string.IsNullOrEmpty(CurrentTag))
-        //{
-        //    ResourceContent.GetComponent<ToggleGroup>().allowSwitchOff = true;
-        //}
+
         GetTags(() =>
         {
-            //TagFilter.SetValueWithoutNotify(tagOptions.IndexOf(moduleData.tag));
             GetTeachCategories(() =>
             {
-                //InitSubCategoryFilters();
-                //SubCategoryFilter.SetValueWithoutNotify(subCategoryOptions.IndexOf(moduleData.subCategory));
-
                 RankCourseList();
                 InitList();
                 InitCourseListState();
-
-                //RefreshList(moduleData.searchKeyword, moduleData.subCategory, moduleData.tag);
-                //RefreshList();
-                //ScrollPage.PageTo(1);
-
-                //UIManager.Instance.CloseUI<LoadingPanel>();
-                //PreviousPage.FindChildByName("LoadAnim").gameObject.SetActive(true);
-                //NextPage.FindChildByName("LoadAnim").gameObject.SetActive(true);
-                //LoadMask?.SetActive(false);
             });
         });
     }

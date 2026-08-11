@@ -144,8 +144,6 @@ public class IMChannelAgent : NetworkChannelAgentBase
         {
             IsStartSync = true;
             NetworkManager.Instance.IsIMSyncState = false;
-            if(LoadingPanel.Loading)
-                UIManager.Instance.CloseUI<LoadingPanel>();
         }
         
         //本地拒绝消息时 暂停消息处理
@@ -186,7 +184,18 @@ public class IMChannelAgent : NetworkChannelAgentBase
                 Log.Debug($"{opreLog} {JsonTool.Serializable(currentOp)}");
             }
         }
-      
+
+        // 语音同步：直播模式下房主播放TTS时，成员本地同步播放
+        if (currentOp.msgId == (int)SpeechSyncEvent.Play)
+        {
+            if (currentOp.senderId != GlobalInfo.account.id)
+            {
+                SpeechSyncData data = JsonTool.DeSerializable<SpeechSyncData>(currentOp.data);
+                if (data != null)
+                    SpeechManager.Instance.PlayRemoteSpeech(data.audioUrl, data.text);
+            }
+            return;
+        }
 
         try
         {
@@ -244,19 +253,23 @@ public class IMChannelAgent : NetworkChannelAgentBase
                             PlayerPrefs.SetString($"RestoreCachedPacket", JsonTool.Serializable(packet));
                         }
                         //检测步骤序号重连 的逻辑 仅在考核状态生效 因为非考核模式下仅需检查步骤进度是否一致即可
-                        if (GlobalInfo.IsOperator())
+                        // 语音同步消息：非操作者也需入队处理
+                        if (GlobalInfo.IsOperator() || packet.data?.msgId == (int)SpeechSyncEvent.Play)
                         {
                             opsReceive.Enqueue(packet.data);
-                            bool versionLag = GlobalInfo.version < version - 1;
-                            //多人考核模式 本地为旧版本
-                            if (versionLag && GlobalInfo.courseMode == CourseMode.OnlineExam)
+                            if (GlobalInfo.IsOperator())
                             {
-                                IsStartSync = false;
-                                Log.Debug($"[IMChannel] 版本落后，触发SyncVersion，local={GlobalInfo.version}, remote={version}");
-                                NetworkManager.Instance.SyncBaikeState();
+                                bool versionLag = GlobalInfo.version < version - 1;
+                                //多人考核模式 本地为旧版本
+                                if (versionLag && GlobalInfo.courseMode == CourseMode.OnlineExam)
+                                {
+                                    IsStartSync = false;
+                                    Log.Debug($"[IMChannel] 版本落后，触发SyncVersion，local={GlobalInfo.version}, remote={version}");
+                                    NetworkManager.Instance.SyncBaikeState();
+                                }
+                                //更新本地版本
+                                GlobalInfo.version = version;
                             }
-                            //更新本地版本
-                            GlobalInfo.version = version;
                         }
                     }
                 }

@@ -386,7 +386,10 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 // 培训模式复用模型后，通过 SelectStep 触发全局初始视角 + 第一步视图的 SetFinalState
                 UISmallSceneModule smallSceneModule = mdoe as UISmallSceneModule;
                 if (smallSceneModule != null && smallSceneModule.smallFlowCtrl != null)
+                {
+                    SmallFlowCtrl.ignoreMove = false;
                     smallSceneModule.smallFlowCtrl.SelectStep(0, 0, false);
+                }
                 break;
             case (int)PediaType.Animation:
                 GlobalInfo.currentBaikeType = BaikeType.Anime;
@@ -404,7 +407,6 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 break;
         }
 
-        encyclopediaModelLoaded = true;
         SendMsg(new MsgBool((ushort)CoursePanelEvent.ChangeModel, encyclopediaModel.typeId != (int)PediaType.Operation));
         NetworkManager.Instance.SyncBaikeState();
     }
@@ -760,11 +762,11 @@ public class OPLSynCoursePanel : OPLCoursePanel
         sequence.AppendInterval(0.5f);
         sequence.Append(TopNavigation.DOAnchorPos3DY(0, JoinAnimePlayTime));
 #if UNITY_STANDALONE
-        sequence.Join(SideBar.DOAnchorPos3DX(0, JoinAnimePlayTime));
+        sequence.Join(CourseSideBar.JoinAnimTween(JoinAnimePlayTime));
         sequence.Join(BottomBtns.DOAnchorPos3DX(0, JoinAnimePlayTime));
         sequence.Join(RootCanvasGroup.DOFade(1f, JoinAnimePlayTime));
 #else
-        sequence.Join(SideBar.DOAnchorPos3DX(100f, JoinAnimePlayTime));
+        sequence.Join(CourseSideBar.JoinAnimTween(JoinAnimePlayTime));
 #endif
         return sequence;
     }

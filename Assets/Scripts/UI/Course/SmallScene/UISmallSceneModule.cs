@@ -925,23 +925,23 @@ public class UISmallSceneModule : UIModuleBase
             Focus.sprite = select;
             Focus.transform.GetChild(0).gameObject.SetActive(true);
 
-            var hitModelInfo = hitInfo.transform.GetComponentInParent<ModelInfo>();
+            //CollisionBoxMouseEvent 可能挂在独立 GameObject 上（非 target 子物体），
+            //必须从已解析的 rayResult 取 ModelInfo，否则会取到命中物体自身父级上的错误 ModelInfo。
+            var hitModelInfo = rayResult.GetComponent<ModelInfo>();
             string modelName = hitModelInfo?.Name;
-            string modelCode = hitModelInfo != null ? hitModelInfo.Code : string.Empty;
 
-            if (!SmallFlowCtrl.maskOperation.Contains(modelOperation_Highlight.currentState))
+            bool isSwitch = hitModelInfo?.InfoData?.InteractMode == InteractMode.Switch;
+            if (isSwitch)
             {
-                if (string.IsNullOrEmpty(modelCode))
                     Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
-                else
-                    Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>编号：</color>{modelCode}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
+            }
+            else if (!SmallFlowCtrl.maskOperation.Contains(modelOperation_Highlight.currentState))
+            {
+                Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
             }
             else
             {
-                if (string.IsNullOrEmpty(modelCode))
-                    Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}";
-                else
-                    Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>编号：</color>{modelCode}";
+                Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}";
             }
         }
     }
@@ -1564,11 +1564,12 @@ public class UISmallSceneModule : UIModuleBase
             //    break;
             case (ushort)SmallFlowModuleEvent.SelectStep:
                 //这里也设置一次，避免联机跳步骤错过 角色移动的恢复
-                ModelManager.Instance.CameraDotween = false;
+                ModelManager.Instance.CameraLockReset();
                 if (!GlobalInfo.SysPopup)
                     UIManager.Instance.CloseUI<PopupPanel>();
 
-                SmallFlowCtrl.ignoreMove = false;
+                //协同跳步骤：仅点击者自己执行导航，被同步方跳过导航
+                SmallFlowCtrl.ignoreMove = GlobalInfo.isCooperation && ((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id;
                 // 接收任务进度跳转消息，执行流程和步骤的切换
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
                 smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item1, msgStringTuple.arg2.Item2, !GlobalInfo.isExam);

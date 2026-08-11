@@ -26,10 +26,6 @@ public class PlayerController : MonoBase
     /// </summary>
     public float cameraMoveDuration;
     /// <summary>
-    /// 相机旋转动画时长
-    /// </summary>
-    public float cameraRotateDuration;
-    /// <summary>
     /// 模型移动动画时长
     /// </summary>
     public float modelMoveDuration;
@@ -86,8 +82,7 @@ public class PlayerController : MonoBase
         }
     }
     public Transform Model => model;
-    public Tweener ModelRotateTween => modelRotateFollow;
-    public Tweener ModelFollowTween => modelPositionFollow;
+    public bool ModelFollowPaused => modelFollowPaused;
 
     #region Private
     private Transform mainCamera;
@@ -104,18 +99,25 @@ public class PlayerController : MonoBase
 
     private Transform model;
     private Animator animator;
-    private Tweener modelRotateFollow;
-    private Tweener modelPositionFollow;
+    private bool modelFollowPaused;
+    private bool animationOverridden; // 操作流程执行时外部接管动画控制
     private CharacterController controller;
     private bool wasCameraAway;
     private float obstacleMaxDist;       // 狭窄区域相机最远距离上限，只减不增
     private bool obstacleTargetInit;
-    private float lastDebugYaw = float.NaN; // 每1度旋转打印一次距离
 
     /// <summary>
     /// 上一帧位置，用于判断角色是否在移动（驱动动画）
     /// </summary>
     private Vector3 lastPosition;
+    /// <summary>
+    /// 上次检测到位移的时间，0.2秒持久化避免动画闪烁
+    /// </summary>
+    private float lastMoveTime;
+    /// <summary>
+    /// 当前动画移动状态,避免每帧重复 SetBool
+    /// </summary>
+    private bool animIsMoving;
     /// <summary>
     /// 相机交给其他模式时，延迟隐藏模型的时长（让相机先移开，避免角色消失过程暴露在视角中）
     /// </summary>
@@ -126,7 +128,7 @@ public class PlayerController : MonoBase
 
     private void Awake()
     {
-        isFirstPerson = true;
+        isFirstPerson = false;
         RefreshSpeedCache();
         AddMsg(new ushort[]{
             (ushort)SmallFlowModuleEvent.SelectFlow,
@@ -148,10 +150,7 @@ public class PlayerController : MonoBase
         verticalPoint = this.FindChildByName("VerticalPoint");
         cameraFollowPoint = this.FindChildByName("CameraFollowPoint");
 
-        firstCameraFollowPoint = new GameObject("FirstCameraFollowPoint").transform;
-        firstCameraFollowPoint.parent = verticalPoint;
-        firstCameraFollowPoint.localPosition = Vector3.zero;
-        firstCameraFollowPoint.localEulerAngles = Vector3.zero;
+        firstCameraFollowPoint = this.FindChildByName("FirstCameraFollowPoint");
 
         cameraYawPivot = new GameObject("CameraYawPivot").transform;
         cameraYawPivot.parent = transform;
@@ -164,22 +163,7 @@ public class PlayerController : MonoBase
         model = this.FindChildByName("Model");
         {
             model.parent = transform.parent;
-
             animator = model.GetComponentInChildren<Animator>();
-
-            modelRotateFollow = model.DORotate(Vector3.up * Vector3.SignedAngle(Vector3.back, model.position - transform.position, Vector3.up), modelRotateDuration).SetLoops(-1).SetAutoKill(false);
-
-            modelPositionFollow = model.DOMove(transform.position, modelMoveDuration).SetLoops(-1).SetAutoKill(false).OnUpdate(() =>
-            {
-                Vector3 modelToTransform = model.position - transform.position;
-                modelToTransform.y = 0;
-                if (modelToTransform.sqrMagnitude > 0.0001f)
-                    modelRotateFollow.ChangeEndValue(Vector3.up * Vector3.SignedAngle(Vector3.back, modelToTransform, Vector3.up), modelRotateDuration, true);
-                else
-                    modelRotateFollow.ChangeEndValue(transform.eulerAngles, modelRotateDuration, true);
-
-                modelPositionFollow.ChangeEndValue(transform.position, modelMoveDuration, true);
-            });
         }
 
     }
@@ -189,25 +173,32 @@ public class PlayerController : MonoBase
     private void Rotate()
     {
 #if UNITY_ANDROID || UNITY_IOS
-        if (rotateJoystick is VariableJoystick vj && VariableJoystick.tapRotationTriggered)
+        // 用户主动旋转时打断自动瞄准
+        if (isAiming && rotateJoystick != null &&
+            (Mathf.Abs(rotateJoystick.Horizontal) > 0.01f || Mathf.Abs(rotateJoystick.Vertical) > 0.01f))
         {
-            if (!hasTapTarget)
-            {
-                Ray ray = mainCamera.GetComponent<Camera>().ScreenPointToRay(vj.TapScreenPos);
-                if (Physics.Raycast(ray, out RaycastHit hit))
-                    tapTargetPoint = hit.point;
-                else
-                    tapTargetPoint = ray.GetPoint(100f);
-                hasTapTarget = true;
-            }
-            RotateTowardsTarget();
+            isAiming = false;
+        }
+
+        if (isAiming)
+        {
+            // 瞄准中由 UpdateAim 接管，不处理输入
+        }
+        else if (rotateJoystick is VariableJoystick vj && VariableJoystick.tapRotationTriggered)
+        {
+            // 立即消费点击事件，避免下帧重复触发
+            VariableJoystick.tapRotationTriggered = false;
+            Ray ray = mainCamera.GetComponent<Camera>().ScreenPointToRay(vj.TapScreenPos);
+            if (Physics.Raycast(ray, out RaycastHit hit))
+                AimAtTarget(hit.point);
+            else
+                AimAtTarget(ray.GetPoint(100f));
         }
         else
         {
-            hasTapTarget = false;
-
-            //横向轴（仅旋转相机偏航，角色朝向由移动方向驱动）
-            cameraYawPivot.localEulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
+            //横向轴：滑动相机时角色朝向同步跟随（yaw 直接放 transform 上，相机挂在子下跟着转，
+            //语义与 AimAtTarget 一致：偏航由 transform 承担，cameraYawPivot 始终归零）
+            transform.eulerAngles += Vector3.up * rotateJoystick.Horizontal * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
 
             // 计算新的旋转角度
             tempFloat = verticalPoint.localEulerAngles.x - rotateJoystick.Vertical * GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
@@ -243,80 +234,112 @@ public class PlayerController : MonoBase
     }
 
     /// <summary>
-    /// 以默认旋转速度转向点击目标点
+    /// 点击屏幕和任务流程瞄准共用 AimAtTarget 的闭环收敛逻辑，详见下方。
     /// </summary>
-    private void RotateTowardsTarget()
+    private bool isAiming;
+    private Vector3 aimTargetPos;
+    private float aimEndTime;
+    // 到时后继续修正一小段，等待 CameraFollow 的插值把相机追平
+    private const float aimHoldTime = 0.4f;
+
+    /// <summary>
+    /// 将相机朝向对准目标，并取消点击锁定视角。
+    /// 相机挂在 cameraFollowPoint 下、且该点位于旋转半径外，旋转本身会把相机移到新位置，
+    /// 因此不能一次算完角度就补间：这里改为在锁定过程中每帧用实时相机位置重算朝向（闭环收敛）。
+    /// </summary>
+    public void AimAtTarget(Transform targetPos)
     {
-        float rotSpeed = GlobalInfo.baseRotateSpeed * Time.deltaTime * cachedRotateSpeed;
+        if (targetPos != null) AimAtTarget(targetPos.position);
+    }
 
-        // 水平旋转（Y轴）
-        Vector3 flatDir = new Vector3(tapTargetPoint.x - transform.position.x, 0, tapTargetPoint.z - transform.position.z);
-        if (flatDir.sqrMagnitude > 0.001f)
-        {
-            float targetY = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
-            float deltaY = Mathf.DeltaAngle(cameraYawPivot.eulerAngles.y, targetY);
-            if (Mathf.Abs(deltaY) > 0.01f)
-            {
-                float step = Mathf.Sign(deltaY) * rotSpeed;
-                if (Mathf.Abs(step) >= Mathf.Abs(deltaY))
-                    step = deltaY;
-                cameraYawPivot.localEulerAngles += Vector3.up * step;
-            }
-        }
+    /// <param name="targetPos">目标世界坐标</param>
+    public void AimAtTarget(Vector3 targetPos)
+    {
+        cameraYawPivot.DOKill();
+        verticalPoint.DOKill();
+        transform.DOKill();
 
-        // 垂直旋转（X轴），在transform本地坐标系中计算
-        Vector3 localDir = transform.InverseTransformDirection(tapTargetPoint - verticalPoint.position);
-        float horizDist = new Vector2(localDir.x, localDir.z).magnitude;
-        if (horizDist > 0.001f)
-        {
-            float targetPitch = -Mathf.Atan2(localDir.y, horizDist) * Mathf.Rad2Deg;
-            targetPitch = Mathf.Clamp(targetPitch, -89.999f, 89.999f);
-
-            float currentPitch = verticalPoint.localEulerAngles.x;
-            if (currentPitch > 180) currentPitch -= 360;
-
-            float deltaPitch = targetPitch - currentPitch;
-            if (Mathf.Abs(deltaPitch) > 0.01f)
-            {
-                float step = Mathf.Sign(deltaPitch) * rotSpeed;
-                if (Mathf.Abs(step) >= Mathf.Abs(deltaPitch))
-                    step = deltaPitch;
-                verticalPoint.localEulerAngles = new Vector3(currentPitch + step, 0f, 0f);
-            }
-        }
+        aimTargetPos = targetPos;
+        aimEndTime = Time.time + 1;
+        isAiming = true;
     }
 
     /// <summary>
-    /// 将相机/角色朝向对准世界坐标目标（一次性转向），并取消点击锁定视角。
-    /// 复用 RotateTowardsTarget 的偏航/俯仰角度公式，相机靠 CameraFollow 自动跟随。
+    /// 锁定过程中的每帧修正：用当前相机跟随点位置重算目标 yaw/pitch，按指数衰减逼近（先快后慢）。
     /// </summary>
-    /// <param name="targetPos">目标世界坐标</param>
-    /// <param name="duration">转向时长，负值时取 cameraRotateDuration</param>
-    public void AimAtTarget(Vector3 targetPos, float duration = -1f)
+    private void UpdateAim()
     {
-        if (duration < 0f)
-            duration = cameraRotateDuration;
+        if (!isAiming) return;
 
-        // 取消点击屏幕锁定视角
-        VariableJoystick.tapRotationTriggered = false;
+        // 偏航全部由 transform 承担，pivot 归零（与手动旋转的累加量对冲）
+        cameraYawPivot.localEulerAngles = Vector3.zero;
 
-            // 水平偏航(Y)：相机视角和角色机身都朝向目标
-        Vector3 flatDir = new Vector3(targetPos.x - transform.position.x, 0f, targetPos.z - transform.position.z);
-        if (flatDir.sqrMagnitude > 0.0001f)
+        // 指数衰减：每帧消除剩余角度的固定比例，自然形成"先快后慢"。
+        // decayRate=6 时，时间常数约 0.17 秒，1 秒内可消除 99.75% 的剩余距离。
+        const float decayRate = 6f;
+        float k = 1f - Mathf.Exp(-Time.deltaTime * decayRate);
+
+        // 两次迭代：第一次用旧位置解算并应用，应用后子物体世界位置即刻更新，
+        // 第二次用新位置修正，抵消"旋转改变了相机位置"带来的残差
+        for (int i = 0; i < 2; i++)
         {
-            float targetY = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
-            cameraYawPivot.DOLocalRotate(Vector3.zero, duration);
-            transform.DORotate(new Vector3(0f, targetY, 0f), duration);
+            if (!SolveAimAngles(out float targetYaw, out float targetPitch))
+                break;
+
+            float currYaw = transform.eulerAngles.y;
+            float currPitch = NormalizeAngle(verticalPoint.localEulerAngles.x);
+
+            float deltaY = Mathf.DeltaAngle(currYaw, targetYaw);
+            float deltaPitch = Mathf.DeltaAngle(currPitch, targetPitch);
+
+            // 剩余角度足够小时直接吸附，避免指数收敛永远到不了 100%
+            if (Mathf.Abs(deltaY) < 0.1f && Mathf.Abs(deltaPitch) < 0.1f)
+            {
+                transform.eulerAngles = new Vector3(0f, targetYaw, 0f);
+                verticalPoint.localEulerAngles = new Vector3(Mathf.Clamp(targetPitch, -89.999f, 89.999f), 0f, 0f);
+            }
+            else
+            {
+                transform.eulerAngles = new Vector3(0f, currYaw + deltaY * k, 0f);
+                verticalPoint.localEulerAngles = new Vector3(Mathf.Clamp(currPitch + deltaPitch * k, -89.999f, 89.999f), 0f, 0f);
+            }
+
+            if (k >= 1f) continue; // 极端帧率下才需要第二次精修
+            break;
         }
 
-        // 俯仰(X) 挂在 verticalPoint
-        Vector3 dir = targetPos - verticalPoint.position;
-        float horizDist = new Vector2(dir.x, dir.z).magnitude;
-        if (horizDist > 0.0001f)
-        {
-            float targetPitch = Mathf.Clamp(-Mathf.Atan2(dir.y, horizDist) * Mathf.Rad2Deg, -89.999f, 89.999f);
-            verticalPoint.DOLocalRotate(new Vector3(targetPitch, 0f, 0f), duration);
-        }
+        if (Time.time > aimEndTime + aimHoldTime)
+            isAiming = false;
+    }
+
+    /// <summary>
+    /// 由实时相机位置反解 transform 偏航与 verticalPoint 俯仰。
+    /// cameraFollowPoint 自带固定 local 欧拉偏移（如 -2° 偏航），需从期望相机朝向中扣除。
+    /// </summary>
+    private bool SolveAimAngles(out float targetYaw, out float targetPitch)
+    {
+        targetYaw = 0f;
+        targetPitch = 0f;
+
+        Vector3 camPos = cameraFollowPoint != null ? cameraFollowPoint.position : mainCamera.position;
+        Vector3 toTarget = aimTargetPos - camPos;
+        float horizDist = new Vector2(toTarget.x, toTarget.z).magnitude;
+        if (horizDist <= 0.0001f) return false;
+
+        Vector3 cfpLocalEul = cameraFollowPoint != null ? cameraFollowPoint.localEulerAngles : Vector3.zero;
+        float desiredCamYaw = Mathf.Atan2(toTarget.x, toTarget.z) * Mathf.Rad2Deg;
+        float desiredCamPitch = Mathf.Clamp(-Mathf.Atan2(toTarget.y, horizDist) * Mathf.Rad2Deg, -89.999f, 89.999f);
+
+        targetYaw = desiredCamYaw - NormalizeAngle(cfpLocalEul.y);
+        targetPitch = desiredCamPitch - NormalizeAngle(cfpLocalEul.x);
+        return true;
+    }
+
+    private static float NormalizeAngle(float angle)
+    {
+        while (angle > 180f) angle -= 360f;
+        while (angle < -180f) angle += 360f;
+        return angle;
     }
 
     private float mVertical;
@@ -411,13 +434,17 @@ public class PlayerController : MonoBase
     private void FirstPerson()
     {
         isFirstPerson = true;
+        obstacleTargetInit = false;
+        UpdateCameraFollowValue();
         UpdateModelVisibility();
     }
 
     private void ThirdPerson()
     {
         isFirstPerson = false;
-        modelPositionFollow.ChangeStartValue(transform.position);
+        obstacleTargetInit = false;
+        mainCamera.position = cameraFollowPoint.position;
+        mainCamera.rotation = cameraFollowPoint.rotation;
         this.WaitTime(0.1f, () =>
         {
             if (model != null)
@@ -461,6 +488,8 @@ public class PlayerController : MonoBase
     {
         cachedRotateSpeed = PlayerPrefs.GetFloat(GlobalInfo.rotateSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
         cachedMoveSpeed = PlayerPrefs.GetFloat(GlobalInfo.moveSpeedCacheKey, GlobalInfo.defaultSpeedCoefficient);
+        if (animator != null)
+            animator.speed = Mathf.Clamp(cachedMoveSpeed, 1f, 1.5f);
     }
 
     public void KillCameraTweens()
@@ -469,6 +498,7 @@ public class PlayerController : MonoBase
         verticalPoint.DOKill();
         transform.DOKill();
         cameraYawPivot.DOLocalRotate(Vector3.zero, 0.3f);
+        isAiming = false;
     }
 
     private void OnEnable()
@@ -511,12 +541,8 @@ public class PlayerController : MonoBase
             }
         }
 
-        // 根据实际位移驱动角色动画（非模型与transform的距离，避免网络同步/操作期间的异常）
-        Vector3 displacement = transform.position - lastPosition;
-        displacement.y = 0;
-        if (animator != null)
-            animator.SetBool("isMove", displacement.sqrMagnitude > 0.0001f);
-        lastPosition = transform.position;
+        // 相机自动锁定：在锁定过程中每帧重算朝向（闭环），完成后立即恢复手动控制
+        UpdateAim();
 
 
         //导航的相机跟随不受其他条件影响
@@ -528,6 +554,18 @@ public class PlayerController : MonoBase
             {
                 Quaternion targetBodyRot = Quaternion.LookRotation(agent.velocity.normalized);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetBodyRot, Time.deltaTime * 10f);
+            }
+            // 相机自动跟随角色朝向：把 cameraYawPivot 残留的 localYaw 平滑归零，
+            // 相机回到 transform 朝向上（角色背后），抵消玩家之前手动旋转累积的偏移
+            float yaw = NormalizeAngle(cameraYawPivot.localEulerAngles.y);
+            if (Mathf.Abs(yaw) > 0.05f)
+            {
+                yaw = Mathf.LerpAngle(yaw, 0f, Time.deltaTime * 5f);
+                cameraYawPivot.localEulerAngles = new Vector3(0f, yaw, 0f);
+            }
+            else if (Mathf.Abs(yaw) > 0f)
+            {
+                cameraYawPivot.localEulerAngles = new Vector3(0f, 0f, 0f);
             }
             if (!agent.pathPending && agent.remainingDistance < agent.stoppingDistance)
             {
@@ -565,6 +603,73 @@ public class PlayerController : MonoBase
         }
 
         CameraFollow();
+
+        // 移动完成后检测位移和旋转，0.2秒持久化驱动角色动画（操作流程执行时禁用自动检测）
+        if (!animationOverridden)
+        {
+            Vector3 displacement = transform.position - lastPosition;
+            displacement.y = 0;
+
+            // 位置变化时检测角色重叠，使附近角色变透明
+            if (displacement.sqrMagnitude > 0.0001f)
+            {
+                var ghost = GetComponent<CharacterGhost>();
+                if (ghost != null)
+                    ghost.OnPositionUpdated();
+            }
+
+            // 模型平滑跟随 controller（替代 DOTween 无限循环 tween，避免移动端时序问题导致的抖动）
+            bool modelIsChasing = false;
+            if (!modelFollowPaused && model != null)
+            {
+                float posT = Mathf.Clamp01(Time.deltaTime / Mathf.Max(modelMoveDuration, 0.001f));
+                model.position = Vector3.Lerp(model.position, transform.position, posT);
+
+                Vector3 toController = model.position - transform.position;
+                toController.y = 0;
+
+                // 检测模型是否还在追赶 controller（距离超过可见阈值 0.02，约 2cm）
+                modelIsChasing = toController.sqrMagnitude > 0.02f;
+
+                float targetY;
+                if (toController.sqrMagnitude > 0.0001f)
+                    targetY = Vector3.SignedAngle(Vector3.back, toController, Vector3.up);
+                else
+                    targetY = transform.eulerAngles.y;
+
+                float rotT = Mathf.Clamp01(Time.deltaTime / Mathf.Max(modelRotateDuration, 0.001f));
+                model.eulerAngles = new Vector3(0, Mathf.LerpAngle(model.eulerAngles.y, targetY, rotT), 0);
+            }
+
+            // 动画驱动：controller 有位移或模型正在追赶时播放动画
+            // 防止焦点切换时 Time.deltaTime 过大导致误触发
+            bool hasMovement = displacement.sqrMagnitude > 0.0001f;
+
+            // 只有在合理帧时间内、且应用有焦点时才更新 lastMoveTime（防止 Alt 切换焦点导致的异常）
+            if ((hasMovement || modelIsChasing) && Time.deltaTime < 0.1f && Application.isFocused)
+                lastMoveTime = Time.time;
+
+            bool shouldMove = Time.time - lastMoveTime < 0.2f;
+            if (shouldMove != animIsMoving)
+            {
+                animIsMoving = shouldMove;
+                if (animator != null)
+                    animator.SetBool("isMove", animIsMoving);
+            }
+        }
+        else
+        {
+            // 操作流程执行时也需要检测角色重叠
+            Vector3 displacement = transform.position - lastPosition;
+            displacement.y = 0;
+            if (displacement.sqrMagnitude > 0.0001f)
+            {
+                var ghost = GetComponent<CharacterGhost>();
+                if (ghost != null)
+                    ghost.OnPositionUpdated();
+            }
+        }
+        lastPosition = transform.position;
     }
 
 
@@ -579,8 +684,6 @@ public class PlayerController : MonoBase
     {
 #if UNITY_ANDROID || UNITY_IOS
         if (moveJoystick != null && (moveJoystick.Vertical != 0 || moveJoystick.Horizontal != 0))
-            return true;
-        if (rotateJoystick != null && (rotateJoystick.Vertical != 0 || rotateJoystick.Horizontal != 0))
             return true;
 #else
         if (Input.GetAxis("Vertical") != 0 || Input.GetAxis("Horizontal") != 0)
@@ -755,11 +858,6 @@ public class PlayerController : MonoBase
     private Joystick rotateJoystick;
 
 
-    // 点击旋转目标点
-    private Vector3 tapTargetPoint;
-    public bool hasTapTarget;
-
-
     public void SetJoystick(Joystick moveJoystick, Joystick rotateJoystick)
     {
         this.moveJoystick = moveJoystick;
@@ -772,8 +870,8 @@ public class PlayerController : MonoBase
         switch (msg.msgId)
         {
             case (ushort)SmallFlowModuleEvent.StartExecute:
-                ModelFollowTween.Pause();
-                ModelRotateTween.Pause();
+                modelFollowPaused = true;
+                animationOverridden = true;
                 Model.transform.SetParent(transform);
                 Model.transform.localPosition = Vector3.zero;
                 Model.transform.localEulerAngles = Vector3.zero;
@@ -783,12 +881,10 @@ public class PlayerController : MonoBase
             case (ushort)SmallFlowModuleEvent.CompleteExecute:
             case (ushort)SmallFlowModuleEvent.CompleteStep:
                 Model.transform.SetParent(transform.parent);
-                ModelFollowTween.ChangeStartValue(transform.position);
-                ModelFollowTween.ChangeEndValue(transform.position);
-                ModelRotateTween.ChangeStartValue(transform.eulerAngles);
-                ModelRotateTween.ChangeEndValue(transform.eulerAngles);
-                ModelFollowTween.Play();
-                ModelRotateTween.Play();
+                Model.position = transform.position;
+                Model.eulerAngles = transform.eulerAngles;
+                modelFollowPaused = false;
+                animationOverridden = false;
                 break;
         }
     }
@@ -796,11 +892,6 @@ public class PlayerController : MonoBase
     protected override void OnDestroy()
     {
         base.OnDestroy();
-
-        if (modelPositionFollow != null)
-            modelPositionFollow.Kill();
-        if (modelRotateFollow != null)
-            modelRotateFollow.Kill();
     }
 
 }

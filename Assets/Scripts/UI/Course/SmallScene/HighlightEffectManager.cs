@@ -17,7 +17,6 @@ public class HighlightEffectManager : MonoBehaviour
 
     private void Awake()
     {
-        Application.targetFrameRate = 60;
         Instance = this;
         defaultColor = "#8CECFF".HexToColor();
     }

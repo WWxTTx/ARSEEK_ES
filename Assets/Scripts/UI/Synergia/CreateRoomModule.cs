@@ -183,6 +183,7 @@ public class CreateRoomModule : ResourcesModule
         CancelBtn.onClick.AddListener(CloseModule);
         NextBtn.onClick.AddListener(NextStep);
         PrevBtn.onClick.AddListener(PrevStep);
+        SynRoom.onValueChanged.AddListener(OnMultiUserToggleChanged);
         RoomName.onValueChanged.AddListener((value) =>
         {
             RoomName.text = value.RemoveSpecialSymbols();
@@ -201,6 +202,13 @@ public class CreateRoomModule : ResourcesModule
 
     private void NextStep()
     {
+        // 习题类课程只能单人，禁止协同/多人考核
+        exerciseOnlyCourse = HasExerciseTag(thisCourseId);
+        if (exerciseOnlyCourse && !LiveRoom.isOn)
+        {
+            LiveRoom.isOn = true;
+        }
+
         RoomInfo.SetActive(true);
         SelectCourse.SetActive(false);
 
@@ -210,6 +218,71 @@ public class CreateRoomModule : ResourcesModule
         //    RoomName.text = course.name;
         //}
     }
+
+    /// <summary>
+    /// 当前选中课程是否为习题类（只允许单人）
+    /// </summary>
+    protected bool exerciseOnlyCourse;
+
+    /// <summary>
+    /// 习题类课程选择协同/多人时的提示文本，由子类覆盖
+    /// </summary>
+    protected virtual string ExerciseOnlyTip => "习题类课程不支持协同模式，只能创建单人房间";
+
+    /// <summary>
+    /// 拦截协同/多人选项，习题类课程弹窗提示并回退到单人
+    /// </summary>
+    private void OnMultiUserToggleChanged(bool isOn)
+    {
+        if (!isOn || !exerciseOnlyCourse)
+            return;
+
+        LiveRoom.isOn = true;
+
+        var popupDic = new Dictionary<string, PopupButtonData>();
+        popupDic.Add("确定", new PopupButtonData(null, true));
+        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", ExerciseOnlyTip, popupDic, null, false));
+    }
+
+    /// <summary>
+    /// 检查课程是否包含"习题"标签
+    /// </summary>
+    private bool HasExerciseTag(int courseId)
+    {
+        if (!GlobalInfo.courseDicExists.TryGetValue(courseId, out Course course))
+            return false;
+
+        // 标签字典已加载时按标签ID匹配
+        if (!string.IsNullOrEmpty(course.tags) && tags.Count > 0)
+        {
+            foreach (string tagId in course.tags.Split(','))
+            {
+                if (int.TryParse(tagId.Trim(), out int id)
+                    && tags.TryGetValue(id, out string tagName)
+                    && tagName == ExerciseTagName)
+                {
+                    return true;
+                }
+            }
+        }
+
+        // 快捷创建路径未加载标签字典，退化为已缓存的可读标签
+        if (!string.IsNullOrEmpty(course.tags_readable))
+        {
+            foreach (string tagName in course.tags_readable.Split('/'))
+            {
+                if (tagName.Trim() == ExerciseTagName)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 习题类课程标签名
+    /// </summary>
+    private const string ExerciseTagName = "习题";
     private void PrevStep()
     {
         RoomName.text = string.Empty;
@@ -330,17 +403,9 @@ public class CreateRoomModule : ResourcesModule
         {
             GetTeachCategories(() =>
             {
-                //InitSubCategoryFilters();
                 RankCourseList();
                 InitList();
                 InitCourseListState();
-
-                //RefreshList(Search.text.Replace(" ", ""), CurrentSubCategory, CurrentTag);
-                //ScrollPage.PageTo(1);
-
-                //UIManager.Instance.CloseUI<LoadingPanel>();
-                //PreviousPage.FindChildByName("LoadAnim").gameObject.SetActive(true);
-                //NextPage.FindChildByName("LoadAnim").gameObject.SetActive(true);
             });
         });
     }

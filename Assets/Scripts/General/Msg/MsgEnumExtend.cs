@@ -648,6 +648,16 @@ public enum HistoryEvent
 }
 
 /// <summary>
+/// 语音同步消息（直播模式下房主TTS语音同步给成员）
+/// </summary>
+public enum SpeechSyncEvent
+{
+    Min = HistoryEvent.Max + 1,          // ID:233
+    Play,                                // ID:234
+    Max,                                 // ID:235
+}
+
+/// <summary>
 /// 枚举工具类：实现枚举值转名称
 /// </summary>
 public static class EnumTool
@@ -683,7 +693,8 @@ public static class EnumTool
         typeof(ExamPanelEvent),
         typeof(JudgeOnlineEvent),
         typeof(ShortcutEvent),
-        typeof(HistoryEvent)
+        typeof(HistoryEvent),
+        typeof(SpeechSyncEvent)
     };
 
     /// <summary>

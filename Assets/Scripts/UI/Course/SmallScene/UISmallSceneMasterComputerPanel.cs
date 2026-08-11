@@ -29,33 +29,74 @@ public class UISmallSceneMasterComputerPanel : MonoBase
     private List<DrawingData> data;
     private Color textSelectColor;
 
-    /// <summary>
-    /// 缓存的 ImageViewer 组件，用于复用
-    /// </summary>
     private ImageViewer imageViewer;
+    private RectTransform windowRect;
+    private Canvas windowCanvas;
+    private bool isZoomed;
+
+    // margins: (left, bottom, right, top)
+#if UNITY_ANDROID || UNITY_IOS
+    private static readonly Vector4 defaultMargins = new Vector4(300, 200, 300, 200);
+    private static readonly Vector4 zoomedMargins = new Vector4(0, 200, 0, 100);
+#else
+    private static readonly Vector4 defaultMargins = new Vector4(300, 150, 300, 200);
+    private static readonly Vector4 zoomedMargins = new Vector4(50, 120, 0, 50);
+#endif
 
     private void Awake()
     {
-        // 监听步骤选择事件和图纸关闭事件
         AddMsg(new ushort[]{
             (ushort)SmallFlowModuleEvent.SelectStep,
             (ushort)SmallFlowModuleEvent.CompleteStep,
             (ushort)SmallFlowModuleEvent.ClousePop
         });
 
-        // 从 WindowView 下获取唯一的 ImageViewer
         imageViewer = WindowView.GetComponentInChildren<ImageViewer>();
+        windowRect = WindowView as RectTransform;
+        windowCanvas = WindowView.GetComponent<Canvas>();
 
-        // 绑定放大缩小按钮
-        if (imageViewer != null)
-        {
-            ZoomInBtn.onClick.AddListener(() => imageViewer.ZoomIn());
-            ZoomOutBtn.onClick.AddListener(() => imageViewer.ZoomOut());
-        }
+        ZoomInBtn.onClick.AddListener(() => ToggleZoom(true));
+        ZoomOutBtn.onClick.AddListener(() => ToggleZoom(false));
+
         ListToggle.onClick.AddListener(() => {
             ListContent.gameObject.SetActive(!ListContent.gameObject.activeSelf);
         });
         Over.onClick.AddListener(OnOverButtonClick);
+
+        // 默认显示放大按钮，WindowView 使用默认边距
+        ApplyMargins(defaultMargins);
+        ZoomInBtn.gameObject.SetActive(true);
+        ZoomOutBtn.gameObject.SetActive(false);
+        if (windowCanvas != null)
+            windowCanvas.sortingOrder = 0;
+    }
+
+    private void ApplyMargins(Vector4 margins)
+    {
+        if (windowRect == null) return;
+        windowRect.offsetMin = new Vector2(margins.x, margins.y);
+        windowRect.offsetMax = new Vector2(-margins.z, -margins.w);
+    }
+
+    private void ToggleZoom(bool zoomIn)
+    {
+        if (zoomIn)
+        {
+            ApplyMargins(zoomedMargins);
+            ZoomInBtn.gameObject.SetActive(false);
+            ZoomOutBtn.gameObject.SetActive(true);
+            if (windowCanvas != null)
+                windowCanvas.sortingOrder = 1;
+        }
+        else
+        {
+            ApplyMargins(defaultMargins);
+            ZoomInBtn.gameObject.SetActive(true);
+            ZoomOutBtn.gameObject.SetActive(false);
+            if (windowCanvas != null)
+                windowCanvas.sortingOrder = 0;
+        }
+        isZoomed = zoomIn;
     }
 
     /// <summary>

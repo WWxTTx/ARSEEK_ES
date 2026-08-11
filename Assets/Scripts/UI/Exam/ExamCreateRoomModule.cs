@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityFramework.Runtime;
 using static UnityFramework.Runtime.ServiceRequestData;
+using static UnityFramework.Runtime.RequestData;
 
 /// <summary>
 /// 创建考核房间弹窗，TODO和协同分离或者抽离父类
@@ -27,6 +28,20 @@ public class ExamCreateRoomModule : CreateRoomModule
         base.Open(uiData);
         startDate = DateTime.Now;
 
+        // 注册多人考核模式切换监听（SynRoom在考核模式下表示小组考核）
+        SynRoom.onValueChanged.RemoveAllListeners();
+        SynRoom.onValueChanged.AddListener((isOn) =>
+        {
+            if (!isOn || !exerciseOnlyCourse)
+                return;
+
+            LiveRoom.isOn = true;
+
+            var popupDic = new Dictionary<string, PopupButtonData>();
+            popupDic.Add("确定", new PopupButtonData(null, true));
+            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", ExerciseOnlyTip, popupDic, null, false));
+        });
+
         //datePicker = GetComponentInChildren<DatePicker>(true);
         //datePicker.SelectedDate = startDate = DateTime.Today;
         //datePicker.UpdateInputFieldText();
@@ -39,6 +54,11 @@ public class ExamCreateRoomModule : CreateRoomModule
         //CreateNowBtn = transform.GetComponentByChildName<Button>("CreateNow");
         //CreateNowBtn.onClick.AddListener(OnCreateRoomNowBtnClicked);
     }
+
+    /// <summary>
+    /// 覆盖父类提示文本，考核模式下叫"小组考核"而不是"协同"
+    /// </summary>
+    protected override string ExerciseOnlyTip => "习题类课程不支持多人考核模式，只能创建单人考核房间";
 
     /// <summary>
     /// 初始化考核列表

@@ -1177,6 +1177,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   msgIds: 
   ParentPanel: {fileID: 0}
+  OnAnswerChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &2438465547332692957
 GameObject:
   m_ObjectHideFlags: 0
@@ -1211,11 +1214,11 @@ RectTransform:
   m_Father: {fileID: 2639570667220770662}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 32, y: -182}
-  m_SizeDelta: {x: 209, y: 100}
-  m_Pivot: {x: 0, y: 0}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 700, y: -60}
+  m_SizeDelta: {x: 200, y: 100}
+  m_Pivot: {x: 0, y: 1}
 --- !u!222 &2438465547332692953
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4098,7 +4101,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -792, y: -61}
+  m_AnchoredPosition: {x: -792, y: -60}
   m_SizeDelta: {x: 1600, y: 139}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &8710245609456861139

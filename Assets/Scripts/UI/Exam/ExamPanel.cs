@@ -29,7 +29,10 @@ public class ExamPanel : HoverHintPanel
     /// <summary>
     /// 左侧边栏
     /// </summary>
+#if UNITY_ANDROID
     protected RectTransform SideBar;
+    private CourseSideBar courseSideBar;
+#endif
     private Toggle RoomInfoTog;
     /// <summary>
     /// 开始考核/结束考核
@@ -97,7 +100,10 @@ public class ExamPanel : HoverHintPanel
         RootCanvasGroup.blocksRaycasts = true;
         TopNavigation = transform.GetComponentByChildName<RectTransform>("TopNavigation");
         Title = TopNavigation.transform.GetComponentByChildName<Text>("Title");
+#if UNITY_ANDROID
         SideBar = transform.GetComponentByChildName<RectTransform>("SideBar");
+        courseSideBar = SideBar?.GetComponent<CourseSideBar>();
+#endif
         WaitHint = transform.FindChildByName("WaitHint").gameObject;
 
         InitFullScene();
@@ -375,8 +381,6 @@ public class ExamPanel : HoverHintPanel
 
         OnExamStart();
 
-        Log.Debug($"[RestoreExamState] OnExamStart后 allMemberItem.Count={allMemberItem.Count} AllSubmit={ExamUtility.Instance.AllSubmit()}");
-
         CheckExamEnd();
 
         NetworkManager.Instance.IsIMSync = true;
@@ -467,8 +471,6 @@ public class ExamPanel : HoverHintPanel
         Log.Debug($"[ExamPanel] StartExam examId={id} waitExam={GlobalInfo.waitExam}->false");
         activeExamId = id;
         GlobalInfo.waitExam = false;
-        //房主从本轮考核开始就在场，提交状态可信 → 允许等待掉线考生重连
-        ExamUtility.Instance.HostContinuousOnline = true;
 
         //清空上轮考核的状态信息
         ToolManager.SendBroadcastMsg(new MsgBase((ushort)ExamPanelEvent.Flush), true);
@@ -499,7 +501,8 @@ public class ExamPanel : HoverHintPanel
 
     /// <summary>
     /// 判断考核是否应当结束。
-    /// 单人考核以 examineeRecords 总数为准（含掉线），小组考核以在线成员为准。
+    /// 单人考核以缓存的 examineeRecords 总数为准（含掉线），小组考核以在线成员为准。
+    /// examineeRecords 内存字典可能因异步时序尚未填充，优先用本地缓存兜底。
     /// </summary>
     private void CheckExamEnd()
     {
@@ -516,6 +519,11 @@ public class ExamPanel : HoverHintPanel
         if (!GlobalInfo.IsGroupMode())
         {
             int totalExaminees = ExamUtility.Instance.ExamineeRecords.Count;
+            if (totalExaminees == 0)
+            {
+                var cachedRecords = ExamUtility.Instance.GetHostExamExamineeRecords(GlobalInfo.roomInfo.Uuid);
+                totalExaminees = cachedRecords != null ? cachedRecords.Count : 0;
+            }
             if (totalExaminees > 0)
                 displayCount = totalExaminees;
         }
@@ -626,7 +634,6 @@ public class ExamPanel : HoverHintPanel
     {
         Log.Debug($"[ExamPanel] OnExamStop waitExam={GlobalInfo.waitExam}->true 清理前:\n  examineeRecords=[{string.Join(",", ExamUtility.Instance.ExamineeRecords.Select(kv => $"{kv.Key}->{kv.Value}"))}]\n  allMemberItem.Keys=[{string.Join(",", allMemberItem.Keys)}]\n  displayCount逻辑 allMemberItem.Count={allMemberItem.Count}");
         GlobalInfo.waitExam = true;
-        ExamUtility.Instance.HostContinuousOnline = true;
         ExamUtility.Instance.ClearSubmitCache();
         countdownCts?.Cancel();
         this.GetComponentByChildName<Text>("Time").gameObject.SetActive(false);
@@ -1615,8 +1622,11 @@ public class ExamPanel : HoverHintPanel
         Sequence sequence = DOTween.Sequence();
         sequence.AppendInterval(0.5f);
         sequence.Append(TopNavigation.DOAnchorPos3DY(0, JoinAnimePlayTime));
-#if UNITY_STANDALONE
-        sequence.Join(SideBar.DOAnchorPos3DX(0, JoinAnimePlayTime));
+#if UNITY_ANDROID
+        if (courseSideBar != null)
+            sequence.Join(courseSideBar.JoinAnimTween(JoinAnimePlayTime));
+        else if (SideBar != null)
+            sequence.Join(SideBar.DOAnchorPos3DX(0, JoinAnimePlayTime));
 #endif
         sequence.Join(Bottom.DOAnchorPos3DY(0, JoinAnimePlayTime));
         sequence.Join(RootCanvasGroup.DOFade(1f, JoinAnimePlayTime));
@@ -1627,8 +1637,11 @@ public class ExamPanel : HoverHintPanel
     {
         Sequence sequence = DOTween.Sequence();
         sequence.Join(TopNavigation.DOAnchorPos3DY(TopNavigation.sizeDelta.y, ExitAnimePlayTime));
-#if UNITY_STANDALONE
-        sequence.Join(SideBar.DOAnchorPos3DX(-SideBar.sizeDelta.x, ExitAnimePlayTime));
+#if UNITY_ANDROID
+        if (courseSideBar != null)
+            sequence.Join(courseSideBar.ExitAnimTween(ExitAnimePlayTime));
+        else if (SideBar != null)
+            sequence.Join(SideBar.DOAnchorPos3DX(-SideBar.sizeDelta.x, ExitAnimePlayTime));
 #endif
         sequence.Join(Bottom.DOAnchorPos3DY(-Bottom.sizeDelta.x, ExitAnimePlayTime));
         sequence.Join(RootCanvasGroup.DOFade(0.2f, ExitAnimePlayTime));
