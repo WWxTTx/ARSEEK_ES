@@ -84,6 +84,15 @@ public class UISmallSceneToolModule : UIModuleBase
     private Transform drawingTransform;
     private Toggle drawingToggle;
 
+    private RectTransform toolRect;
+    private float toolDefaultY;
+    private RectTransform toolCloseArrow;
+    private float toolCloseArrowDefaultZ;
+    private bool toolArrowFlipped;
+    private bool toolHidden;
+    private ModuleAutoSleep toolAutoSleep;
+    private int panelZoomedCount;
+
     private UISmallSceneMasterComputerPanel mSchematicPanel;
     /// <summary>
     /// 图纸面板
@@ -210,7 +219,7 @@ public class UISmallSceneToolModule : UIModuleBase
     /// </summary>
     private void InitToolList()
     {
-        ToolContent = this.FindChildByName("Content");
+        ToolContent = this.FindChildByName("Tool")?.FindChildByName("Content");
         GridContent = this.FindChildByName("GridContent");
 
         InitContactToggle();
@@ -219,6 +228,98 @@ public class UISmallSceneToolModule : UIModuleBase
         InitBackpack();
 
         ToolContent.GetComponentInParent<ScrollRect>().horizontalNormalizedPosition = 0f;
+
+        InitToolHideButton();
+    }
+
+    /// <summary>
+    /// 初始化 Tool 下的 Close（箭头）按钮：点击切换上下显示/隐藏。
+    /// 默认不显示Close，只有图纸展开放大时才显示并收缩Tool。
+    /// </summary>
+    private void InitToolHideButton()
+    {
+        toolRect = transform.FindChildByName("Tool").GetComponent<RectTransform>();
+        toolDefaultY = toolRect.anchoredPosition.y;
+
+        var closeGo = toolRect.FindChildByName("Close");
+        if (closeGo == null) return;
+        toolCloseArrow = closeGo.GetComponent<RectTransform>();
+        toolCloseArrowDefaultZ = toolCloseArrow.localEulerAngles.z;
+        closeGo.GetComponent<Button>().onClick.AddListener(OnToolCloseClick);
+
+        // 默认隐藏Close按钮
+        closeGo.gameObject.SetActive(false);
+
+        toolAutoSleep = toolRect.gameObject.AddComponent<ModuleAutoSleep>();
+        toolAutoSleep.idleSeconds = 5f;
+        toolAutoSleep.watchArea = toolRect;
+        toolAutoSleep.onIdle.AddListener(OnToolIdle);
+        // 默认不激活睡眠倒计时
+        toolAutoSleep.Deactivate();
+    }
+
+    private void OnToolCloseClick()
+    {
+        SetToolHidden(!toolHidden);
+        // 用户手动展开Tool时，如果有面板在放大状态，才开始睡眠倒计时
+        if (!toolHidden && panelZoomedCount > 0)
+        {
+            if (toolAutoSleep != null) toolAutoSleep.Activate();
+        }
+    }
+
+    private void OnToolIdle()
+    {
+        SetToolHidden(true);
+    }
+
+    public void OnPanelZoomIn()
+    {
+        if (++panelZoomedCount == 1)
+        {
+            if (toolCloseArrow != null) toolCloseArrow.gameObject.SetActive(true);
+            SetToolHidden(true);
+            if (toolAutoSleep != null) toolAutoSleep.Activate();
+        }
+    }
+
+    public void OnPanelZoomOut()
+    {
+        if (panelZoomedCount <= 0) return;
+        if (--panelZoomedCount == 0)
+        {
+            if (toolCloseArrow != null) toolCloseArrow.gameObject.SetActive(false);
+            SetToolHidden(false);
+            if (toolAutoSleep != null) toolAutoSleep.Deactivate();
+        }
+    }
+
+    private void SetToolHidden(bool hidden)
+    {
+        if (toolHidden == hidden) return;
+        toolHidden = hidden;
+        float targetY = hidden
+            ? ModuleSlideUtility.GetCollapsedTargetAxis(toolRect, toolCloseArrow, ModuleSlideUtility.SlideEdge.Bottom, -40f).y
+            : toolDefaultY;
+        toolRect.DOAnchorPosY(targetY, 0.3f);
+        FlipToolArrow(hidden);
+        if (hidden)
+        {
+            if (toolAutoSleep != null) toolAutoSleep.Deactivate();
+        }
+        else
+        {
+            if (toolAutoSleep != null) toolAutoSleep.Activate();
+        }
+        // Close按钮始终可见（由图纸状态控制），Tool手动展开/收缩不改变Close可见性
+    }
+
+    private void FlipToolArrow(bool toFlipped)
+    {
+        if (toolCloseArrow == null || toolArrowFlipped == toFlipped) return;
+        toolArrowFlipped = toFlipped;
+        float z = toFlipped ? toolCloseArrowDefaultZ + 180f : toolCloseArrowDefaultZ;
+        toolCloseArrow.DOLocalRotate(new Vector3(0, 0, z), 0.25f);
     }
 
     #region 常驻工具初始化
@@ -305,8 +406,19 @@ public class UISmallSceneToolModule : UIModuleBase
             }
             else
             {
+                SchematicPanel.ResetZoom();
                 SchematicPanel.HideView();
                 if (--_permanentToolCount == 0) smallSceneModule.ReleaseCursorFree();
+                // 取消图纸时清掉这个面板的zoom计数，不触发睡眠倒计时
+                if (panelZoomedCount > 0)
+                {
+                    panelZoomedCount--;
+                    if (panelZoomedCount == 0)
+                    {
+                        if (toolCloseArrow != null) toolCloseArrow.gameObject.SetActive(false);
+                        if (toolHidden) { toolHidden = false; toolRect.DOAnchorPosY(toolDefaultY, 0.3f); FlipToolArrow(false); }
+                    }
+                }
             }
             if (!drawingToggle.group.AnyTogglesOn())
             {
@@ -328,16 +440,16 @@ public class UISmallSceneToolModule : UIModuleBase
     }
 
     /// <summary>
-    /// 图纸添加回调
+    /// 图纸添加回调：自动打开图纸面板但不收缩Tool、不显示Close按钮。
+    /// FD按钮按下后才会触发Tool收缩和自动收缩。
     /// </summary>
     private void OnSchematicAdded(ModelInfo schematicInfo)
     {
-        // 切换鼠标到自由点击模式
         smallSceneModule.SwitchToFreeClick();
-        // 新增：事件添加图纸时自动显示完成按钮
         SchematicPanel.Over.gameObject.SetActive(true);
         RefreshDrawingToggle();
         SchematicPanel.ShowView();
+        if (drawingToggle != null) drawingToggle.isOn = true;
     }
 
     /// <summary>

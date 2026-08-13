@@ -37,10 +37,10 @@ public class UISmallSceneMasterComputerPanel : MonoBase
     // margins: (left, bottom, right, top)
 #if UNITY_ANDROID || UNITY_IOS
     private static readonly Vector4 defaultMargins = new Vector4(300, 200, 300, 200);
-    private static readonly Vector4 zoomedMargins = new Vector4(0, 200, 0, 100);
+    private static readonly Vector4 zoomedMargins = new Vector4(0, 0, 0, 90);
 #else
     private static readonly Vector4 defaultMargins = new Vector4(300, 150, 300, 200);
-    private static readonly Vector4 zoomedMargins = new Vector4(50, 120, 0, 50);
+    private static readonly Vector4 zoomedMargins = new Vector4(40, 0, 0, 50);
 #endif
 
     private void Awake()
@@ -53,7 +53,7 @@ public class UISmallSceneMasterComputerPanel : MonoBase
 
         imageViewer = WindowView.GetComponentInChildren<ImageViewer>();
         windowRect = WindowView as RectTransform;
-        windowCanvas = WindowView.GetComponent<Canvas>();
+        windowCanvas = transform.parent.GetComponent<Canvas>();
 
         ZoomInBtn.onClick.AddListener(() => ToggleZoom(true));
         ZoomOutBtn.onClick.AddListener(() => ToggleZoom(false));
@@ -97,6 +97,26 @@ public class UISmallSceneMasterComputerPanel : MonoBase
                 windowCanvas.sortingOrder = 0;
         }
         isZoomed = zoomIn;
+
+        // 放大时收缩Tool、显示Close按钮、启动睡眠倒计时
+        var toolModule = GetComponentInParent<UISmallSceneToolModule>();
+        if (zoomIn)
+            toolModule?.OnPanelZoomIn();
+        else
+            toolModule?.OnPanelZoomOut();
+    }
+
+    /// <summary>
+    /// 重置放大状态（图纸取消选中时调用），不触发Tool的睡眠倒计时
+    /// </summary>
+    public void ResetZoom()
+    {
+        if (!isZoomed) return;
+        ApplyMargins(defaultMargins);
+        ZoomInBtn.gameObject.SetActive(true);
+        ZoomOutBtn.gameObject.SetActive(false);
+        if (windowCanvas != null) windowCanvas.sortingOrder = 0;
+        isZoomed = false;
     }
 
     /// <summary>

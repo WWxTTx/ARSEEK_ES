@@ -61,13 +61,6 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     /// </summary>
     private bool lockQuit = false;
 
-#if UNITY_EDITOR
-    /// <summary>
-    /// [Debug] 强制断网模式，开启后拦截所有重连
-    /// </summary>
-    public bool DebugBlockReconnect = false;
-#endif
-
     protected override void InstanceAwake()
     {
         base.InstanceAwake();
@@ -446,15 +439,4 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
     {
         return (DateTime.Now - sinceTime).TotalSeconds > Timeout;
     }
-
-#if UNITY_EDITOR
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0))
-        {
-            DebugBlockReconnect = !DebugBlockReconnect;
-            Debug.LogWarning($"[Debug] 断网模式: {(DebugBlockReconnect ? "开启" : "关闭")}");
-        }
-    }
-#endif
 }

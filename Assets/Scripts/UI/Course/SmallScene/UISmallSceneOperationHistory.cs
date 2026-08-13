@@ -140,6 +140,11 @@ public class UISmallSceneOperationHistory : UIModuleBase
 
     private bool show;
 
+    private ModuleAutoSleep autoSleep;
+    private RectTransform closeArrow;
+    private float closeArrowDefaultZ;
+    private bool arrowFlipped;
+
     /// <summary>
     /// 控制当前是否可以输入
     /// </summary>
@@ -199,7 +204,22 @@ public class UISmallSceneOperationHistory : UIModuleBase
         smallSceneModule = data.smallSceneModule;
 
         Background = this.GetComponentByChildName<RectTransform>("Background");
-        this.GetComponentByChildName<Button>("Close").onClick.AddListener(() => SendMsg(new MsgBase((ushort)HistoryEvent.Hide)));
+
+        autoSleep = Background.gameObject.AddComponent<ModuleAutoSleep>();
+        autoSleep.idleSeconds = 5f;
+        autoSleep.watchArea = Background;
+        autoSleep.onIdle.AddListener(() => SendMsg(new MsgBase((ushort)HistoryEvent.Hide)));
+
+        closeArrow = this.GetComponentByChildName<RectTransform>("Close");
+        if (closeArrow != null)
+        {
+            closeArrowDefaultZ = closeArrow.localEulerAngles.z;
+        }
+        this.GetComponentByChildName<Button>("Close").onClick.AddListener(() =>
+        {
+            if (show) SendMsg(new MsgBase((ushort)HistoryEvent.Hide));
+            else OpenModule();
+        });
 
         history = transform.FindChildByName("History");
         content = history.FindChildByName("Content");
@@ -806,26 +826,69 @@ public class UISmallSceneOperationHistory : UIModuleBase
 #else
         JoinSequence.Join(Background.DOAnchorPos3DX(44f, JoinAnimePlayTime));
 #endif
+#if UNITY_ANDROID || UNITY_IOS
+        if (autoSleep != null) autoSleep.Activate();
+#endif
+        FlipArrow(true);
+        transform.SetAsLastSibling();
+        // 展开时收起其他两个模块
+        SendMsg(new MsgBase((ushort)OperationListEvent.Hide));
+        SendMsg(new MsgBase((ushort)BaikeSelectModuleEvent.Hide));
+        ShowCloseHideOthers();
     }
 
-    private void HideModule()
+    public void HideModule()
     {
         show = false;
 #if UNITY_ANDROID || UNITY_IOS
-        Background.DOAnchorPos3DX(Background.sizeDelta.x, ExitAnimePlayTime).OnComplete(() => Background.gameObject.SetActive(false));
+        if (autoSleep != null) autoSleep.Deactivate();
+#endif
+        FlipArrow(false);
+#if UNITY_ANDROID || UNITY_IOS
+        Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, true, -10f), ExitAnimePlayTime);
 #else
-        Background.DOAnchorPos3DX(-Background.sizeDelta.x, ExitAnimePlayTime);
+        Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, false), ExitAnimePlayTime);
 #endif
     }
 
     public override void ExitAnim(UnityAction callback)
     {
 #if UNITY_ANDROID || UNITY_IOS
-        ExitSequence.Join(Background.DOAnchorPos3DX(Background.sizeDelta.x, ExitAnimePlayTime));
+        if (autoSleep != null) autoSleep.Deactivate();
+#endif
+        FlipArrow(false);
+#if UNITY_ANDROID || UNITY_IOS
+        ExitSequence.Join(Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, true, -10f), ExitAnimePlayTime));
 #else
-        ExitSequence.Join(Background.DOAnchorPos3DX(-Background.sizeDelta.x, ExitAnimePlayTime));
+        ExitSequence.Join(Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, false), ExitAnimePlayTime));
 #endif
         base.ExitAnim(callback);
+    }
+
+    public void HideCloseButton()
+    {
+        var closeBtn = transform.FindChildByName("Close");
+        if (closeBtn != null) closeBtn.gameObject.SetActive(false);
+    }
+
+    private void ShowCloseHideOthers()
+    {
+        var closeBtn = transform.FindChildByName("Close");
+        if (closeBtn != null) closeBtn.gameObject.SetActive(true);
+        var parent = transform.parent;
+        if (parent == null) return;
+        var baike = parent.GetComponentInChildren<BaikeSelectModule>(true);
+        if (baike != null) baike.HideCloseButton();
+        var flow = parent.GetComponentInChildren<UISmallSceneFlowModule>(true);
+        if (flow != null) flow.HideCloseButton();
+    }
+
+    private void FlipArrow(bool toFlipped)
+    {
+        if (closeArrow == null || arrowFlipped == toFlipped) return;
+        arrowFlipped = toFlipped;
+        float z = toFlipped ? closeArrowDefaultZ + 180f : closeArrowDefaultZ;
+        closeArrow.DOLocalRotate(new Vector3(0, 0, z), 0.25f);
     }
     #endregion
 }

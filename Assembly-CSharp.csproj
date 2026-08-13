@@ -1053,6 +1053,7 @@
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\crypto\tls\TlsUtilities.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Demos\Scripts\CameraRotator.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\custom\sec\SecT113FieldElement.cs" />
+    <Compile Include="Assets\Scripts\UI\Course\SmallScene\ModuleAutoSleep.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\security\DigestUtilities.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\ec\ScaleXPointMap.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\asn1\DerSequence.cs" />

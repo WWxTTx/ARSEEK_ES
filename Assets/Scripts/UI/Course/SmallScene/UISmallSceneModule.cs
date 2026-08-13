@@ -450,6 +450,7 @@ public class UISmallSceneModule : UIModuleBase
             (ushort)OperationListEvent.Open,
             (ushort)OperationListEvent.Hide,
             (ushort)HistoryEvent.Open,
+            (ushort)HistoryEvent.Hide,
             (ushort)SmallFlowModuleEvent.LeftFlex,
             (ushort)SmallFlowModuleEvent.RightFlex,
             (ushort)SmallFlowModuleEvent.SelectFlow,
@@ -929,15 +930,12 @@ public class UISmallSceneModule : UIModuleBase
             //必须从已解析的 rayResult 取 ModelInfo，否则会取到命中物体自身父级上的错误 ModelInfo。
             var hitModelInfo = rayResult.GetComponent<ModelInfo>();
             string modelName = hitModelInfo?.Name;
-
+            //特殊 开度旋钮没有状态
+            bool isKdxn = modelName.Contains("开度给定");
             bool isSwitch = hitModelInfo?.InfoData?.InteractMode == InteractMode.Switch;
-            if (isSwitch)
+            if (isSwitch && !isKdxn)
             {
                     Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
-            }
-            else if (!SmallFlowCtrl.maskOperation.Contains(modelOperation_Highlight.currentState))
-            {
-                Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
             }
             else
             {
@@ -1508,6 +1506,9 @@ public class UISmallSceneModule : UIModuleBase
                     SendMsg(new MsgBase((ushort)HistoryEvent.Show));
                     SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.LeftFlex, /*true*/!GlobalInfo.IsExamMode()));
                 }
+                break;
+            case (ushort)HistoryEvent.Hide:
+                operationHistoryModule?.HideModule();
                 break;
 #if UNITY_STANDALONE
             case (ushort)SmallFlowModuleEvent.LeftFlex:

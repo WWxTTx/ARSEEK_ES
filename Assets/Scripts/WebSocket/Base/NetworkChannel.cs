@@ -84,13 +84,6 @@ public class NetworkChannel
     /// </summary>
     public void Connect(string url, string roomUuid)
     {
-#if UNITY_EDITOR
-        if (NetworkManager.Instance.DebugBlockReconnect)
-        {
-            DebugHelper.Warning(channelType, "[Debug] 断网模式开启，拦截重连");
-            return;
-        }
-#endif
         _isClosed = false;
         webSocket = new WebSocket(new Uri(url));
         webSocket.StartPingThread = true;
@@ -125,22 +118,6 @@ public class NetworkChannel
         webSocket = null;
     }
 
-    /// <summary>
-    /// [Debug] 强制断开连接，模拟网络超时
-    /// </summary>
-    public void DebugForceDisconnect()
-    {
-        if (webSocket != null)
-        {
-            Debug.LogWarning($"[Debug] NetworkChannel[{channelType}] 强制断开, IsOpen={webSocket.IsOpen}");
-            webSocket.InternalRequest?.Abort();
-            webSocket = null;
-        }
-        else
-        {
-            Debug.LogWarning($"[Debug] NetworkChannel[{channelType}] webSocket为null，无法断开");
-        }
-    }
 
     /// <summary>
     /// 发送消息

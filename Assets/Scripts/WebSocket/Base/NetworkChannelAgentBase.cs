@@ -64,14 +64,6 @@ public abstract class NetworkChannelAgentBase : MonoBase
         }
     }
 
-    public void DebugForceDisconnect()
-    {
-        if (networkChannel != null)
-        {
-            networkChannel.DebugForceDisconnect();
-        }
-    }
-
     /// <summary>
     /// ͨ���Ƿ�����
     /// </summary>

@@ -1,6 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Android;
@@ -58,17 +60,7 @@ public class CheckVersionModule : UIModuleBase
         if (latestVersion == null || string.IsNullOrEmpty(latestVersion.downloadUrl))
             return false;
 
-//#if UNITY_STANDALONE && !UNITY_EDITOR
-//        string configPath = Application.dataPath + "/../config.ini";
-//        if (!File.Exists(configPath))
-//            return true;
-//        IniFile iniFile = new IniFile(configPath);
-//        return !Application.version.Equals(latestVersion.version)
-//            || !iniFile.Read("Update", "UpdateFileName").Equals(latestVersion.downloadUrl)
-//            || int.Parse(iniFile.Read("Update", "UpdateAvailable")) == 1;
-//#else 
         return !Application.version.Equals(latestVersion.version) || !CompareVersionCache(latestVersion.version, latestVersion.downloadUrl);
-//#endif
     }
 
     /// <summary>
@@ -121,11 +113,11 @@ public class CheckVersionModule : UIModuleBase
                     Enter.onClick.AddListener(() =>
                     {
 #if UNITY_EDITOR
-                       UpdateVersion(data.downloadUrl);// GotoLogin();
+                        GotoLogin();
 #elif UNITY_ANDROID
                         GotoDownloadPage($"{ResManager.Instance.OSSDownLoadPath}{data.downloadUrl}");
 #elif UNITY_STANDALONE_WIN
-                        UpdateVersion(data.downloadUrl);
+                        GotoDownloadPage($"{ResManager.Instance.OSSDownLoadPath}{data.downloadUrl}");
 #endif
                     });
                 }
@@ -228,7 +220,12 @@ public class CheckVersionModule : UIModuleBase
                             popupDic.Add("确定", new PopupButtonData(() =>
                             {
                                 string fileName = url.Split('/')[url.Split('/').Length - 1];
-                                AndroidInstallAPK(ResManager.Instance.resourcesCacheRootPath + "/" + fileName);
+                                string filePath = ResManager.Instance.resourcesCacheRootPath + "/" + fileName;
+#if UNITY_ANDROID
+                                AndroidInstallAPK(filePath);
+#elif UNITY_STANDALONE_WIN
+                                StartWindowsUpdate(filePath);
+#endif
                                 UIManager.Instance.CloseUI<LoadingPanel2>();
                             }, true));
 
@@ -290,7 +287,7 @@ public class CheckVersionModule : UIModuleBase
         }
         catch (Exception ex)
         {
-            Debug.LogError($"CompareVersionCache error {PlayerPrefs.GetString(GlobalInfo.commonVersion)}");
+            UnityEngine.Debug.LogError($"CompareVersionCache error {PlayerPrefs.GetString(GlobalInfo.commonVersion)}");
             return false;
         }
     }
@@ -314,59 +311,93 @@ public class CheckVersionModule : UIModuleBase
         }
         catch (Exception ex)
         {
-            Debug.LogError($"CompareVersionCache error {PlayerPrefs.GetString(GlobalInfo.commonVersion)}");
+            UnityEngine.Debug.LogError($"CompareVersionCache error {PlayerPrefs.GetString(GlobalInfo.commonVersion)}");
         }
     }
 
     /// <summary>
-    /// 更新版本
-    /// 注意 上传zip的目录结构
+    /// PC端自更新：解压zip到临时目录，生成替换脚本，启动脚本后退出
     /// </summary>
-    public static void UpdateVersion(string downloadUrl)
+    private void StartWindowsUpdate(string zipPath)
     {
-        string updateFileName = Path.GetFileName(downloadUrl);
-        string updateFileUrl = $"{ResManager.Instance.OSSDownLoadPath}{downloadUrl.Replace($"/{updateFileName}", string.Empty)}";
-
-        // 设定INI文件的路径
-        string iniPath = Application.dataPath + "/../config.ini";
-        IniFile ini = new IniFile(iniPath);
-        // 写入数据
-        ini.Write("APP", "ClientProgramName", $"{Application.productName}.exe");
-        ini.Write("Update", "UpdateFileUrl", updateFileUrl);
-        ini.Write("Update", "UpdateFileName", updateFileName);
-        ini.Write("Update", "UpdateAvailable", "1");
-
-        //启动更新服务
-        string[] strs = new string[]
+        try
         {
-            "chcp 65001",
-            "@echo off",
-            "start /d \"{0}\" {1}",
-            "exit"
-        };
-        string path = Application.dataPath;
-        path = path.Remove(path.LastIndexOf("/")) + "/";
-        strs[2] = string.Format(strs[2], path, ini.Read("APP", "UpdateProgramName"));
+            string installDir = Path.GetDirectoryName(Application.dataPath);
+            string stagingDir = Path.Combine(Path.GetTempPath(), Application.productName + "_Update");
 
-        string batPath = Application.dataPath + "/../update.bat";
-        if (File.Exists(batPath))
-        {
-            File.Delete(batPath);
+            if (Directory.Exists(stagingDir))
+                FileTool.FolderDelete(stagingDir);
+            Directory.CreateDirectory(stagingDir);
+            ExtractZip(zipPath, stagingDir);
+
+            // 若zip内包了一层顶层目录，则取该目录作为实际源目录
+            string sourceDir = stagingDir;
+            string[] entries = Directory.GetFileSystemEntries(stagingDir);
+            if (entries.Length == 1 && Directory.Exists(entries[0]))
+                sourceDir = entries[0];
+
+            string batPath = Path.Combine(Path.GetTempPath(), Application.productName + "_update.bat");
+            GenerateUpdateScript(batPath, installDir, stagingDir, sourceDir, Application.productName + ".exe");
+
+            Process.Start(new ProcessStartInfo(batPath) { UseShellExecute = true });
+            Application.Quit();
         }
-        using (FileStream fileStream = File.OpenWrite(batPath))
+        catch (Exception e)
         {
-            using (StreamWriter writer = new StreamWriter(fileStream, new UTF8Encoding(false)))
+            Log.Error("启动更新失败: " + e);
+            UIManager.Instance.OpenModuleUI<ToastPanel>(ParentPanel, UILevel.PopUp, new ToastPanelInfo("更新失败，请重试！"));
+        }
+    }
+
+    /// <summary>
+    /// 解压zip到指定目录
+    /// </summary>
+    private void ExtractZip(string zipPath, string destDir)
+    {
+        string destRoot = Path.GetFullPath(destDir);
+        using (ZipArchive archive = new ZipArchive(File.OpenRead(zipPath), ZipArchiveMode.Read))
+        {
+            foreach (ZipArchiveEntry entry in archive.Entries)
             {
-                foreach (string s in strs)
+                string targetPath = Path.GetFullPath(Path.Combine(destDir, entry.FullName));
+                // 防止路径穿越
+                if (!targetPath.StartsWith(destRoot, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (string.IsNullOrEmpty(entry.Name))
                 {
-                    writer.WriteLine(s);
+                    Directory.CreateDirectory(targetPath);
+                    continue;
                 }
-                writer.Close();
+
+                Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+                using (Stream src = entry.Open())
+                using (FileStream dst = File.Create(targetPath))
+                {
+                    src.CopyTo(dst);
+                }
             }
         }
-        //Application.Quit();
-        Application.OpenURL(batPath);
+    }
 
-        Log.Info("启动更新服务");
+    /// <summary>
+    /// 生成等待游戏退出后覆盖文件并重启的批处理脚本
+    /// </summary>
+    private void GenerateUpdateScript(string batPath, string installDir, string stagingDir, string sourceDir, string exeName)
+    {
+        string exePath = Path.Combine(installDir, exeName);
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("@echo off");
+        sb.AppendLine("chcp 65001 >nul");
+        sb.AppendLine(":wait");
+        sb.AppendLine("timeout /t 1 /nobreak >nul");
+        sb.AppendLine("tasklist | find /I \"" + exeName + "\" >nul");
+        sb.AppendLine("if not errorlevel 1 goto wait");
+        sb.AppendLine("xcopy \"" + sourceDir + "\\*\" \"" + installDir + "\\\" /E /Y /H /R /C /I >nul");
+        sb.AppendLine("if errorlevel 4 echo update failed, relaunching current version...");
+        sb.AppendLine("rd /S /Q \"" + stagingDir + "\"");
+        sb.AppendLine("start \"\" \"" + exePath + "\"");
+        sb.AppendLine("del \"%~f0\"");
+        File.WriteAllText(batPath, sb.ToString(), new UTF8Encoding(false));
     }
 }

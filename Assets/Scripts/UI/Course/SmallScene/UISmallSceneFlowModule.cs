@@ -13,7 +13,14 @@ using static UnityFramework.Runtime.RequestData;
 public class UISmallSceneFlowModule : UIModuleBase
 {
     private RectTransform Background;
-    public bool IsExpanded => Background != null && Background.anchoredPosition.x >= -1f;
+    private bool isExpanded;
+
+    public bool IsExpanded => isExpanded;
+
+    private ModuleAutoSleep autoSleep;
+    private RectTransform closeArrow;
+    private float closeArrowDefaultZ;
+    private bool arrowFlipped;
 
     private SmallFlowCtrl smallFlowCtrl;
     private UISmallSceneModule smallSceneModule;
@@ -55,9 +62,21 @@ public class UISmallSceneFlowModule : UIModuleBase
         });
 
         Background = this.GetComponentByChildName<RectTransform>("Background");
+
+        autoSleep = Background.gameObject.AddComponent<ModuleAutoSleep>();
+        autoSleep.idleSeconds = 5f;
+        autoSleep.watchArea = Background;
+        autoSleep.onIdle.AddListener(() => SendMsg(new MsgBase((ushort)OperationListEvent.Hide)));
+
+        closeArrow = this.GetComponentByChildName<RectTransform>("Close");
+        if (closeArrow != null)
+        {
+            closeArrowDefaultZ = closeArrow.localEulerAngles.z;
+        }
         this.GetComponentByChildName<Button>("Close").onClick.AddListener(() =>
         {
-            SendMsg(new MsgBase((ushort)OperationListEvent.Hide));
+            if (IsExpanded) SendMsg(new MsgBase((ushort)OperationListEvent.Hide));
+            else ExpandModule();
         });
 
         smallSceneModule = transform.parent.GetComponentInChildren<UISmallSceneModule>();
@@ -414,20 +433,35 @@ public class UISmallSceneFlowModule : UIModuleBase
 
     public void ExpandModule()
     {
+        isExpanded = true;
 #if UNITY_ANDROID || UNITY_IOS
         Background.DOAnchorPos3DX(0, joinAnimePlayTime);
 #else
         if (!GlobalInfo.IsExamMode())
             Background.DOAnchorPos3DX(44f, joinAnimePlayTime);
 #endif
+#if UNITY_ANDROID || UNITY_IOS
+        if (autoSleep != null) autoSleep.Activate();
+#endif
+        FlipArrow(true);
+        transform.SetAsLastSibling();
+        // 展开时收起其他两个模块
+        SendMsg(new MsgBase((ushort)BaikeSelectModuleEvent.Hide));
+        SendMsg(new MsgBase((ushort)HistoryEvent.Hide));
+        ShowCloseHideOthers();
     }
 
     public void CollapseModule()
     {
+        isExpanded = false;
 #if UNITY_ANDROID || UNITY_IOS
-        Background.DOAnchorPos3DX(Background.sizeDelta.x, exitAnimePlayTime);
+        if (autoSleep != null) autoSleep.Deactivate();
+#endif
+        FlipArrow(false);
+#if UNITY_ANDROID || UNITY_IOS
+        Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, true, -10f), exitAnimePlayTime);
 #else
-        Background.DOAnchorPos3DX(-Background.sizeDelta.x, exitAnimePlayTime);
+        Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, false), exitAnimePlayTime);
 #endif
     }
 
@@ -440,6 +474,32 @@ public class UISmallSceneFlowModule : UIModuleBase
     {
         CollapseModule();
         base.ExitAnim(callback);
+    }
+
+    public void HideCloseButton()
+    {
+        var closeBtn = transform.FindChildByName("Close");
+        if (closeBtn != null) closeBtn.gameObject.SetActive(false);
+    }
+
+    private void ShowCloseHideOthers()
+    {
+        var closeBtn = transform.FindChildByName("Close");
+        if (closeBtn != null) closeBtn.gameObject.SetActive(true);
+        var parent = transform.parent;
+        if (parent == null) return;
+        var baike = parent.GetComponentInChildren<BaikeSelectModule>(true);
+        if (baike != null) baike.HideCloseButton();
+        var history = parent.GetComponentInChildren<UISmallSceneOperationHistory>(true);
+        if (history != null) history.HideCloseButton();
+    }
+
+    private void FlipArrow(bool toFlipped)
+    {
+        if (closeArrow == null || arrowFlipped == toFlipped) return;
+        arrowFlipped = toFlipped;
+        float z = toFlipped ? closeArrowDefaultZ + 180f : closeArrowDefaultZ;
+        closeArrow.DOLocalRotate(new Vector3(0, 0, z), 0.25f);
     }
     #endregion
 }

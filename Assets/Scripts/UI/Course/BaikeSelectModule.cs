@@ -18,6 +18,11 @@ public class BaikeSelectModule : UIModuleBase
     private Text Page;
     private Button Collapse;
 
+    private ModuleAutoSleep autoSleep;
+    private RectTransform closeArrow;
+    private float closeArrowDefaultZ;
+    private bool arrowFlipped;
+
     private ScrollRect BaikeScroll;
     private Transform Content;
 
@@ -51,7 +56,8 @@ public class BaikeSelectModule : UIModuleBase
 #if UNITY_ANDROID || UNITY_IOS
             (ushort)ARModuleEvent.Tracking,
 #endif
-            (ushort)BaikeSelectModuleEvent.BaikeSelect
+            (ushort)BaikeSelectModuleEvent.BaikeSelect,
+            (ushort)BaikeSelectModuleEvent.Hide
         });
 
         VideoPreviewGetter = this.AutoComponent<GetFirstVideoImage>();
@@ -96,7 +102,25 @@ public class BaikeSelectModule : UIModuleBase
         Content = BaikeScroll.content;
         TextureItem = BaikeScroll.FindChildByName("TextureItem").gameObject;
         TextItem = BaikeScroll.FindChildByName("TextItem").gameObject;
-        Collapse.onClick.AddListener(() => SendMsg(new MsgBase((ushort)BaikeSelectModuleEvent.Hide)));
+
+        autoSleep = Background.gameObject.AddComponent<ModuleAutoSleep>();
+        autoSleep.idleSeconds = 5f;
+        autoSleep.watchArea = Background;
+        autoSleep.onIdle.AddListener(() => SendMsg(new MsgBase((ushort)BaikeSelectModuleEvent.Hide)));
+
+        closeArrow = Collapse.GetComponent<RectTransform>();
+        if (closeArrow != null)
+        {
+            closeArrowDefaultZ = closeArrow.localEulerAngles.z;
+        }
+
+        Collapse.onClick.AddListener(() =>
+        {
+            if (arrowFlipped)
+                SendMsg(new MsgBase((ushort)BaikeSelectModuleEvent.Hide));
+            else
+                JoinAnim(null);
+        });
     }
 
     /// <summary>
@@ -310,6 +334,9 @@ public class BaikeSelectModule : UIModuleBase
                 CurrentBaikeIndex = GlobalInfo.currentWikiList.FindIndex(wiki => wiki.id == baikeId);
                 Page.text = $"{headerPrefix}{CurrentBaikeIndex + 1}/{ GlobalInfo.currentWikiList.Count}";
                 break;
+            case (ushort)BaikeSelectModuleEvent.Hide:
+                ExitAnim(null);
+                break;
         }
     }
 
@@ -329,13 +356,54 @@ public class BaikeSelectModule : UIModuleBase
 #else
         JoinSequence.Join(Background.DOAnchorPos3DX(44f, JoinAnimePlayTime));
 #endif
+#if UNITY_ANDROID || UNITY_IOS
+        if (autoSleep != null) autoSleep.Activate();
+#endif
+        FlipArrow(true);
+        transform.SetAsLastSibling();
+        // 展开时收起其他两个模块
+        SendMsg(new MsgBase((ushort)OperationListEvent.Hide));
+        SendMsg(new MsgBase((ushort)HistoryEvent.Hide));
+        ShowCloseHideOthers();
         base.JoinAnim(callback);
     }
 
     public override void ExitAnim(UnityAction callback)
     {
-        ExitSequence.Join(Background.DOAnchorPos3DX(-Background.sizeDelta.x, ExitAnimePlayTime));
+#if UNITY_ANDROID || UNITY_IOS
+        if (autoSleep != null) autoSleep.Deactivate();
+#endif
+        FlipArrow(false);
+#if UNITY_ANDROID || UNITY_IOS
+        ExitSequence.Join(Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, true, -10f), ExitAnimePlayTime));
+#else
+        ExitSequence.Join(Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, false), ExitAnimePlayTime));
+#endif
         base.ExitAnim(callback);
+    }
+
+    public void HideCloseButton()
+    {
+        if (Collapse != null) Collapse.gameObject.SetActive(false);
+    }
+
+    private void ShowCloseHideOthers()
+    {
+        if (Collapse != null) Collapse.gameObject.SetActive(true);
+        var parent = transform.parent;
+        if (parent == null) return;
+        var history = parent.GetComponentInChildren<UISmallSceneOperationHistory>(true);
+        if (history != null) history.HideCloseButton();
+        var flow = parent.GetComponentInChildren<UISmallSceneFlowModule>(true);
+        if (flow != null) flow.HideCloseButton();
+    }
+
+    private void FlipArrow(bool toFlipped)
+    {
+        if (closeArrow == null || arrowFlipped == toFlipped) return;
+        arrowFlipped = toFlipped;
+        float z = toFlipped ? closeArrowDefaultZ + 180f : closeArrowDefaultZ;
+        closeArrow.DOLocalRotate(new Vector3(0, 0, z), 0.25f);
     }
 
     /// <summary>

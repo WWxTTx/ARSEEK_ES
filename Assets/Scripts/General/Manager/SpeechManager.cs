@@ -122,7 +122,7 @@ public class SpeechManager : Singleton<SpeechManager>
                     SaveData(data);
                 }, errorMsg =>
                 {
-                    Debug.LogError("获取百科语音失败");
+                    Debug.Log("获取百科语音失败");
                 });
             }
         }

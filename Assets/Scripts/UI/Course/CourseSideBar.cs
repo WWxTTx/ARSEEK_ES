@@ -124,7 +124,7 @@ public class CourseSideBar : MonoBase
 #elif UNITY_ANDROID || UNITY_IOS
                 ParentPanel.EmptyClick.gameObject.SetActive(true);
 #endif
-                UIManager.Instance.OpenModuleUI<BaikeSelectModule>(ParentPanel, ParentPanel.ListModulePoint);
+                UIManager.Instance.OpenModuleUI<BaikeSelectModule>(ParentPanel, ParentPanel.BaikeModulePoint);
                 SendMsg(new MsgBool((ushort)SmallFlowModuleEvent.LeftFlex, true));
             }
             else
@@ -322,7 +322,6 @@ public class CourseSideBar : MonoBase
             #region 百科列表模块
             case (ushort)BaikeSelectModuleEvent.Hide:
                 ShowBaike.SetIsOnWithoutNotify(false);
-                UIManager.Instance.HideModuleUI<BaikeSelectModule>(ParentPanel);
 #if UNITY_ANDROID || UNITY_IOS
                 ParentPanel.EmptyClick.gameObject.SetActive(false);
 #endif
@@ -414,7 +413,7 @@ public class CourseSideBar : MonoBase
             case (ushort)CoursePanelEvent.OperationListBtn:
                 OperationListTog.gameObject.SetActive(!GlobalInfo.IsExamMode());//(!GlobalInfo.IsExamMode());
                 HistoryTog.gameObject.SetActive(true);
-                KnowledgeTog.gameObject.SetActive(false);// !GlobalInfo.IsExamMode()
+                KnowledgeTog.gameObject.SetActive(!GlobalInfo.IsExamMode());
 #if UNITY_ANDROID || UNITY_IOS
                 //SplitLine.gameObject.SetActive(true);
                 if (!EnableVerticalLayout)
