@@ -615,14 +615,14 @@ public class UISmallSceneToolModule : UIModuleBase
                         RefreshTip();
 
                         // 培训模式PC端：选中正确道具后自动关闭工具箱
-                        #if UNITY_STANDALONE || UNITY_EDITORGlobalInfo
+                        #if UNITY_STANDALONE || UNITY_EDITOR
                         if (!GlobalInfo.IsExamMode() && smallFlowCtrl.nowFlowStep != null)
                         {
                             foreach (var op in smallFlowCtrl.nowFlowStep.ops)
                             {
                                 if (!smallFlowCtrl.IsOpCompleted(op) && op.prop != null && op.prop.ID == info.ID)
                                 {
-                                    ShowTool(false);
+                                    backpackTog.isOn = false;  // 关闭背包，触发 ReleaseCursorFree
                                     break;
                                 }
                             }

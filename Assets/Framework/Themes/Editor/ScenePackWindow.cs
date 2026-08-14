@@ -181,6 +181,9 @@ public class ScenePackWindow : EditorWindow
             path[i] = AssetDatabase.GetAssetPath(goList[i]);
         }
 
+        // 确保HiddenStatusModelNames配置存在
+        EnsureHiddenStatusConfig();
+
         DateTime startTime = DateTime.Now;
         if (IsCreatePCAB)
             PackAB(saveDir, abName, path, BuildTarget.StandaloneWindows);
@@ -293,5 +296,45 @@ public class ScenePackWindow : EditorWindow
         }
     }
 
-  
+    /// <summary>
+    /// 确保HiddenStatusModelNames配置存在
+    /// </summary>
+    void EnsureHiddenStatusConfig()
+    {
+        string configPath = "Assets/Resources/Config";
+        string configFile = "HiddenStatusModelNames.asset";
+        string fullPath = Path.Combine(configPath, configFile);
+
+        // 检查配置是否已存在
+        HiddenStatusModelNames existingConfig = AssetDatabase.LoadAssetAtPath<HiddenStatusModelNames>(fullPath);
+        if (existingConfig != null)
+        {
+            Log.Debug("HiddenStatusModelNames配置已存在: " + fullPath);
+            return;
+        }
+
+        // 配置不存在，创建新的
+        Log.Debug("正在创建HiddenStatusModelNames配置...");
+
+        // 确保目录存在
+        string fullDirPath = Application.dataPath + configPath.Substring("Assets".Length);
+        if (!Directory.Exists(fullDirPath))
+        {
+            Directory.CreateDirectory(fullDirPath);
+            AssetDatabase.Refresh();
+        }
+
+        // 创建ScriptableObject
+        HiddenStatusModelNames config = ScriptableObject.CreateInstance<HiddenStatusModelNames>();
+        config.keywords = new System.Collections.Generic.List<string> { "开度给定" };
+
+        // 保存资源
+        AssetDatabase.CreateAsset(config, fullPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        Log.Debug("HiddenStatusModelNames配置创建成功: " + fullPath);
+    }
+
+
 }

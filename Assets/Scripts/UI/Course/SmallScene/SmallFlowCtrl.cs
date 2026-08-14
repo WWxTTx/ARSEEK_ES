@@ -502,7 +502,7 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 标记弹窗关闭是否 跳过导航本地表现
     /// </summary>
-    public static bool ignoreMove = false;
+    public bool ignoreMove = false;
 
     /// <summary>
     /// 当前操作的实际执行者（非协同同步方）。联动弹窗等场景用此判断是否执行完整行为。
@@ -1217,7 +1217,9 @@ public class SmallFlowCtrl : MonoBase
     /// </summary>
     private void ApplyPlayerPositionForStepJump(int stepIndex)
     {
-        bool found = ignoreMove = false;
+        // 不重置 ignoreMove：由调用方决定是否应用位置
+        // CompleteStep 同步端设 true 抑制导航；SelectStep/断线重连设 false 允许设置初始位置
+        bool found = false;
         // 跨 flow 向前搜索角色位置
         for (int f = index_NowFlow; f >= 0 && !found; f--)
         {
@@ -1616,8 +1618,9 @@ public class SmallFlowCtrl : MonoBase
                     ExecuteFlowLinkOperation(opLinkages, callback, ++index);
                 });
             }
-            else if (ignoreMove)
+            else if (ignoreMove || GlobalInfo.IsExamMode())
             {
+                // 考核模式下不执行导航，或者被标记为跳过导航时跳过
                 ExecuteFlowLinkOperation(opLinkages, callback, ++index);
             }
             else
@@ -2281,8 +2284,8 @@ public class SmallFlowCtrl : MonoBase
     /// 是否跳过角色位移
     public void SetFinalState(ModelOperation operation, string optionName, bool ignoreCondition = false, bool processLinkages = true)
     {
-        if (GlobalInfo.isExam && _index_NowStep != 0)
-            ignoreMove = true;
+        // 移除旧的考核模式 hack：导航抑制已在 ExecuteFlowLinkOperation 的 hasguide 分支统一处理
+        // 此处强制设置 ignoreMove 会破坏断线重连时的位置恢复
         if (operation && !string.IsNullOrEmpty(optionName))
         {
             for (int i = 0; i < operation.operations.Count; i++)
@@ -2417,7 +2420,8 @@ public class SmallFlowCtrl : MonoBase
     /// <summary>
     /// 下一步
     /// </summary>
-    public void Next()
+    /// <param name="allowPositionRestore">是否允许恢复位置（用于断线重连恢复到当前步骤）</param>
+    public void Next(bool allowPositionRestore = false)
     {
         if (GlobalInfo.WaitUiOq)
         {
@@ -2429,7 +2433,12 @@ public class SmallFlowCtrl : MonoBase
         UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true).ReleaseCursorFree();
         if (index_NowFlow <= flows.Length - 1)
         {
-            ignoreMove = false;
+            // 位置只在初始化场景允许：断线重连恢复到当前步骤时放行
+            // 正常推进：考核模式全员抑制；非考核协同仅操作者恢复，队友抑制
+            if (allowPositionRestore)
+                ignoreMove = false;
+            else
+                ignoreMove = GlobalInfo.IsExamMode() || !IsCurrentOperationExecutor;
             if (index_NowStep < nowFlowSteps.Count - 1)
             {
                 index_NowStep += 1;

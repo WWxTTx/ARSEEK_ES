@@ -592,6 +592,38 @@ public class UISmallSceneOperationHistory : UIModuleBase
                 if (opMsg.createHistoryItem && canCreateHistoryItem)
                 {
                     Debug.Log("操作记录，当前操作得分：" + opMsg.score);
+
+                    // 多人考核模式：检查操作记录序号连续性
+                    if (GlobalInfo.isExam && ((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id)
+                    {
+                        int expectedIndex = opRecords.Count;
+                        int receivedIndex = opMsg.opIndex >= 0 ? opMsg.opIndex : expectedIndex;
+
+                        // 如果收到的序号和本地预期不一致，说明本地记录缺失，需要重新同步
+                        if (receivedIndex != expectedIndex)
+                        {
+                            Debug.LogWarning($"[操作记录同步] 序号不连续：期望 {expectedIndex}，收到 {receivedIndex}，触发重新同步");
+                            var examPanel = UnityEngine.Object.FindObjectOfType<ExamCoursePanel>();
+                            if (examPanel != null)
+                            {
+                                // 异步重新获取考核记录并恢复
+                                examPanel.RefreshExamOpHistoryAsync(answerOp =>
+                                {
+                                    if (answerOp != null)
+                                    {
+                                        var ctrl = UnityEngine.Object.FindObjectOfType<SmallFlowCtrl>();
+                                        if (ctrl != null)
+                                        {
+                                            ctrl.SetExamModelStateData(answerOp);
+                                            Debug.Log($"[操作记录同步] 已重新同步，操作记录数：{answerOp.operations?.Count ?? 0}");
+                                        }
+                                    }
+                                });
+                            }
+                            return;
+                        }
+                    }
+
                     ProcessMsg(opRecords.Count, opMsg.userNo, opMsg.userName, opMsg.opHint, opMsg.createTime, opMsg.opType, opMsg.score, opMsg.totalStepIndex);
                 }
                 break;

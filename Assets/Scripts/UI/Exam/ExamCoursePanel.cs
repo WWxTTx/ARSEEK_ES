@@ -573,12 +573,23 @@ public partial class ExamCoursePanel : OPLCoursePanel
                     score = data.score,
                     totalStepIndex = data.totalStepIndex
                 }).ToList();
+
+                // 调用回调函数，传递 answerOp 给调用者
+                answerOpCallBack?.Invoke(answerOp);
             }
+            else
+            {
+                answerOpCallBack?.Invoke(null);
+            }
+
+            UIManager.Instance.HideUI<LoadingPanel>();
         };
 
         UnityAction<string> error = errorMsg =>
         {
             UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("考核记录获取失败"));
+            answerOpCallBack?.Invoke(null);
+            UIManager.Instance.HideUI<LoadingPanel>();
         };
 
         try
@@ -596,6 +607,8 @@ public partial class ExamCoursePanel : OPLCoursePanel
         catch
         {
             UIManager.Instance.OpenModuleUI<ToastPanel>(this, UILevel.PopUp, new ToastPanelInfo("网络超时，同步记录获取失败"));
+            answerOpCallBack?.Invoke(null);
+            UIManager.Instance.HideUI<LoadingPanel>();
         }
     }
 
@@ -712,11 +725,11 @@ public partial class ExamCoursePanel : OPLCoursePanel
 
         Log.Debug($"考核重连恢复进度 flow:{flow} step:{step} partialOps:{partialCompletedOps.Count}");
 
+        smallSceneModule.smallFlowCtrl.ignoreMove = false;
         //同步操作对象状态 恢复步骤
         if (step == -1)
         {
             //停留在第一个步骤且未完成：恢复到首步，补回已完成的部分 op（首步未完成，不能 Next）
-            SmallFlowCtrl.ignoreMove = false;
             smallSceneModule.smallFlowCtrl.SelectStep(flow, 0, false, savedAnswer);
             if (partialCompletedOps.Count > 0)
             {
@@ -725,10 +738,9 @@ public partial class ExamCoursePanel : OPLCoursePanel
         }
         else
         {
-            SmallFlowCtrl.ignoreMove = false;
             smallSceneModule.smallFlowCtrl.SelectStep(flow, step, false, savedAnswer);
             //历史是已完成的，需要操作的是下一步
-            smallSceneModule.smallFlowCtrl.Next();
+            smallSceneModule.smallFlowCtrl.Next(allowPositionRestore: true);
 
             // 恢复新步骤中部分完成的操作（Next会触发ClearCompletedOps，所以在此之后恢复）
             if (partialCompletedOps.Count > 0)

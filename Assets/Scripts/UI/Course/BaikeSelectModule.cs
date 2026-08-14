@@ -18,6 +18,9 @@ public class BaikeSelectModule : UIModuleBase
     private Text Page;
     private Button Collapse;
 
+    private bool isExpanded;
+    public bool IsExpanded => isExpanded;
+
     private ModuleAutoSleep autoSleep;
     private RectTransform closeArrow;
     private float closeArrowDefaultZ;
@@ -98,6 +101,9 @@ public class BaikeSelectModule : UIModuleBase
         Background = this.GetComponentByChildName<RectTransform>("Background");
         Page = this.GetComponentByChildName<Text>("Page");
         Collapse = this.GetComponentByChildName<Button>("Collapse");
+#if UNITY_ANDROID || UNITY_IOS
+        Collapse = this.GetComponentByChildName<Button>("Close");
+#endif
         BaikeScroll = this.GetComponentByChildName<ScrollRect>("ScrollView");
         Content = BaikeScroll.content;
         TextureItem = BaikeScroll.FindChildByName("TextureItem").gameObject;
@@ -116,10 +122,10 @@ public class BaikeSelectModule : UIModuleBase
 
         Collapse.onClick.AddListener(() =>
         {
-            if (arrowFlipped)
+            if (isExpanded)
                 SendMsg(new MsgBase((ushort)BaikeSelectModuleEvent.Hide));
             else
-                JoinAnim(null);
+                OpenModule();
         });
     }
 
@@ -335,7 +341,7 @@ public class BaikeSelectModule : UIModuleBase
                 Page.text = $"{headerPrefix}{CurrentBaikeIndex + 1}/{ GlobalInfo.currentWikiList.Count}";
                 break;
             case (ushort)BaikeSelectModuleEvent.Hide:
-                ExitAnim(null);
+                HideModule();
                 break;
         }
     }
@@ -349,12 +355,13 @@ public class BaikeSelectModule : UIModuleBase
     protected override float exitAnimePlayTime => 0.2f;
 #endif
 
-    public override void JoinAnim(UnityAction callback)
+    private void OpenModule()
     {
+        isExpanded = true;
 #if UNITY_ANDROID || UNITY_IOS
-        JoinSequence.Join(Background.DOAnchorPos3DX(0f, JoinAnimePlayTime));
+        JoinSequence.Join(Background.DOAnchorPos3DX(0f, joinAnimePlayTime));
 #else
-        JoinSequence.Join(Background.DOAnchorPos3DX(44f, JoinAnimePlayTime));
+        JoinSequence.Join(Background.DOAnchorPos3DX(44f, joinAnimePlayTime));
 #endif
 #if UNITY_ANDROID || UNITY_IOS
         if (autoSleep != null) autoSleep.Activate();
@@ -365,20 +372,31 @@ public class BaikeSelectModule : UIModuleBase
         SendMsg(new MsgBase((ushort)OperationListEvent.Hide));
         SendMsg(new MsgBase((ushort)HistoryEvent.Hide));
         ShowCloseHideOthers();
-        base.JoinAnim(callback);
     }
 
-    public override void ExitAnim(UnityAction callback)
+    public void HideModule()
     {
+        isExpanded = false;
 #if UNITY_ANDROID || UNITY_IOS
         if (autoSleep != null) autoSleep.Deactivate();
 #endif
         FlipArrow(false);
 #if UNITY_ANDROID || UNITY_IOS
-        ExitSequence.Join(Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, true, -10f), ExitAnimePlayTime));
+        Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, true, -10f), exitAnimePlayTime);
 #else
-        ExitSequence.Join(Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, false), ExitAnimePlayTime));
+        Background.DOAnchorPos3DX(ModuleSlideUtility.GetCollapsedBackgroundX(Background, closeArrow, false), exitAnimePlayTime);
 #endif
+    }
+
+    public override void JoinAnim(UnityAction callback)
+    {
+        OpenModule();
+        base.JoinAnim(callback);
+    }
+
+    public override void ExitAnim(UnityAction callback)
+    {
+        HideModule();
         base.ExitAnim(callback);
     }
 

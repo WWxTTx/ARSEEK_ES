@@ -240,6 +240,7 @@ public class ExamTrainingPanel : UIPanelBase
                 // 考核已结束，不显示重连弹窗
                 if (item.Status == 3)
                 {
+                    ExamUtility.Instance.DeleteParticipantExamCache(item.Uuid);
                     GlobalInfo.ClearCachedRoom();
                     continue;
                 }
@@ -256,26 +257,65 @@ public class ExamTrainingPanel : UIPanelBase
                     continue;
                 }
 
-                Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
-                popupDic.Add("是", new PopupButtonData(() =>
+                // 验证缓存的考核ID是否仍然有效（判断是否被强制结束或是否是新的考核）
+                int cachedExamId = ExamUtility.Instance.GetParticipantExamId(item.Uuid);
+                if (cachedExamId > 0)
                 {
-                    creatingRoom = false;
-                    GlobalInfo.currentCourseID = item.CourseId;
-                    JoinRoom(item.Uuid, item.Password);
-                }, true));
-                popupDic.Add("否", new PopupButtonData(() =>
+                    RequestManager.Instance.GetExamResultList(cachedExamId, (list) =>
+                    {
+                        // 考核ID无效（被强制结束或房间开启了新考核），清理缓存
+                        if (list == null || list.records == null || list.records.Count == 0)
+                        {
+                            Log.Debug($"[ExamTrainingPanel] 考核[{cachedExamId}]服务端无记录，清理缓存");
+                            ExamUtility.Instance.DeleteParticipantExamCache(item.Uuid);
+                            GlobalInfo.ClearCachedRoom();
+                            Dictionary<string, PopupButtonData> endedPopupDic = new Dictionary<string, PopupButtonData>();
+                            endedPopupDic.Add("确定", new PopupButtonData(null, true));
+                            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "您上次参与的考核已结束", endedPopupDic, null, false));
+                            return;
+                        }
+
+                        // 考核ID有效，显示重连弹窗
+                        ShowReconnectPopup(item);
+                    }, (error) =>
+                    {
+                        Log.Error($"[ExamTrainingPanel] 获取考核[{cachedExamId}]列表失败：{error}，默认允许重连");
+                        // 网络错误时使用本地时间判断兜底
+                        ShowReconnectPopup(item);
+                    });
+                }
+                else
                 {
+                    // 没有考核ID缓存，清理
+                    Log.Warning($"[ExamTrainingPanel] 房间[{item.Uuid}]有CachedRoom标记但无考核ID，清理缓存");
                     GlobalInfo.ClearCachedRoom();
-                }));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？", popupDic, null, false));
+                }
             }
         }
 
         // 缓存房间已不在列表中（被删除等），清除残留缓存
         if (!foundCached && PlayerPrefs.HasKey(GlobalInfo.CachedRoom))
         {
+            ExamUtility.Instance.DeleteParticipantExamCache(PlayerPrefs.GetString(GlobalInfo.CachedRoom));
             GlobalInfo.ClearCachedRoom();
         }
+    }
+
+    private void ShowReconnectPopup(RoomInfoModel room)
+    {
+        Dictionary<string, PopupButtonData> popupDic = new Dictionary<string, PopupButtonData>();
+        popupDic.Add("是", new PopupButtonData(() =>
+        {
+            creatingRoom = false;
+            GlobalInfo.currentCourseID = room.CourseId;
+            JoinRoom(room.Uuid, room.Password);
+        }, true));
+        popupDic.Add("否", new PopupButtonData(() =>
+        {
+            ExamUtility.Instance.DeleteParticipantExamCache(room.Uuid);
+            GlobalInfo.ClearCachedRoom();
+        }));
+        UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "检测到您上次异常退出，是否要进入房间？", popupDic, null, false));
     }
 
     /// <summary>
@@ -419,8 +459,8 @@ public class ExamTrainingPanel : UIPanelBase
 
         if (info.AllowIn)
         {
-            //非房主且无有效考核缓存不能加入考核中的房间
-            if (info.creatorId != GlobalInfo.account.id && !GlobalInfo.IsCachedRoom(info.Uuid) && ExamUtility.Instance.GetParticipantExamId(info.Uuid) <= 0)
+            //非房主且无有效考核缓存不能加入考核中的房间（备课管理员除外）
+            if (info.creatorId != GlobalInfo.account.id && !GlobalInfo.account.courseManager && !GlobalInfo.IsCachedRoom(info.Uuid) && ExamUtility.Instance.GetParticipantExamId(info.Uuid) <= 0)
             {
                 inExam.onClick.RemoveAllListeners();
                 inExam.onClick.AddListener(() => UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo("正在考核中，不能进入")));
@@ -480,7 +520,7 @@ public class ExamTrainingPanel : UIPanelBase
                 return;
             }
 
-            if (room.Status == 2 && room.creatorId != GlobalInfo.account.id && !GlobalInfo.IsCachedRoom(room.Uuid) && ExamUtility.Instance.GetParticipantExamId(room.Uuid) <= 0)
+            if (room.Status == 2 && room.creatorId != GlobalInfo.account.id && !GlobalInfo.account.courseManager && !GlobalInfo.IsCachedRoom(room.Uuid) && ExamUtility.Instance.GetParticipantExamId(room.Uuid) <= 0)
             {
                 UIManager.Instance.OpenModuleUI<ToastPanel>(null, UILevel.PopUp, new ToastPanelInfo("正在考核中，不能进入"));
                 return;
@@ -497,13 +537,21 @@ public class ExamTrainingPanel : UIPanelBase
                         Log.Error($"删除房间失败 {msg}");
                     });
                 }, false));
-                popupDic.Add("进入", new PopupButtonData(() =>
+                //考核进行中的房间，非房主（备课管理员）不允许进入，只能解散
+                if (room.Status == 2 && room.creatorId != GlobalInfo.account.id)
                 {
-                    
-                    JoinRoom(uuid, room.Password);
-                    GlobalInfo.currentCourseID = room.CourseId;
-                }, true));
-                UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "进入或者解散房间？", popupDic));
+                    popupDic.Add("取消", new PopupButtonData(null, true));
+                    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "正在考核中，是否解散该房间？", popupDic));
+                }
+                else
+                {
+                    popupDic.Add("进入", new PopupButtonData(() =>
+                    {
+                        JoinRoom(uuid, room.Password);
+                        GlobalInfo.currentCourseID = room.CourseId;
+                    }, true));
+                    UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "进入或者解散房间？", popupDic));
+                }
             }
             //无需密码的房间 直接加入
             else if (!roomInfos[uuid].NeedPwd)

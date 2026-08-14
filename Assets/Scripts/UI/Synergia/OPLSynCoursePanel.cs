@@ -387,7 +387,7 @@ public class OPLSynCoursePanel : OPLCoursePanel
                 UISmallSceneModule smallSceneModule = mdoe as UISmallSceneModule;
                 if (smallSceneModule != null && smallSceneModule.smallFlowCtrl != null)
                 {
-                    SmallFlowCtrl.ignoreMove = false;
+                    smallSceneModule.smallFlowCtrl.ignoreMove = false;
                     smallSceneModule.smallFlowCtrl.SelectStep(0, 0, false);
                 }
                 break;

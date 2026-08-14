@@ -79,6 +79,10 @@ public class UISmallSceneModule : UIModuleBase
     public BaseSimuSystem simuSystem;
     public BaseMasterComputer masterComputer;
     /// <summary>
+    /// 隐藏状态的特殊模型名称配置
+    /// </summary>
+    private HiddenStatusModelNames hiddenStatusConfig;
+    /// <summary>
     /// 手机版滑动视野方向的射线接收
     /// </summary>
     public Image RoteInput;
@@ -535,6 +539,15 @@ public class UISmallSceneModule : UIModuleBase
         simuSystem = ModelManager.Instance.modelGo.GetComponentInChildren<BaseSimuSystem>();
         masterComputer = ModelManager.Instance.modelGo.GetComponentInChildren<BaseMasterComputer>(true);
 
+        // 从Resources或AB包加载隐藏状态配置
+        hiddenStatusConfig = Resources.Load<HiddenStatusModelNames>("Config/HiddenStatusModelNames");
+        if (hiddenStatusConfig == null)
+        {
+            Log.Warning("未找到HiddenStatusModelNames配置，使用默认配置");
+            hiddenStatusConfig = ScriptableObject.CreateInstance<HiddenStatusModelNames>();
+            hiddenStatusConfig.keywords = new List<string> { "开度给定" };
+        }
+
         SmallSceneData data = uiData as SmallSceneData;
         smallFlowCtrl.Init(data.flows);
         //目前是手动网页上传，不需要在代码中自动上传
@@ -930,10 +943,10 @@ public class UISmallSceneModule : UIModuleBase
             //必须从已解析的 rayResult 取 ModelInfo，否则会取到命中物体自身父级上的错误 ModelInfo。
             var hitModelInfo = rayResult.GetComponent<ModelInfo>();
             string modelName = hitModelInfo?.Name;
-            //特殊 开度旋钮没有状态
-            bool isKdxn = modelName.Contains("开度给定");
+            //特殊处理：部分模型不显示状态（通过配置文件定义）
+            bool shouldHideStatus = hiddenStatusConfig != null && hiddenStatusConfig.ShouldHideStatus(modelName);
             bool isSwitch = hitModelInfo?.InfoData?.InteractMode == InteractMode.Switch;
-            if (isSwitch && !isKdxn)
+            if (isSwitch && !shouldHideStatus)
             {
                     Focus.GetComponentInChildren<Text>().text = $"<color=#D0D0D0>名称：</color>{modelName}\n<color=#D0D0D0>状态：</color>{modelOperation_Highlight.currentState}";
             }
@@ -1570,7 +1583,7 @@ public class UISmallSceneModule : UIModuleBase
                     UIManager.Instance.CloseUI<PopupPanel>();
 
                 //协同跳步骤：仅点击者自己执行导航，被同步方跳过导航
-                SmallFlowCtrl.ignoreMove = GlobalInfo.isCooperation && ((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id;
+                smallFlowCtrl.ignoreMove = GlobalInfo.isCooperation && ((MsgBrodcastOperate)msg).senderId != GlobalInfo.account.id;
                 // 接收任务进度跳转消息，执行流程和步骤的切换
                 MsgStringTuple<int, int, string> msgStringTuple = ((MsgBrodcastOperate)msg).GetData<MsgStringTuple<int, int, string>>();
                 smallFlowCtrl.SelectStep(msgStringTuple.arg2.Item1, msgStringTuple.arg2.Item2, !GlobalInfo.isExam);
@@ -1614,7 +1627,7 @@ public class UISmallSceneModule : UIModuleBase
                     //用于同步过程中，又有新操作导致的错误 恢复
                     if (receivedFlow != smallFlowCtrl.index_NowFlow || receivedStep != smallFlowCtrl.index_NowStep)
                     {
-                        SmallFlowCtrl.ignoreMove = true;
+                        smallFlowCtrl.ignoreMove = true;
                         smallFlowCtrl.SelectStep(receivedFlow, receivedStep, !GlobalInfo.isExam);
                         Log.Debug("执行跳步骤 任务选中" + receivedFlow + "步骤选中" + receivedStep);
                         toolModule.SchematicPanel.HideView();
@@ -1668,7 +1681,7 @@ public class UISmallSceneModule : UIModuleBase
                     {
                         ((PopupPanel)popup).CloseButton.onClick?.Invoke();
                     }
-                    SmallFlowCtrl.ignoreMove = ((MsgBrodcastOperate)msg).GetData<MsgBool>().arg1;
+                    smallFlowCtrl.ignoreMove = ((MsgBrodcastOperate)msg).GetData<MsgBool>().arg1;
                 }
                 break;
             case (ushort)SmallFlowModuleEvent.ClickObj:

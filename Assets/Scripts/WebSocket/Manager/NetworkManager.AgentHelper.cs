@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityFramework.Runtime;
+using static UnityFramework.Runtime.RequestData;
 using static UnityFramework.Runtime.ServiceRequestData;
 
 /// <summary>
@@ -451,6 +452,45 @@ public partial class NetworkManager : Singleton<NetworkManager>, INetworkManager
                 UISmallSceneModule uiModule = UIManager.Instance.canvas.GetComponentInChildren<UISmallSceneModule>(true);
                 if (uiModule != null)
                     uiModule.RefreshHighlight();
+            }
+
+            // 多人考核模式：恢复模型状态（从后端获取考核记录）
+            if (GlobalInfo.isExam && IsIMSyncState)
+            {
+                SmallFlowCtrl ctrl = model.GetComponent<SmallFlowCtrl>();
+                if (ctrl != null)
+                {
+                    var examPanel = UnityEngine.Object.FindObjectOfType<ExamCoursePanel>();
+                    if (examPanel != null)
+                    {
+                        UIManager.Instance.OpenUI<LoadingPanel>();
+
+                        // 使用 UniTaskCompletionSource 等待异步回调完成
+                        var completionSource = new UniTaskCompletionSource<AnswerOp>();
+                        examPanel.RefreshExamOpHistoryAsync(answerOp => completionSource.TrySetResult(answerOp));
+
+                        // 等待考核记录获取完成
+                        AnswerOp result = await completionSource.Task;
+
+                        if (result != null)
+                        {
+                            ctrl.SetExamModelStateData(result);
+                            Debug.Log($"[多人考核重连] 已恢复模型状态，操作记录数：{result.operations?.Count ?? 0}");
+
+                            // 等待1秒确保所有同步步骤完成，再关闭loading
+                            await UniTask.Delay(1000);
+                            UIManager.Instance.HideUI<LoadingPanel>();
+                        }
+                        else
+                        {
+                            UIManager.Instance.HideUI<LoadingPanel>();
+                            Debug.LogWarning("[多人考核重连] 获取考核记录失败或为空");
+                            var popupDic = new Dictionary<string, PopupButtonData>();
+                            popupDic.Add("确定", new PopupButtonData(null, true));
+                            UIManager.Instance.OpenUI<PopupPanel>(UILevel.PopUp, new UIPopupData("提示", "考核记录同步失败，场景状态可能不正确，请联系监考老师", popupDic));
+                        }
+                    }
+                }
             }
         }
 

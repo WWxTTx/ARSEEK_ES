@@ -870,11 +870,16 @@ public class PlayerController : MonoBase
         switch (msg.msgId)
         {
             case (ushort)SmallFlowModuleEvent.StartExecute:
-                modelFollowPaused = true;
-                animationOverridden = true;
-                Model.transform.SetParent(transform);
-                Model.transform.localPosition = Vector3.zero;
-                Model.transform.localEulerAngles = Vector3.zero;
+                var msgStringBool = msg as MsgStringBool;
+                // 只有自己操作时才接管动画控制（多人模式下其他人操作时不影响本角色动画）
+                if (msgStringBool != null && msgStringBool.arg2)
+                {
+                    modelFollowPaused = true;
+                    animationOverridden = true;
+                    Model.transform.SetParent(transform);
+                    Model.transform.localPosition = Vector3.zero;
+                    Model.transform.localEulerAngles = Vector3.zero;
+                }
                 break;
             case (ushort)SmallFlowModuleEvent.SelectFlow:
             case (ushort)SmallFlowModuleEvent.SelectStep:
@@ -892,6 +897,17 @@ public class PlayerController : MonoBase
     protected override void OnDestroy()
     {
         base.OnDestroy();
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        // 失去焦点时立即停止动画，避免位移停止但动画继续播放
+        if (!hasFocus && animIsMoving)
+        {
+            animIsMoving = false;
+            if (animator != null)
+                animator.SetBool("isMove", false);
+        }
     }
 
 }

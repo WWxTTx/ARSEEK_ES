@@ -488,9 +488,8 @@ public class TrainingPanel : UIPanelBase
         Button UpdateBtn = item.GetComponentByChildName<Button>("Update");
         Transform DownloadTrans = item.FindChildByName("Download");
         if (UpdateBtn == null || DownloadTrans == null) return;
-        Text DownloadText = DownloadTrans.GetComponentInChildren<Text>();
 
-        if (result == 0 || GlobalInfo.account.id == roomInfo.creatorId)
+        if (result == 0)
         {
             UpdateBtn.gameObject.SetActive(false);
             DownloadTrans.gameObject.SetActive(false);
@@ -511,37 +510,47 @@ public class TrainingPanel : UIPanelBase
             }
 
             UpdateBtn.onClick.RemoveAllListeners();
-            UpdateBtn.onClick.AddListener(() =>
-            {
-                if (GlobalInfo.isOffLine)
-                {
-                    ToolManager.PleaseOnline();
-                    return;
-                }
-
-                downloader.UpdateDownloadingCount(roomInfo.CourseId);
-
-                DownloadText.text = "下载中 0%";
-                DownloadTrans.gameObject.SetActive(true);
-                UpdateBtn.gameObject.SetActive(false);
-
-                var downloadBackGround = DownloadTrans.GetChild(0);
-                {
-                    downloadBackGround.localScale = Vector3.zero;
-                    DownloadText.SetAlpha(0);
-
-                    DOTween.Sequence()
-                    .Append(downloadBackGround.DOScale(Vector3.one, 0.2f))
-                    .AppendInterval(0.1f)
-                    .Append(DownloadText.DOFade(1, 0.3f));
-                }
-
-                downloader.AddABPackTask(roomInfo.CourseId, data, DownloadText, DownloadTrans, UpdateBtn, null);
-            });
+            UpdateBtn.onClick.AddListener(() => StartDownload(item, roomInfo, data));
 
             DownloadTrans.gameObject.SetActive(false);
             UpdateBtn.gameObject.SetActive(true);
         }
+    }
+
+    /// <summary>
+    /// 直接开始下载课程资源并在列表项上显示进度
+    /// </summary>
+    private void StartDownload(Transform roomItem, RoomInfoModel roomInfo, List<CourseABPackage> data)
+    {
+        Button UpdateBtn = roomItem.GetComponentByChildName<Button>("Update");
+        Transform DownloadTrans = roomItem.FindChildByName("Download");
+        if (UpdateBtn == null || DownloadTrans == null) return;
+        Text DownloadText = DownloadTrans.GetComponentInChildren<Text>();
+
+        if (GlobalInfo.isOffLine)
+        {
+            ToolManager.PleaseOnline();
+            return;
+        }
+
+        downloader.UpdateDownloadingCount(roomInfo.CourseId);
+
+        DownloadText.text = "下载中 0%";
+        DownloadTrans.gameObject.SetActive(true);
+        UpdateBtn.gameObject.SetActive(false);
+
+        var downloadBackGround = DownloadTrans.GetChild(0);
+        {
+            downloadBackGround.localScale = Vector3.zero;
+            DownloadText.SetAlpha(0);
+
+            DOTween.Sequence()
+            .Append(downloadBackGround.DOScale(Vector3.one, 0.2f))
+            .AppendInterval(0.1f)
+            .Append(DownloadText.DOFade(1, 0.3f));
+        }
+
+        downloader.AddABPackTask(roomInfo.CourseId, data, DownloadText, DownloadTrans, UpdateBtn, null);
     }
 
     /// <summary>
@@ -563,9 +572,8 @@ public class TrainingPanel : UIPanelBase
         if (joiningRoom) return;
         if (!roomInfos.ContainsKey(uuid)) return;
 
-        //检查课程资源是否已下载（房主无需检查）
+        //检查课程资源是否已下载（无论是谁都需下载）
         if (roomInfos[uuid].CourseId > 0 &&
-            roomInfos[uuid].creatorId != GlobalInfo.account.id &&
             downloader.CourseNeedUpdate.Contains(roomInfos[uuid].CourseId))
         {
             if (ResourcesDownloader.DownloadingCount > 0)
@@ -579,11 +587,10 @@ public class TrainingPanel : UIPanelBase
                 {
                     if (this == null) return;
                     Transform roomItem = LiveScrollView.content.FindChildByName(uuid);
-                    if (roomItem != null)
+                    if (roomItem != null &&
+                        GlobalInfo.courseABDic.TryGetValue(roomInfos[uuid].CourseId, out List<CourseABPackage> data))
                     {
-                        Button UpdateBtn = roomItem.GetComponentByChildName<Button>("Update");
-                        if (UpdateBtn != null && UpdateBtn.gameObject.activeSelf)
-                            UpdateBtn.onClick.Invoke();
+                        StartDownload(roomItem, roomInfos[uuid], data);
                     }
                 }, true));
                 popupDic.Add("取消", new PopupButtonData(null));

@@ -710,7 +710,6 @@
     <Compile Include="Assets\Scripts\Model\Base\ModelZoom.cs" />
     <Compile Include="Assets\SDK\DatePicker\TimePicker.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\util\date\DateTimeObject.cs" />
-    <Compile Include="Assets\Scripts\General\Tool\IniFile.cs" />
     <Compile Include="Assets\Scripts\WebSocket\Base\BestHTTP\SecureProtocol\math\raw\Nat512.cs" />
     <Compile Include="Assets\Scripts\UI\Course\SmallScene\UIOperation\ImageViewerIndicator.cs" />
     <Compile Include="Assets\SDK\Vuplex\WebView\Core\Scripts\ConsoleMessageLevel.cs" />
